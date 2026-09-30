@@ -1,0 +1,2832 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <script>
+    (function () {
+      const p = new URLSearchParams(window.location.search);
+      const view = String(p.get('view') || '').toLowerCase();
+      const room = String(p.get('room') || '').toLowerCase();
+      if (view === 'teacher') {
+        window.location.replace('teacher.html' + (room ? '?room=' + encodeURIComponent(room) : ''));
+      } else if (view === 'admin') {
+        window.location.replace('admin.html');
+      }
+    })();
+  </script>
+
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #b3261e;
+      color: #222;
+      min-height: 100vh;
+      transition: background-color .25s;
+    }
+
+    body.page-open {
+      background: #16863a;
+    }
+
+    body.page-closed {
+      background: #b3261e;
+    }
+
+    body.page-test {
+      background: #6a1b9a;
+    }
+
+    #statusBar {
+      padding: 22px;
+      text-align: center;
+      color: white;
+      font-size: 32px;
+      font-weight: bold;
+      transition: background-color .25s;
+    }
+
+    .open {
+      background: #16863a;
+    }
+
+    .closed {
+      background: #b3261e;
+    }
+
+    .test {
+      background: #6a1b9a;
+    }
+
+    #scheduleMode {
+      display: block;
+      margin-top: 6px;
+      font-size: 18px;
+      font-weight: normal;
+    }
+
+    #statusDetail {
+      display: block;
+      margin-top: 6px;
+      font-size: 20px;
+      font-weight: normal;
+    }
+
+    #statusTimer {
+      display: block;
+      margin-top: 8px;
+      font-size: 28px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    input,
+    select {
+      font-size: 24px;
+      padding: 14px;
+      border: 2px solid #bbb;
+      border-radius: 8px;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    button {
+      font-size: 19px;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: opacity .15s, transform .05s;
+    }
+
+    button:active {
+      transform: scale(.97);
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .primary {
+      background: #1f5ea8;
+      color: white;
+    }
+
+    .go {
+      background: #16863a;
+      color: white;
+    }
+
+    .cancel {
+      background: #b3261e;
+      color: white;
+    }
+
+    .return {
+      background: #1f5ea8;
+      color: white;
+    }
+
+    .teacher {
+      background: #6a1b9a;
+      color: white;
+    }
+
+    .secondary {
+      background: #ddd;
+      color: #222;
+    }
+
+    .buttonRow {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .studentConfirm {
+      font-size: 28px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+
+    .message {
+      margin-top: 12px;
+      min-height: 30px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .message.processing {
+      color: #8a6500;
+    }
+
+    .message.success {
+      color: #146c2e;
+      font-size: 24px;
+    }
+
+    .message.error {
+      color: #b3261e;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 13px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+      font-size: 18px;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #e8eef5;
+    }
+
+    .timer-warning {
+      font-weight: bold;
+      background: #fff3cd;
+    }
+
+    .timer-danger {
+      font-weight: bold;
+      background: #f8d7da;
+    }
+
+    .approvalTag {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 3px 7px;
+      border-radius: 8px;
+      background: #efe5f5;
+      color: #5e187b;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    @media (max-width: 700px) {
+      #statusBar {
+        font-size: 24px;
+      }
+
+      #scheduleMode {
+        font-size: 15px;
+      }
+
+      #statusDetail {
+        font-size: 16px;
+      }
+
+      #statusTimer {
+        font-size: 22px;
+      }
+
+      th,
+      td {
+        font-size: 14px;
+        padding: 8px;
+      }
+
+      button {
+        font-size: 15px;
+        padding: 9px 11px;
+      }
+
+      input,
+      select {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+
+
+<body>
+
+  <div id="statusBar" class="closed">
+
+    <span id="statusMain">
+      Loading Hall Pass...
+    </span>
+
+    <span id="scheduleMode"></span>
+
+    <span id="statusDetail"></span>
+
+    <span id="statusTimer"></span>
+
+  </div>
+
+
+  <div class="container">
+
+    <div class="card">
+
+      <h2>Request a Hall Pass</h2>
+
+      <div id="idStep">
+
+        <input
+          id="studentId"
+          type="text"
+          inputmode="numeric"
+          autocomplete="off"
+          placeholder="Enter Student ID"
+        >
+
+        <button
+          id="continueButton"
+          class="primary"
+          onclick="lookupStudent()"
+        >
+          Continue
+        </button>
+
+      </div>
+
+
+      <div
+        id="confirmStep"
+        class="hidden"
+      >
+
+        <div
+          id="confirmName"
+          class="studentConfirm"
+        ></div>
+
+        <p>Is this you?</p>
+
+        <div class="buttonRow">
+
+          <button
+            class="go"
+            onclick="confirmStudent()"
+          >
+            YES
+          </button>
+
+          <button
+            class="secondary"
+            onclick="resetForm()"
+          >
+            NO
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div
+        id="destinationStep"
+        class="hidden"
+      >
+
+        <div
+          id="selectedStudent"
+          class="studentConfirm"
+        ></div>
+
+        <select id="destination">
+
+          <option value="">
+            Choose Location
+          </option>
+
+        </select>
+
+        <div class="buttonRow">
+
+          <button
+            id="requestButton"
+            class="primary"
+            onclick="submitRequest()"
+          >
+            Request Pass
+          </button>
+
+          <button
+            class="secondary"
+            onclick="resetForm()"
+          >
+            Cancel
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div
+        id="message"
+        class="message"
+      ></div>
+
+    </div>
+
+
+    <div class="card">
+
+      <h2>Waiting List</h2>
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Requested</th>
+            <th>Go</th>
+            <th>Cancel</th>
+          </tr>
+
+        </thead>
+
+        <tbody id="waitingBody"></tbody>
+
+      </table>
+
+    </div>
+
+
+    <div class="card">
+
+      <h2>Students Out</h2>
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Time Out</th>
+            <th>Time Gone</th>
+            <th></th>
+          </tr>
+
+        </thead>
+
+        <tbody id="outBody"></tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+
+  <script src="config.js"></script>
+  <script src="api-shim.js"></script>
+
+  <script>
+
+    let currentStudent = null;
+    let pageState = null;
+
+    let liveRefreshRunning = false;
+    let actionRunning = false;
+
+    let requestSequence = 0;
+    let latestAcceptedSequence = 0;
+
+
+    /* =====================================================
+       INITIAL LOAD
+    ===================================================== */
+
+    function loadInitialState() {
+
+      const mySequence =
+        ++requestSequence;
+
+      google.script.run
+        .withSuccessHandler(
+          function(state) {
+
+            if (
+              mySequence <
+              latestAcceptedSequence
+            ) {
+              return;
+            }
+
+            latestAcceptedSequence =
+              mySequence;
+
+            pageState =
+              state;
+
+            renderStatus(
+              state.schedule
+            );
+
+            renderDestinations(
+              state.destinations
+            );
+
+            renderWaiting(
+              state.waiting
+            );
+
+            renderOut(
+              state.out
+            );
+
+          }
+        )
+        .withFailureHandler(
+          showError
+        )
+        .getPageState();
+    }
+
+
+    /* =====================================================
+       LIVE BACKGROUND REFRESH
+    ===================================================== */
+
+    function refreshLiveState() {
+
+      if (
+        liveRefreshRunning ||
+        actionRunning
+      ) {
+
+        // Never let the background refresh loop die just because
+        // a refresh or student action is already in progress.
+        scheduleNextLiveRefresh();
+        return;
+      }
+
+      liveRefreshRunning =
+        true;
+
+      const mySequence =
+        ++requestSequence;
+
+      google.script.run
+        .withSuccessHandler(
+          function(state) {
+
+            liveRefreshRunning =
+              false;
+
+            if (
+              mySequence <
+              latestAcceptedSequence
+            ) {
+
+              // This response is stale, but the polling loop still
+              // needs to continue.
+              scheduleNextLiveRefresh();
+              return;
+            }
+
+            latestAcceptedSequence =
+              mySequence;
+
+            if (!pageState) {
+
+              pageState = {
+                settings: {},
+                destinations: [],
+                schedule:
+                  state.schedule,
+                waiting:
+                  state.waiting,
+                out:
+                  state.out
+              };
+
+            }
+
+            const wasOpen =
+              pageState.schedule
+                ? pageState.schedule.isOpen
+                : null;
+
+            pageState.settings =
+              state.settings ||
+              pageState.settings ||
+              {};
+
+            pageState.destinations =
+              state.destinations ||
+              pageState.destinations ||
+              [];
+
+            pageState.schedule =
+              state.schedule;
+
+            pageState.waiting =
+              state.waiting;
+
+            pageState.out =
+              state.out;
+
+            renderStatus(
+              state.schedule
+            );
+
+            renderDestinations(
+              pageState.destinations
+            );
+
+            renderWaiting(
+              state.waiting
+            );
+
+            renderOut(
+              state.out
+            );
+
+            if (
+              wasOpen === false &&
+              state.schedule.isOpen === true &&
+              yesSetting(
+                'Buzzer Enabled'
+              )
+            ) {
+
+              playOpenTone();
+
+            }
+
+            scheduleNextLiveRefresh();
+
+          }
+        )
+        .withFailureHandler(
+          function(error) {
+
+            liveRefreshRunning =
+              false;
+
+            console.error(
+              error
+            );
+
+            scheduleNextLiveRefresh(
+              4000
+            );
+
+          }
+        )
+        .getLiveState();
+    }
+
+
+    /* =====================================================
+       BEGIN ACTION
+    ===================================================== */
+
+    function beginAction() {
+
+      actionRunning =
+        true;
+
+      const actionSequence =
+        ++requestSequence;
+
+      latestAcceptedSequence =
+        actionSequence;
+
+      return actionSequence;
+    }
+
+
+    /* =====================================================
+       STATUS BAR
+    ===================================================== */
+
+    function renderStatus(
+      schedule
+    ) {
+
+      const bar =
+        document.getElementById(
+          'statusBar'
+        );
+
+      const main =
+        document.getElementById(
+          'statusMain'
+        );
+
+      const mode =
+        document.getElementById(
+          'scheduleMode'
+        );
+
+      const detail =
+        document.getElementById(
+          'statusDetail'
+        );
+
+      let scheduleMode =
+        String(
+          schedule.schedule || ''
+        ).trim();
+
+      const emergencyLock = pageState && pageState.settings && String(pageState.settings['Emergency Lock'] || '').toLowerCase() === 'yes';
+
+      const requestButton =
+        document.getElementById(
+          'requestButton'
+        );
+
+      if (emergencyLock) {
+        bar.className = 'closed';
+        document.body.className = 'page-closed';
+        main.textContent = '🔴 HALL PASSES CLOSED';
+        mode.textContent = 'Teacher Emergency Lock';
+        detail.textContent = 'All new pass requests are temporarily closed';
+
+        document
+          .getElementById(
+            'statusTimer'
+          )
+          .textContent = '';
+
+        if (
+          requestButton &&
+          !actionRunning
+        ) {
+          requestButton.disabled =
+            true;
+        }
+
+        return;
+      }
+
+      if (
+        requestButton &&
+        !actionRunning
+      ) {
+        requestButton.disabled =
+          false;
+      }
+
+      if (
+        schedule.testMode
+      ) {
+        scheduleMode =
+          'Test Mode';
+      }
+
+      mode.textContent =
+        scheduleMode
+          ? 'Schedule Mode: ' +
+            scheduleMode
+          : '';
+
+
+      if (
+        schedule.testMode
+      ) {
+
+        bar.className =
+          'test';
+
+        document.body.className =
+          'page-test';
+
+        main.textContent =
+          '🧪 TEST MODE — HALL PASSES OPEN';
+
+        detail.textContent =
+          'Testing outside the normal bell schedule';
+
+      }
+
+
+      else if (
+        schedule.isOpen
+      ) {
+
+        bar.className =
+          'open';
+
+        document.body.className =
+          'page-open';
+
+        main.textContent =
+          '🟢 HALL PASSES OPEN';
+
+        detail.textContent =
+          schedule.period
+            ? 'Period ' +
+              schedule.period +
+              ' — Passes open'
+            : 'Passes open';
+
+      }
+
+
+      else {
+
+        bar.className =
+          'closed';
+
+        document.body.className =
+          'page-closed';
+
+        main.textContent =
+          '🔴 HALL PASSES CLOSED';
+
+
+        if (
+          schedule.reason ===
+          'Beginning of class'
+        ) {
+
+          const openingMinutes =
+            getSettingNumber(
+              'Passes Open After Start (Minutes)',
+              10
+            );
+
+          detail.textContent =
+            schedule.period
+              ? 'Period ' +
+                schedule.period +
+                ' — Passes open after the first ' +
+                openingMinutes +
+                ' minutes'
+              : 'Passes currently closed';
+
+        }
+
+
+        else if (
+          schedule.reason ===
+          'End of class'
+        ) {
+
+          const closingMinutes =
+            getSettingNumber(
+              'Passes Close Before End (Minutes)',
+              10
+            );
+
+          detail.textContent =
+            schedule.period
+              ? 'Period ' +
+                schedule.period +
+                ' — Passes closed for final ' +
+                closingMinutes +
+                ' minutes'
+              : 'Passes closed';
+
+        }
+
+
+        else if (
+          schedule.reason ===
+          'Between classes'
+        ) {
+
+          detail.textContent =
+            '';
+
+        }
+
+
+        else {
+
+          detail.textContent =
+            schedule.period
+              ? 'Period ' +
+                schedule.period +
+                ' — ' +
+                schedule.reason
+              : schedule.reason;
+
+        }
+
+      }
+
+      updateHeaderTimer();
+    }
+
+
+    /* =====================================================
+       HEADER COUNTDOWN
+    ===================================================== */
+
+    function updateHeaderTimer() {
+
+      const timer =
+        document.getElementById(
+          'statusTimer'
+        );
+
+      if (
+        !pageState ||
+        !pageState.schedule
+      ) {
+
+        timer.textContent =
+          '';
+
+        return;
+      }
+
+      const schedule =
+        pageState.schedule;
+
+      const emergencyLock =
+        pageState &&
+        pageState.settings &&
+        String(
+          pageState.settings[
+            'Emergency Lock'
+          ] || ''
+        )
+          .trim()
+          .toLowerCase() ===
+        'yes';
+
+      if (
+        emergencyLock
+      ) {
+        timer.textContent =
+          '';
+
+        return;
+      }
+
+      let targetTime =
+        null;
+
+      let label =
+        '';
+
+
+      /*
+        SPECIAL ALWAYS-OPEN TEST MODE
+      */
+      if (
+        schedule.testMode
+      ) {
+
+        timer.textContent =
+          'TEST MODE';
+
+        return;
+      }
+
+
+      /*
+        GREEN PASS WINDOW
+      */
+      if (
+        schedule.isOpen
+      ) {
+
+        targetTime =
+          schedule.closeTime;
+
+        label =
+          'CLOSES IN';
+
+      }
+
+
+      /*
+        FIRST RED WINDOW
+      */
+      else if (
+        schedule.reason ===
+        'Beginning of class'
+      ) {
+
+        targetTime =
+          schedule.openTime;
+
+        label =
+          'OPENS IN';
+
+      }
+
+
+      /*
+        FINAL RED WINDOW
+      */
+      else if (
+        schedule.reason ===
+        'End of class'
+      ) {
+
+        targetTime =
+          schedule.end;
+
+        label =
+          'CLASS ENDS IN';
+
+      }
+
+
+      /*
+        BETWEEN PERIODS
+      */
+      else {
+
+        timer.textContent =
+          'BETWEEN CLASSES';
+
+        return;
+      }
+
+
+      if (
+        !targetTime
+      ) {
+
+        timer.textContent =
+          '';
+
+        return;
+      }
+
+
+      const target =
+        new Date(
+          targetTime
+        ).getTime();
+
+
+      if (
+        !Number.isFinite(
+          target
+        )
+      ) {
+
+        timer.textContent =
+          '';
+
+        return;
+      }
+
+
+      const remaining =
+        Math.max(
+          0,
+          Math.floor(
+            (
+              target -
+              Date.now()
+            ) /
+            1000
+          )
+        );
+
+
+      const minutes =
+        Math.floor(
+          remaining /
+          60
+        );
+
+      const seconds =
+        remaining %
+        60;
+
+
+      timer.textContent =
+        label +
+        ' ' +
+        minutes +
+        ':' +
+        String(
+          seconds
+        ).padStart(
+          2,
+          '0'
+        );
+    }
+
+
+    /* =====================================================
+       DESTINATIONS
+    ===================================================== */
+
+    function renderDestinations(
+      destinations
+    ) {
+
+      const select =
+        document.getElementById(
+          'destination'
+        );
+
+      const currentValue =
+        select.value;
+
+      select.innerHTML =
+        '<option value="">' +
+        'Choose Location' +
+        '</option>';
+
+      destinations
+        .filter(
+          function(destination) {
+
+            return (
+              destination.enabled
+            );
+
+          }
+        )
+        .forEach(
+          function(destination) {
+
+            const option =
+              document.createElement(
+                'option'
+              );
+
+            option.value =
+              destination.name;
+
+            option.textContent =
+              destination.name;
+
+            select.appendChild(
+              option
+            );
+
+          }
+        );
+
+
+      const exists =
+        Array
+          .from(
+            select.options
+          )
+          .some(
+            function(option) {
+
+              return (
+                option.value ===
+                currentValue
+              );
+
+            }
+          );
+
+
+      if (
+        exists
+      ) {
+
+        select.value =
+          currentValue;
+
+      }
+
+    }
+
+
+    /* =====================================================
+       STUDENT LOOKUP
+    ===================================================== */
+
+    function lookupStudent() {
+
+      if (
+        actionRunning
+      ) {
+        return;
+      }
+
+
+      const button =
+        document.getElementById(
+          'continueButton'
+        );
+
+
+      const id =
+        document
+          .getElementById(
+            'studentId'
+          )
+          .value
+          .trim();
+
+
+      if (
+        !id
+      ) {
+
+        setMessage(
+          'Enter your Student ID.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      beginAction();
+
+
+      button.disabled =
+        true;
+
+      button.textContent =
+        'LOOKING UP...';
+
+
+      setMessage(
+        'Looking up Student ID...',
+        'processing'
+      );
+
+
+      google.script.run
+        .withSuccessHandler(
+          function(result) {
+
+            actionRunning =
+              false;
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              'Continue';
+
+
+            if (
+              !result.success
+            ) {
+
+              setMessage(
+                result.message,
+                'error'
+              );
+
+              return;
+            }
+
+
+            currentStudent =
+              result.student;
+
+
+            document
+              .getElementById(
+                'confirmName'
+              )
+              .textContent =
+              result.student.name;
+
+
+            document
+              .getElementById(
+                'idStep'
+              )
+              .classList
+              .add(
+                'hidden'
+              );
+
+
+            document
+              .getElementById(
+                'confirmStep'
+              )
+              .classList
+              .remove(
+                'hidden'
+              );
+
+
+            setMessage('');
+
+          }
+        )
+        .withFailureHandler(
+          function(error) {
+
+            actionRunning =
+              false;
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              'Continue';
+
+            showError(
+              error
+            );
+
+          }
+        )
+        .lookupStudent(
+          id
+        );
+    }
+
+
+    /* =====================================================
+       CONFIRM STUDENT
+    ===================================================== */
+
+    function confirmStudent() {
+
+      document
+        .getElementById(
+          'confirmStep'
+        )
+        .classList
+        .add(
+          'hidden'
+        );
+
+
+      document
+        .getElementById(
+          'destinationStep'
+        )
+        .classList
+        .remove(
+          'hidden'
+        );
+
+
+      document
+        .getElementById(
+          'selectedStudent'
+        )
+        .textContent =
+        currentStudent.name;
+    }
+
+
+    /* =====================================================
+       REQUEST PASS
+    ===================================================== */
+
+    function submitRequest() {
+
+      if (
+        actionRunning
+      ) {
+        return;
+      }
+
+
+      if (
+        !currentStudent
+      ) {
+
+        setMessage(
+          'Please enter your Student ID.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      if (
+        yesSetting(
+          'Emergency Lock'
+        )
+      ) {
+
+        setMessage(
+          'Hall passes are temporarily closed by the teacher.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      const destination =
+        document
+          .getElementById(
+            'destination'
+          )
+          .value;
+
+
+      if (
+        !destination
+      ) {
+
+        setMessage(
+          'Choose a location.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      const button =
+        document.getElementById(
+          'requestButton'
+        );
+
+
+      beginAction();
+
+
+      button.disabled =
+        true;
+
+      button.textContent =
+        'REQUESTING...';
+
+
+      setMessage(
+        'Checking your pass request...',
+        'processing'
+      );
+
+
+      google.script.run
+        .withSuccessHandler(
+          function(result) {
+
+            actionRunning =
+              false;
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              'Request Pass';
+
+
+            if (
+              !result.success
+            ) {
+
+              setMessage(
+                result.message,
+                'error'
+              );
+
+              return;
+            }
+
+
+            if (
+              result.action ===
+              'STARTED'
+            ) {
+
+              setMessage(
+                'PASS STARTED — YOU MAY GO.',
+                'success'
+              );
+
+            }
+
+
+            else if (
+              result.action ===
+              'WAITING'
+            ) {
+
+              setMessage(
+                result.message,
+                'processing'
+              );
+
+            }
+
+
+            else {
+
+              setMessage(
+                result.message
+              );
+
+            }
+
+
+            resetForm(
+              false
+            );
+
+
+            refreshLiveState();
+
+          }
+        )
+        .withFailureHandler(
+          function(error) {
+
+            actionRunning =
+              false;
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              'Request Pass';
+
+            showError(
+              error
+            );
+
+          }
+        )
+        .requestPass(
+          currentStudent.id,
+          destination
+        );
+    }
+
+
+    /* =====================================================
+       START WAITING PASS
+    ===================================================== */
+
+    function goStudent(
+      requestId,
+      requiresApproval,
+      button
+    ) {
+
+      if (
+        actionRunning
+      ) {
+        return;
+      }
+
+
+      let teacherPin =
+        '';
+
+
+      if (
+        requiresApproval
+      ) {
+
+        teacherPin =
+          window.prompt(
+            'Teacher PIN required:'
+          );
+
+
+        if (
+          teacherPin ===
+          null
+        ) {
+          return;
+        }
+
+      }
+
+
+      beginAction();
+
+
+      button.disabled =
+        true;
+
+      button.textContent =
+        'STARTING PASS...';
+
+
+      setMessage(
+        'Checking pass... stay here.',
+        'processing'
+      );
+
+
+      google.script.run
+        .withSuccessHandler(
+          function(result) {
+
+            actionRunning =
+              false;
+
+
+            if (
+              !result.success
+            ) {
+
+              button.disabled =
+                false;
+
+              button.textContent =
+                requiresApproval
+                  ? 'TEACHER GO'
+                  : 'GO';
+
+
+              setMessage(
+                result.message,
+                'error'
+              );
+
+
+              refreshLiveState();
+
+              return;
+            }
+
+
+            setMessage(
+              'PASS STARTED — YOU MAY GO.',
+              'success'
+            );
+
+
+            refreshLiveState();
+
+          }
+        )
+        .withFailureHandler(
+          function(error) {
+
+            actionRunning =
+              false;
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              requiresApproval
+                ? 'TEACHER GO'
+                : 'GO';
+
+
+            setMessage(
+              'Pass could not be started. Stay here and try again.',
+              'error'
+            );
+
+
+            console.error(
+              error
+            );
+
+          }
+        )
+        .startPass(
+          requestId,
+          teacherPin
+        );
+    }
+
+
+    /* =====================================================
+       CANCEL WAITING REQUEST
+    ===================================================== */
+
+    function cancelStudent(
+      requestId,
+      button
+    ) {
+
+      if (
+        actionRunning
+      ) {
+        return;
+      }
+
+
+      const studentId =
+        window.prompt(
+          'Enter YOUR Student ID to cancel this request:'
+        );
+
+
+      if (
+        studentId === null
+      ) {
+        return;
+      }
+
+
+      const cleanStudentId =
+        String(studentId)
+          .trim();
+
+
+      if (
+        !cleanStudentId
+      ) {
+
+        setMessage(
+          'Enter your Student ID.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      beginAction();
+
+
+      button.disabled =
+        true;
+
+      button.textContent =
+        'CHECKING...';
+
+
+      setMessage(
+        'Checking Student ID...',
+        'processing'
+      );
+
+
+      google.script.run
+        .withSuccessHandler(
+          function(result) {
+
+            actionRunning =
+              false;
+
+
+            if (
+              !result.success
+            ) {
+
+              button.disabled =
+                false;
+
+              button.textContent =
+                'CANCEL';
+
+
+              setMessage(
+                result.message,
+                'error'
+              );
+
+
+              refreshLiveState();
+
+              return;
+            }
+
+
+            setMessage(
+              'Request cancelled.',
+              'success'
+            );
+
+
+            refreshLiveState();
+
+          }
+        )
+        .withFailureHandler(
+          function(error) {
+
+            actionRunning =
+              false;
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              'CANCEL';
+
+
+            showError(
+              error
+            );
+
+          }
+        )
+        .cancelStudentRequest(
+          requestId,
+          cleanStudentId
+        );
+    }
+
+
+    /* =====================================================
+       STUDENT RETURN
+    ===================================================== */
+
+    function returnStudent(
+      passId,
+      button
+    ) {
+
+      if (
+        actionRunning
+      ) {
+        return;
+      }
+
+
+      beginAction();
+
+
+      button.disabled =
+        true;
+
+      button.textContent =
+        'RETURNING...';
+
+
+      setMessage(
+        'Recording your return...',
+        'processing'
+      );
+
+
+      google.script.run
+        .withSuccessHandler(
+          function(result) {
+
+            actionRunning =
+              false;
+
+
+            if (
+              !result.success
+            ) {
+
+              button.disabled =
+                false;
+
+              button.textContent =
+                "I'M BACK";
+
+
+              setMessage(
+                result.message,
+                'error'
+              );
+
+
+              refreshLiveState();
+
+              return;
+            }
+
+
+            setMessage(
+              'Welcome back.',
+              'success'
+            );
+
+
+            refreshLiveState();
+
+          }
+        )
+        .withFailureHandler(
+          function(error) {
+
+            actionRunning =
+              false;
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              "I'M BACK";
+
+
+            showError(
+              error
+            );
+
+          }
+        )
+        .returnStudent(
+          passId
+        );
+    }
+
+
+    /* =====================================================
+       WAITING TABLE
+    ===================================================== */
+
+    function renderWaiting(
+      waiting
+    ) {
+
+      const body =
+        document.getElementById(
+          'waitingBody'
+        );
+
+
+      body.innerHTML =
+        '';
+
+
+      if (
+        !waiting.length
+      ) {
+
+        body.innerHTML =
+          '<tr>' +
+          '<td colspan="5">' +
+          'No students waiting.' +
+          '</td>' +
+          '</tr>';
+
+        return;
+      }
+
+
+      /*
+        Queue positions are calculated separately
+        for each destination.
+      */
+      const destinationPositions =
+        {};
+
+
+      waiting.forEach(
+        function(student) {
+
+          const row =
+            document.createElement(
+              'tr'
+            );
+
+
+          const destinationKey =
+            String(
+              student.destination || ''
+            )
+              .trim()
+              .toLowerCase();
+
+
+          if (
+            !destinationPositions[
+              destinationKey
+            ]
+          ) {
+
+            destinationPositions[
+              destinationKey
+            ] = 0;
+
+          }
+
+
+          destinationPositions[
+            destinationKey
+          ]++;
+
+
+          const queuePosition =
+            destinationPositions[
+              destinationKey
+            ];
+
+
+          const isFirstForDestination =
+            queuePosition === 1;
+
+
+          const destinationInfo =
+            pageState &&
+            pageState.destinations
+              ? pageState.destinations.find(
+                  function(destination) {
+                    return (
+                      String(destination.name || '')
+                        .trim()
+                        .toLowerCase() ===
+                      destinationKey
+                    );
+                  }
+                )
+              : null;
+
+
+          const withinClass =
+            pageState &&
+            pageState.schedule &&
+            (
+              pageState.schedule.testMode ||
+              pageState.schedule.period
+            );
+
+
+          const emergencyLock =
+            pageState &&
+            pageState.settings &&
+            String(
+              pageState.settings[
+                'Emergency Lock'
+              ] || ''
+            )
+              .trim()
+              .toLowerCase() ===
+            'yes';
+
+
+          const passWindowAllowsGo =
+            pageState &&
+            pageState.schedule &&
+            (
+              pageState.schedule.isOpen ||
+              (
+                destinationInfo &&
+                !destinationInfo.countsAsHallPass
+              )
+            );
+
+
+          const canGo =
+            !emergencyLock &&
+            withinClass &&
+            passWindowAllowsGo &&
+            isFirstForDestination;
+
+
+          const approval =
+            student.teacherApproval
+              ? '<span class="approvalTag">' +
+                'TEACHER' +
+                '</span>'
+              : '';
+
+
+          const goClass =
+            student.teacherApproval
+              ? 'teacher'
+              : 'go';
+
+
+          let goText =
+            '';
+
+
+          if (
+            !isFirstForDestination
+          ) {
+
+            goText =
+              '#' +
+              queuePosition +
+              ' IN LINE';
+
+          }
+
+
+          else {
+
+            goText =
+              student.teacherApproval
+                ? 'TEACHER GO'
+                : 'GO';
+
+          }
+
+
+          row.innerHTML = `
+
+            <td>
+              ${escapeHtml(
+                student.name
+              )}
+            </td>
+
+            <td>
+              ${escapeHtml(
+                student.destination
+              )}
+              ${approval}
+            </td>
+
+            <td>
+              ${formatTime(
+                student.requested
+              )}
+            </td>
+
+            <td>
+              <button
+                class="${goClass}"
+                ${canGo
+                  ? ''
+                  : 'disabled'
+                }
+              >
+                ${goText}
+              </button>
+            </td>
+
+            <td>
+              <button
+                class="cancel"
+              >
+                CANCEL
+              </button>
+            </td>
+          `;
+
+
+          const buttons =
+            row.querySelectorAll(
+              'button'
+            );
+
+
+          buttons[0]
+            .addEventListener(
+              'click',
+              function() {
+
+                goStudent(
+                  student.requestId,
+                  student.teacherApproval,
+                  this
+                );
+
+              }
+            );
+
+
+          buttons[1]
+            .addEventListener(
+              'click',
+              function() {
+
+                cancelStudent(
+                  student.requestId,
+                  this
+                );
+
+              }
+            );
+
+
+          body.appendChild(
+            row
+          );
+
+        }
+      );
+    }
+
+
+    /* =====================================================
+       STUDENTS OUT TABLE
+    ===================================================== */
+
+    function renderOut(
+      out
+    ) {
+
+      const body =
+        document.getElementById(
+          'outBody'
+        );
+
+
+      body.innerHTML =
+        '';
+
+
+      if (
+        !out.length
+      ) {
+
+        body.innerHTML =
+          '<tr>' +
+          '<td colspan="5">' +
+          'No students currently out.' +
+          '</td>' +
+          '</tr>';
+
+        return;
+      }
+
+
+      out.forEach(
+        function(student) {
+
+          const row =
+            document.createElement(
+              'tr'
+            );
+
+
+          row.dataset.leaveTime =
+            student.leaveTime;
+
+
+          row.innerHTML = `
+
+            <td>
+              ${escapeHtml(
+                student.name
+              )}
+            </td>
+
+            <td>
+              ${escapeHtml(
+                student.destination
+              )}
+            </td>
+
+            <td>
+              ${formatTime(
+                student.leaveTime
+              )}
+            </td>
+
+            <td class="elapsed">
+              0:00
+            </td>
+
+            <td>
+              <button
+                class="return"
+              >
+                I'M BACK
+              </button>
+            </td>
+          `;
+
+
+          row
+            .querySelector(
+              'button'
+            )
+            .addEventListener(
+              'click',
+              function() {
+
+                returnStudent(
+                  student.passId,
+                  this
+                );
+
+              }
+            );
+
+
+          body.appendChild(
+            row
+          );
+
+        }
+      );
+
+
+      updateTimers();
+    }
+
+
+    /* =====================================================
+       LIVE STUDENT TIMERS
+    ===================================================== */
+
+    function updateTimers() {
+
+      if (
+        !pageState
+      ) {
+        return;
+      }
+
+
+      const warning =
+        Number(
+          pageState.settings[
+            'Long Pass Warning'
+          ] || 10
+        );
+
+
+      const danger =
+        Number(
+          pageState.settings[
+            'Very Long Pass Warning'
+          ] || 15
+        );
+
+
+      const rows =
+        document
+          .querySelectorAll(
+            '#outBody tr[data-leave-time]'
+          );
+
+
+      rows.forEach(
+        function(row) {
+
+          const leave =
+            new Date(
+              row.dataset.leaveTime
+            );
+
+
+          const seconds =
+            Math.max(
+              0,
+              Math.floor(
+                (
+                  Date.now() -
+                  leave.getTime()
+                ) /
+                1000
+              )
+            );
+
+
+          const minutes =
+            Math.floor(
+              seconds /
+              60
+            );
+
+
+          const remainder =
+            seconds %
+            60;
+
+
+          const elapsedCell =
+            row.querySelector(
+              '.elapsed'
+            );
+
+
+          elapsedCell.textContent =
+            minutes +
+            ':' +
+            String(
+              remainder
+            ).padStart(
+              2,
+              '0'
+            );
+
+
+          row.classList.remove(
+            'timer-warning',
+            'timer-danger'
+          );
+
+
+          if (
+            minutes >=
+            danger
+          ) {
+
+            row.classList.add(
+              'timer-danger'
+            );
+
+          }
+
+
+          else if (
+            minutes >=
+            warning
+          ) {
+
+            row.classList.add(
+              'timer-warning'
+            );
+
+          }
+
+        }
+      );
+    }
+
+
+    /* =====================================================
+       RESET FORM
+    ===================================================== */
+
+    function resetForm(
+      clearMessage = true
+    ) {
+
+      currentStudent =
+        null;
+
+
+      document
+        .getElementById(
+          'studentId'
+        )
+        .value =
+        '';
+
+
+      document
+        .getElementById(
+          'destination'
+        )
+        .value =
+        '';
+
+
+      document
+        .getElementById(
+          'idStep'
+        )
+        .classList
+        .remove(
+          'hidden'
+        );
+
+
+      document
+        .getElementById(
+          'confirmStep'
+        )
+        .classList
+        .add(
+          'hidden'
+        );
+
+
+      document
+        .getElementById(
+          'destinationStep'
+        )
+        .classList
+        .add(
+          'hidden'
+        );
+
+
+      if (
+        clearMessage
+      ) {
+
+        setMessage('');
+
+      }
+
+
+      document
+        .getElementById(
+          'studentId'
+        )
+        .focus();
+    }
+
+
+    /* =====================================================
+       MESSAGE
+    ===================================================== */
+
+    function setMessage(
+      text,
+      type = ''
+    ) {
+
+      const message =
+        document.getElementById(
+          'message'
+        );
+
+
+      message.textContent =
+        text || '';
+
+
+      message.className =
+        'message';
+
+
+      if (
+        type ===
+        'processing'
+      ) {
+
+        message.classList.add(
+          'processing'
+        );
+
+      }
+
+
+      else if (
+        type ===
+        'success'
+      ) {
+
+        message.classList.add(
+          'success'
+        );
+
+      }
+
+
+      else if (
+        type ===
+        'error'
+      ) {
+
+        message.classList.add(
+          'error'
+        );
+
+      }
+
+    }
+
+
+    /* =====================================================
+       ERROR
+    ===================================================== */
+
+    function showError(
+      error
+    ) {
+
+      console.error(
+        error
+      );
+
+
+      setMessage(
+        error &&
+        error.message
+          ? error.message
+          : 'Something went wrong. Please try again.',
+        'error'
+      );
+    }
+
+
+    /* =====================================================
+       TIME DISPLAY
+    ===================================================== */
+
+    function formatTime(
+      iso
+    ) {
+
+      if (
+        !iso
+      ) {
+        return '';
+      }
+
+
+      return new Date(
+        iso
+      )
+        .toLocaleTimeString(
+          [],
+          {
+            hour: 'numeric',
+            minute: '2-digit'
+          }
+        );
+    }
+
+
+    /* =====================================================
+       HTML SAFETY
+    ===================================================== */
+
+    function escapeHtml(
+      text
+    ) {
+
+      const div =
+        document.createElement(
+          'div'
+        );
+
+
+      div.textContent =
+        text == null
+          ? ''
+          : String(
+              text
+            );
+
+
+      return div.innerHTML;
+    }
+
+
+    /* =====================================================
+       SETTINGS
+    ===================================================== */
+
+    function yesSetting(
+      name
+    ) {
+
+      if (
+        !pageState ||
+        !pageState.settings
+      ) {
+        return false;
+      }
+
+
+      return (
+        String(
+          pageState.settings[
+            name
+          ] || ''
+        )
+          .trim()
+          .toLowerCase() ===
+        'yes'
+      );
+    }
+
+
+    function getSettingNumber(
+      name,
+      fallback
+    ) {
+
+      if (
+        !pageState ||
+        !pageState.settings
+      ) {
+        return fallback;
+      }
+
+
+      const value =
+        Number(
+          pageState.settings[
+            name
+          ]
+        );
+
+
+      return Number.isFinite(
+        value
+      )
+        ? value
+        : fallback;
+    }
+
+
+    /* =====================================================
+       BUZZER
+    ===================================================== */
+
+    function playOpenTone() {
+
+      try {
+
+        const AudioContext =
+          window.AudioContext ||
+          window.webkitAudioContext;
+
+
+        if (
+          !AudioContext
+        ) {
+          return;
+        }
+
+
+        const ctx =
+          new AudioContext();
+
+
+        const oscillator =
+          ctx.createOscillator();
+
+
+        const gain =
+          ctx.createGain();
+
+
+        oscillator.frequency.value =
+          880;
+
+
+        gain.gain.value =
+          .12;
+
+
+        oscillator.connect(
+          gain
+        );
+
+
+        gain.connect(
+          ctx.destination
+        );
+
+
+        oscillator.start();
+
+
+        oscillator.stop(
+          ctx.currentTime +
+          .22
+        );
+
+      }
+
+
+      catch (
+        error
+      ) {
+
+        console.log(
+          'Buzzer unavailable:',
+          error
+        );
+
+      }
+    }
+
+
+    /* =====================================================
+       ENTER KEY
+    ===================================================== */
+
+    document
+      .getElementById(
+        'studentId'
+      )
+      .addEventListener(
+        'keydown',
+        function(event) {
+
+          if (
+            event.key ===
+            'Enter'
+          ) {
+
+            lookupStudent();
+
+          }
+
+        }
+      );
+
+
+    /* =====================================================
+       LOCAL 1-SECOND TIMERS
+    ===================================================== */
+
+    setInterval(
+      function() {
+
+        updateTimers();
+
+        updateHeaderTimer();
+
+      },
+      1000
+    );
+
+
+    /* =====================================================
+       BACKGROUND SERVER REFRESH
+
+       Schedule the next refresh only after the previous
+       server call has finished. This prevents skipped polls
+       when Apps Script takes longer than expected.
+    ===================================================== */
+
+    let liveRefreshTimer = null;
+
+    function scheduleNextLiveRefresh(
+      delay = 2500
+    ) {
+
+      if (liveRefreshTimer) {
+        clearTimeout(
+          liveRefreshTimer
+        );
+      }
+
+      liveRefreshTimer =
+        setTimeout(
+          function() {
+
+            refreshLiveState();
+
+          },
+          delay
+        );
+    }
+
+
+    /* =====================================================
+       START
+    ===================================================== */
+
+    window.onload =
+      function() {
+
+        loadInitialState();
+
+        scheduleNextLiveRefresh();
+
+
+        document
+          .getElementById(
+            'studentId'
+          )
+          .focus();
+
+      };
+
+  </script>
+
+</body>
+
+</html>

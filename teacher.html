@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #222; }
+    .header { background: #263238; color: white; padding: 18px 20px; }
+    .header h1 { margin: 0 0 6px; font-size: 28px; }
+    .headerStatus { font-size: 17px; }
+    .container { max-width: 1350px; margin: auto; padding: 18px; }
+    .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+    h2 { margin-top: 0; }
+    h3 { margin: 0 0 10px; }
+    .hidden { display: none !important; }
+    .statusGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .stat { background: #eef2f5; border-radius: 10px; padding: 14px; }
+    .statLabel { color: #555; font-size: 13px; }
+    .statValue { margin-top: 4px; font-size: 25px; font-weight: bold; }
+    .tabBar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tabButton { flex: 1 1 180px; background: #dfe5ea; color: #222; border: none; border-radius: 9px; padding: 13px 16px; font-size: 17px; font-weight: bold; cursor: pointer; }
+    .tabButton.activeTab { background: #1f5ea8; color: white; }
+    .tabPanel { display: none; }
+    .tabPanel.activePanel { display: block; }
+    button { border: none; border-radius: 8px; padding: 11px 16px; font-size: 16px; font-weight: bold; cursor: pointer; transition: opacity .15s, transform .05s; }
+    button:active { transform: scale(.97); }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .primary { background: #1f5ea8; color: white; }
+    .green { background: #16863a; color: white; }
+    .red { background: #b3261e; color: white; }
+    .purple { background: #6a1b9a; color: white; }
+    .gray { background: #ddd; color: #222; }
+    .active { outline: 4px solid #ffd54f; outline-offset: 2px; }
+    .buttonRow { display: flex; flex-wrap: wrap; gap: 9px; }
+    .controlGroup { margin-bottom: 20px; }
+    .controlGrid, .reportControls { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-weight: bold; }
+    input, select { width: 100%; min-height: 42px; padding: 9px 10px; border: 2px solid #bbb; border-radius: 7px; font-size: 16px; background: white; }
+    input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; vertical-align: middle; margin-right: 5px; }
+    .checkboxLabel { padding-top: 28px; }
+    .actionMessage { display: none; padding: 13px 16px; border-radius: 10px; margin-bottom: 15px; font-size: 18px; font-weight: bold; text-align: center; }
+    .actionMessage.show { display: block; }
+    .actionMessage.processing { display: block; color: #6d5100; background: #fff3cd; border: 1px solid #e6cf7d; }
+    .actionMessage.success { display: block; color: #105b26; background: #d9f0df; border: 1px solid #9dd2aa; }
+    .actionMessage.error { display: block; color: #8d1d18; background: #f8d7da; border: 1px solid #e3a3a8; }
+    .message { min-height: 26px; margin-top: 10px; font-size: 16px; font-weight: bold; }
+    .message.error { color: #b3261e; }
+    .message.warning { color: #8a6500; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; vertical-align: middle; white-space: nowrap; }
+    th { background: #e8eef5; }
+    .sortableReportHeader { cursor: pointer; user-select: none; }
+    .sortableReportHeader:hover { background: #dce6f1; }
+    .sortArrow { display: inline-block; width: 16px; margin-left: 4px; font-weight: bold; }
+    .tableWrap { overflow-x: auto; }
+    td input, td select { min-width: 90px; min-height: 36px; padding: 6px 7px; }
+    .outWarning { background: #fff3cd; }
+    .outDanger { background: #f8d7da; }
+    .reportFlag { display:inline-block; padding:3px 7px; border-radius:999px; background:#fff3cd; color:#6d5100; font-size:12px; font-weight:bold; margin-right:4px; }
+    .emergencyCard { border:3px solid #b3261e; background:#fff7f6; }
+    .emergencyOn { outline:4px solid #ffd54f; outline-offset:2px; }
+    .subtle { color: #666; font-size: 13px; margin-top: 5px; }
+    .overrideBox { border: 2px solid #d8c4e3; background: #faf6fc; }
+    .reportSummaryGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; }
+    .reportTitle { margin-bottom: 4px; }
+    .reportMeta { color: #555; margin-bottom: 12px; }
+    .reportSummaryRow .reportStudentCell { display: flex; align-items: center; gap: 8px; }
+    .reportStudentName { font-weight: bold; }
+    .reportExpandButton { width: 32px; min-width: 32px; height: 32px; padding: 0; border-radius: 6px; background: #e3ebf4; color: #1f5ea8; font-size: 18px; line-height: 32px; }
+    .reportExpandButton:hover { background: #d4e1ef; }
+    .reportDetailRow td { padding: 0; background: #f7f9fb; white-space: normal; }
+    .reportDrilldown { padding: 14px 16px 18px 48px; }
+    .reportDrilldownTitle { font-weight: bold; margin: 0; }
+    .reportDrilldownHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
+    .reportStudentPrintButton { width: auto; min-width: 110px; padding: 8px 12px; background: #5f6368; color: white; font-size: 13px; }
+    .reportDrilldown .tableWrap { background: white; border: 1px solid #d9e0e6; border-radius: 8px; }
+    .reportDrilldown table { margin: 0; }
+    .reportDrilldown th, .reportDrilldown td { font-size: 13px; padding: 8px; white-space: nowrap; }
+    .reportDrilldownMessage { padding: 12px; color: #555; font-weight: bold; }
+    .reportDrilldownError { color: #b3261e; }
+    details { margin-top: 12px; }
+    summary { cursor: pointer; font-size: 18px; font-weight: bold; padding: 8px 0; }
+    #loginCard { max-width: 500px; margin: 40px auto; }
+    #teacherPin { margin-bottom: 10px; }
+    @media print {
+      body * { visibility: hidden !important; }
+      #reportPrintArea, #reportPrintArea * { visibility: visible !important; }
+      #reportPrintArea { position: absolute; left: 0; top: 0; width: 100%; }
+      #reportPrintArea button { display: none !important; }
+    }
+    @media (max-width: 700px) {
+      .header h1 { font-size: 23px; }
+      .headerStatus { font-size: 14px; }
+      .container { padding: 10px; }
+      .card { padding: 14px; }
+      .statValue { font-size: 21px; }
+      th, td { font-size: 13px; padding: 7px; }
+      button, .tabButton { font-size: 14px; }
+    }
+    .fieldHint { font-weight: 600; font-size: 0.82em; opacity: 0.72; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Teacher Hall Pass Dashboard</h1>
+    <div id="roomLabel" class="headerStatus"></div>
+    <div id="headerStatus" class="headerStatus">Locked</div>
+  </div>
+
+  <div class="container">
+    <div id="loginCard" class="card">
+      <h2>Teacher Login</h2>
+      <label for="teacherPin">Teacher PIN</label>
+      <input id="teacherPin" type="password" inputmode="numeric" autocomplete="off">
+      <button id="loginButton" class="primary" onclick="unlockDashboard(this)">Unlock Dashboard</button>
+      <div id="loginMessage" class="message"></div>
+    </div>
+
+    <div id="dashboard" class="hidden">
+      <div class="statusGrid">
+        <div class="stat"><div class="statLabel">Schedule</div><div id="statSchedule" class="statValue">—</div></div>
+        <div class="stat"><div class="statLabel">Period</div><div id="statPeriod" class="statValue">—</div></div>
+        <div class="stat"><div class="statLabel">Pass Window</div><div id="statWindow" class="statValue">—</div></div>
+        <div class="stat"><div class="statLabel">Students Out</div><div id="statOut" class="statValue">0</div></div>
+        <div class="stat"><div class="statLabel">Waiting</div><div id="statWaiting" class="statValue">0</div></div>
+        <div class="stat"><div class="statLabel">Next Change</div><div id="statNextChange" class="statValue">—</div></div>
+      </div>
+
+      <div id="actionMessage" class="actionMessage" aria-live="polite"></div>
+
+      <div class="tabBar">
+        <button class="tabButton activeTab" data-tab="live" onclick="showTab('live')">Live Passes</button>
+        <button class="tabButton" data-tab="controls" onclick="showTab('controls')">Controls</button>
+        <button class="tabButton" data-tab="reports" onclick="showTab('reports')">Reports</button>
+      </div>
+
+      <section id="tab-live" class="tabPanel activePanel">
+        <div class="card overrideBox">
+          <h2>Teacher Override Pass</h2>
+          <p>Use this to let one student leave during restricted minutes, bypass a pass limit, or make a deliberate exception for a student whose restroom access is turned off.</p>
+          <div class="controlGrid">
+            <div>
+              <label for="overrideStudent">Student</label>
+              <select id="overrideStudent"><option value="">Choose Student</option></select>
+            </div>
+            <div>
+              <label for="overrideDestination">Destination</label>
+              <select id="overrideDestination"><option value="">Choose Destination</option></select>
+            </div>
+            <div class="checkboxLabel">
+              <label><input id="overrideDailyLimit" type="checkbox">Override pass limit for this pass</label>
+            </div>
+            <div>
+              <label for="overrideNote">Override Note <span class="fieldHint">(optional)</span></label>
+              <input id="overrideNote" type="text" maxlength="250" placeholder="Reason or note for this override">
+            </div>
+          </div>
+          <button id="manualOverrideButton" class="purple" onclick="startManualOverride(this)">Start Override Pass</button>
+          <div class="subtle">Destination capacity still applies. Any time or daily-limit override is recorded in the pass log and reports.</div>
+        </div>
+
+        <div class="card">
+          <h2>Waiting List</h2>
+          <div class="tableWrap">
+            <table>
+              <thead><tr><th>Student</th><th>Destination</th><th>Requested</th><th>Go</th><th>Cancel</th></tr></thead>
+              <tbody id="waitingBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Students Out</h2>
+          <div class="tableWrap">
+            <table>
+              <thead><tr><th>Student</th><th>Destination</th><th>Left</th><th>Time Gone</th><th>Return</th></tr></thead>
+              <tbody id="outBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Today</h2>
+          <div class="statusGrid">
+            <div class="stat"><div class="statLabel">Passes Today</div><div id="passesToday" class="statValue">0</div></div>
+            <div class="stat"><div class="statLabel">Restroom Passes</div><div id="restroomToday" class="statValue">0</div></div>
+            <div class="stat"><div class="statLabel">Completed Passes</div><div id="completedToday" class="statValue">0</div></div>
+            <div class="stat"><div class="statLabel">Average Completed Pass</div><div id="averageTime" class="statValue">0:00</div></div>
+            <div class="stat"><div class="statLabel">Longest Completed Pass</div><div id="longestTime" class="statValue">0:00</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-controls" class="tabPanel">
+        <div class="card">
+          <h2>Quick Controls</h2>
+          <div class="controlGroup">
+            <h3>Schedule Mode</h3>
+            <div class="buttonRow">
+              <button class="primary scheduleButton" data-schedule="Regular" onclick="changeSchedule('Regular', this)">Regular</button>
+              <button class="primary scheduleButton" data-schedule="Minimum" onclick="changeSchedule('Minimum', this)">Minimum</button>
+              <button class="primary scheduleButton" data-schedule="Rally" onclick="changeSchedule('Rally', this)">Rally</button>
+              <button class="purple scheduleButton" data-schedule="Test" onclick="changeSchedule('Test', this)">Test</button>
+            </div>
+          </div>
+
+          <div class="controlGroup emergencyCard">
+            <h3>Emergency / Lockdown</h3>
+            <div class="buttonRow">
+              <button id="emergencyLockButton" class="red" onclick="toggleEmergencyLock(this)">Emergency Lock</button>
+            </div>
+            <div class="subtle">Blocks all new student requests and clears the current waiting list. Students already out remain listed until returned.</div>
+          </div>
+
+          <div class="controlGroup">
+            <h3>Restroom</h3>
+            <div class="buttonRow">
+              <button id="restroomOpen" class="green" onclick="setRestroom(true, this)">Open Restroom</button>
+              <button id="restroomClosed" class="red" onclick="setRestroom(false, this)">Close Restroom</button>
+            </div>
+          </div>
+
+          <div class="controlGroup">
+            <h3>System</h3>
+            <div class="buttonRow">
+              <button id="testModeButton" class="purple" onclick="toggleTestMode(this)">Test Mode</button>
+              <button id="waitingButton" class="primary" onclick="toggleWaitingList(this)">Waiting List</button>
+              <button class="red" onclick="clearQueue(this)">Clear Waiting List</button>
+              <button class="gray" onclick="refreshDashboard(true, this)">Refresh</button>
+              <button class="gray" onclick="backupPassLog(this)">Backup Pass Log</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Pass Settings</h2>
+          <div class="controlGrid">
+            <div><label for="openDelay">Open After Start <span class="fieldHint">(0 = immediately)</span></label><input id="openDelay" type="number" min="0" max="30"></div>
+            <div><label for="closeEarly">Close Before End <span class="fieldHint">(0 = period end)</span></label><input id="closeEarly" type="number" min="0" max="30"></div>
+            <div><label for="longWarning">Long Pass Warning</label><input id="longWarning" type="number" min="1" max="120"></div>
+            <div><label for="veryLongWarning">Very Long Pass Warning</label><input id="veryLongWarning" type="number" min="1" max="120"></div>
+            <div><label for="restroomLimit">Restroom Pass Limit <span class="fieldHint">(0 = no limit)</span></label><input id="restroomLimit" type="number" min="0" max="100" value="0"></div>
+            <div><label for="restroomLimitPeriod">Restroom Limit Period</label><select id="restroomLimitPeriod"><option value="Day">Per Day</option><option value="Week">Per Week</option><option value="Month">Per Month</option></select></div>
+            <div class="checkboxLabel"><label><input id="buzzer" type="checkbox">Buzzer Enabled</label></div>
+            <div class="checkboxLabel"><label><input id="clearAtEnd" type="checkbox">Clear Queue at Period End</label></div>
+          </div>
+          <button class="primary" onclick="savePassSettings(this)">Save Pass Settings</button>
+        </div>
+
+        <div class="card">
+          <h2>Student Restroom Access</h2>
+          <p>The global restroom limit applies to all students. Turn restroom access off here for individual students. Existing blank roster values count as allowed.</p>
+          <div class="controlGrid">
+            <div>
+              <label for="restroomStudentSearch">Find Student</label>
+              <input id="restroomStudentSearch" type="text" placeholder="Search by student name or ID" oninput="filterRestroomAccessTable()">
+            </div>
+          </div>
+          <div class="tableWrap">
+            <table>
+              <thead><tr><th>Student</th><th>Student ID</th><th>Restroom Allowed</th><th>Save</th></tr></thead>
+              <tbody id="restroomAccessBody"></tbody>
+            </table>
+          </div>
+          <div class="subtle">Turning access off blocks student restroom requests. You can still use Teacher Override Pass when an exception is necessary.</div>
+        </div>
+
+        <div class="card">
+          <h2>Destinations</h2>
+          <p>Edit existing destinations here. Disable a destination instead of deleting it so historical reports stay consistent.</p>
+          <div class="tableWrap">
+            <table>
+              <thead><tr><th>Destination</th><th>Enabled</th><th>Max Out<br><span class="fieldHint">0 = no limit</span></th><th>Max/Day<br><span class="fieldHint">0 = no limit</span></th><th>Teacher Approval</th><th>Hall Pass</th><th>Sort</th><th>Save</th></tr></thead>
+              <tbody id="destinationBody"></tbody>
+            </table>
+          </div>
+
+          <details>
+            <summary>Add Destination</summary>
+            <div class="controlGrid">
+              <div><label for="newDestinationName">Destination</label><input id="newDestinationName" type="text" placeholder="Destination name"></div>
+              <div class="checkboxLabel"><label><input id="newDestinationEnabled" type="checkbox" checked>Enabled</label></div>
+              <div><label for="newDestinationMaxOut">Max Out <span class="fieldHint">(0 = no limit)</span></label><input id="newDestinationMaxOut" type="number" min="0" value="0"></div>
+              <div><label for="newDestinationMaxDay">Max/Day <span class="fieldHint">(0 = no limit)</span></label><input id="newDestinationMaxDay" type="number" min="0" value="0"></div>
+              <div class="checkboxLabel"><label><input id="newDestinationApproval" type="checkbox">Teacher Approval</label></div>
+              <div class="checkboxLabel"><label><input id="newDestinationHallPass" type="checkbox">Hall Pass</label></div>
+              <div><label for="newDestinationSort">Sort</label><input id="newDestinationSort" type="number" min="0"></div>
+            </div>
+            <button class="primary" onclick="addDestination(this)">Add Destination</button>
+          </details>
+        </div>
+
+        <div class="card">
+          <h2>Advanced Schedule Setup</h2>
+          <p>Edit the actual bell times here. Schedule Mode above chooses which set is active today.</p>
+          <div class="tableWrap">
+            <table>
+              <thead><tr><th>Schedule</th><th>Period</th><th>Start</th><th>End</th><th>Save</th><th>Delete</th></tr></thead>
+              <tbody id="scheduleBody"></tbody>
+            </table>
+          </div>
+
+          <details>
+            <summary>Add Schedule Row</summary>
+            <div class="controlGrid">
+              <div><label for="newScheduleName">Schedule</label><select id="newScheduleName"><option value="Regular">Regular</option><option value="Minimum">Minimum</option><option value="Rally">Rally</option><option value="Test">Test</option></select></div>
+              <div><label for="newSchedulePeriod">Period</label><input id="newSchedulePeriod" type="text"></div>
+              <div><label for="newScheduleStart">Start</label><input id="newScheduleStart" type="time"></div>
+              <div><label for="newScheduleEnd">End</label><input id="newScheduleEnd" type="time"></div>
+            </div>
+            <button class="primary" onclick="addScheduleRow(this)">Add Schedule Row</button>
+          </details>
+        </div>
+      </section>
+
+      <section id="tab-reports" class="tabPanel">
+        <div class="card">
+          <h2>Reports</h2>
+          <div class="reportControls">
+            <div>
+              <label for="reportType">Report Type</label>
+              <select id="reportType" onchange="updateReportTypeUI()"><option value="all">All Students</option><option value="individual">Individual Student</option></select>
+            </div>
+            <div id="reportStudentWrap" class="hidden"><label for="reportStudent">Student</label><select id="reportStudent"><option value="">Choose Student</option></select></div>
+            <div><label for="reportPeriod">Period</label><select id="reportPeriod"><option value="">All Periods</option></select></div>
+            <div>
+              <label for="reportPreset">Date Range</label>
+              <select id="reportPreset" onchange="applyReportPreset()"><option value="today">Today</option><option value="week">This Week</option><option value="30">Last 30 Days</option><option value="custom">Custom</option></select>
+            </div>
+            <div><label for="reportStart">Start Date</label><input id="reportStart" type="date"></div>
+            <div><label for="reportEnd">End Date</label><input id="reportEnd" type="date"></div>
+            <div class="checkboxLabel"><label><input id="includeTestData" type="checkbox">Include Test Data</label></div>
+            <div id="reportAutoExpandWrap" class="checkboxLabel"><label><input id="autoExpandAllDetails" type="checkbox">Auto-expand all student details</label></div>
+            <div id="frequentPassWrap"><label for="flagPassCount">Flag Total Passes ≥</label><input id="flagPassCount" type="number" min="1" value="5"></div>
+            <div id="frequentTimeWrap"><label for="flagAverageMinutes">Flag Average Minutes ≥</label><input id="flagAverageMinutes" type="number" min="1" value="8"></div>
+          </div>
+          <div class="buttonRow">
+            <button class="primary" onclick="generateReport(this)">Generate Report</button>
+            <button id="printReportButton" class="gray" onclick="printReport()" disabled>Print Report</button>
+            <button id="downloadReportButton" class="gray" onclick="downloadReportCsv()" disabled>Download CSV</button>
+          </div>
+        </div>
+
+        <div id="reportPrintArea" class="card hidden">
+          <h2 id="reportTitle" class="reportTitle">Report</h2>
+          <div id="reportMeta" class="reportMeta"></div>
+          <div id="reportSummary"></div>
+          <div class="tableWrap">
+            <table>
+              <thead id="reportHead"></thead>
+              <tbody id="reportBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="api-shim.js"></script>
+
+  <script>
+    let teacherPin = '';
+    let dashboardState = null;
+    let unlocked = false;
+    let refreshRunning = false;
+    let actionMessageTimer = null;
+    let currentReport = null;
+    let reportDrilldownCache = {};
+    let allReportSort = { key: 'studentName', direction: 'asc' };
+
+    function showTab(name) {
+      document.querySelectorAll('.tabButton').forEach(function(button) {
+        button.classList.toggle('activeTab', button.dataset.tab === name);
+      });
+      document.querySelectorAll('.tabPanel').forEach(function(panel) {
+        panel.classList.toggle('activePanel', panel.id === 'tab-' + name);
+      });
+    }
+
+    function beginButtonAction(button, busyText) {
+      if (!button) return;
+      button.dataset.originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = busyText;
+    }
+
+    function finishButtonAction(button) {
+      if (!button) return;
+      if (button.dataset.originalText) button.textContent = button.dataset.originalText;
+      button.disabled = false;
+      delete button.dataset.originalText;
+    }
+
+    function setActionMessage(text, type) {
+      const message = document.getElementById('actionMessage');
+      if (actionMessageTimer) { clearTimeout(actionMessageTimer); actionMessageTimer = null; }
+      message.textContent = text || '';
+      message.className = 'actionMessage';
+      if (!text) return;
+      message.classList.add('show');
+      if (type) message.classList.add(type);
+      if (type === 'success') {
+        actionMessageTimer = setTimeout(function() { setActionMessage('', ''); }, 3500);
+      }
+    }
+
+    function unlockDashboard(button) {
+      const pin = document.getElementById('teacherPin').value.trim();
+      if (!pin) { setLoginMessage('Enter the Teacher PIN.', true); return; }
+      teacherPin = pin;
+      beginButtonAction(button, 'UNLOCKING...');
+      setLoginMessage('Checking Teacher PIN...', false);
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          finishButtonAction(button);
+          if (!result.success) { teacherPin = ''; setLoginMessage(result.message, true); return; }
+          unlocked = true;
+          document.getElementById('loginCard').classList.add('hidden');
+          document.getElementById('dashboard').classList.remove('hidden');
+          renderState(result, true);
+          applyReportPreset();
+          setActionMessage('Dashboard ready.', 'success');
+        })
+        .withFailureHandler(function(error) {
+          finishButtonAction(button);
+          setLoginMessage(error && error.message ? error.message : 'Unable to open dashboard.', true);
+        })
+        .getTeacherDashboardState(teacherPin);
+    }
+
+    function refreshDashboard(includeControls = false, button = null) {
+      if (!unlocked) return;
+      if (refreshRunning) {
+        if (button) setActionMessage('Dashboard is already refreshing.', 'processing');
+        return;
+      }
+      refreshRunning = true;
+      if (button) { beginButtonAction(button, 'REFRESHING...'); setActionMessage('Refreshing dashboard...', 'processing'); }
+
+      const runner = google.script.run
+        .withSuccessHandler(function(result) {
+          refreshRunning = false;
+          if (button) finishButtonAction(button);
+          if (!result.success) { setActionMessage(result.message, 'error'); return; }
+          renderState(result, includeControls);
+          if (button) setActionMessage('Dashboard refreshed.', 'success');
+        })
+        .withFailureHandler(function(error) {
+          refreshRunning = false;
+          if (button) {
+            finishButtonAction(button);
+            setActionMessage(error && error.message ? error.message : 'Dashboard could not be refreshed.', 'error');
+          }
+          console.error(error);
+        });
+
+      if (includeControls) {
+        runner.getTeacherDashboardState(teacherPin);
+      } else {
+        runner.getTeacherLiveState(teacherPin);
+      }
+    }
+
+    function refreshAfterAction() {
+      if (refreshRunning) { setTimeout(refreshAfterAction, 250); return; }
+      refreshDashboard(true);
+    }
+
+    function renderState(state, includeControls) {
+      dashboardState = state;
+      renderStatus(state);
+      renderStats(state.stats);
+      renderWaiting(state.waiting);
+      renderOut(state.out);
+      renderQuickControls(state);
+      if (includeControls) {
+        renderSettings(state.settings);
+        renderDestinations(state.destinations);
+        renderSchedules(state.schedules || []);
+        renderStudentOptions(state.students || []);
+        renderRestroomAccessTable(state.students || []);
+        renderOverrideDestinations(state.destinations || []);
+        renderReportPeriods(state.schedules || []);
+      }
+    }
+
+    function renderStatus(state) {
+      const schedule = state.schedule;
+      document.getElementById('statSchedule').textContent = schedule.schedule || '—';
+      document.getElementById('statPeriod').textContent = schedule.period || '—';
+      document.getElementById('statWindow').textContent = schedule.isOpen ? 'OPEN' : 'CLOSED';
+      document.getElementById('statOut').textContent = state.out.length;
+      document.getElementById('statWaiting').textContent = state.waiting.length;
+      document.getElementById('statNextChange').textContent = schedule.nextChange ? formatTime(schedule.nextChange) : '—';
+      document.getElementById('headerStatus').textContent =
+        (schedule.schedule || '') + ' | ' +
+        (schedule.period ? 'Period ' + schedule.period : schedule.reason) + ' | ' +
+        (schedule.isOpen ? 'Pass Window Open' : 'Pass Window Closed');
+    }
+
+    function renderStats(stats) {
+      document.getElementById('passesToday').textContent = stats.passesToday;
+      document.getElementById('restroomToday').textContent = stats.restroomToday;
+      document.getElementById('completedToday').textContent = stats.completedPasses || 0;
+      document.getElementById('averageTime').textContent = formatMinutes(stats.averageMinutes);
+      document.getElementById('longestTime').textContent = formatMinutes(stats.longestMinutes);
+    }
+
+    function renderQuickControls(state) {
+      document.querySelectorAll('.scheduleButton').forEach(function(button) {
+        button.classList.toggle('active', String(button.dataset.schedule).toLowerCase() === String(state.settings["Today's Schedule"] || '').toLowerCase());
+      });
+
+      const restroom = state.destinations.find(function(destination) { return String(destination.name).toLowerCase() === 'restroom'; });
+      document.getElementById('restroomOpen').classList.toggle('active', Boolean(restroom && restroom.enabled));
+      document.getElementById('restroomClosed').classList.toggle('active', Boolean(restroom && !restroom.enabled));
+
+      const testMode = String(state.settings['Test Mode'] || '').toLowerCase() === 'yes';
+      const waitingEnabled = String(state.settings['Waiting List Enabled'] || '').toLowerCase() === 'yes';
+      const emergencyLock = String(state.settings['Emergency Lock'] || '').toLowerCase() === 'yes';
+      const emergencyButton = document.getElementById('emergencyLockButton');
+      emergencyButton.textContent = emergencyLock ? 'Emergency Lock: ON' : 'Emergency Lock: OFF';
+      emergencyButton.classList.toggle('emergencyOn', emergencyLock);
+
+      const manualOverrideButton = document.getElementById('manualOverrideButton');
+      if (manualOverrideButton) {
+        manualOverrideButton.disabled = emergencyLock;
+        manualOverrideButton.title = emergencyLock
+          ? 'Turn off Emergency Lock before starting a new pass.'
+          : '';
+      }
+      const testButton = document.getElementById('testModeButton');
+      testButton.textContent = testMode ? 'Test Mode: ON' : 'Test Mode: OFF';
+      testButton.classList.toggle('active', testMode);
+      const waitingButton = document.getElementById('waitingButton');
+      waitingButton.textContent = waitingEnabled ? 'Waiting List: ON' : 'Waiting List: OFF';
+      waitingButton.classList.toggle('active', waitingEnabled);
+    }
+
+    function saveSettings(changes, button, busyText, processingText) {
+      beginButtonAction(button, busyText);
+      setActionMessage(processingText, 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .updateSettingsFromDashboard(teacherPin, changes);
+    }
+
+    function changeSchedule(schedule, button) {
+      saveSettings({ "Today's Schedule": schedule }, button, 'CHANGING...', 'Changing schedule to ' + schedule + '...');
+    }
+
+    function setRestroom(enabled, button) {
+      beginButtonAction(button, enabled ? 'OPENING...' : 'CLOSING...');
+      setActionMessage(enabled ? 'Opening restroom passes...' : 'Closing restroom passes...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .updateDestinationFromDashboard(teacherPin, 'Restroom', { enabled: enabled });
+    }
+
+    function toggleEmergencyLock(button) {
+      const current = String(dashboardState.settings['Emergency Lock'] || '').toLowerCase() === 'yes';
+      const turnOn = !current;
+      if (turnOn && !window.confirm('Turn on Emergency Lock? This blocks all new student requests and clears the waiting list.')) return;
+      beginButtonAction(button, turnOn ? 'LOCKING...' : 'UNLOCKING...');
+      setActionMessage(turnOn ? 'Locking student pass requests...' : 'Reopening student pass requests...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .setEmergencyLockFromDashboard(teacherPin, turnOn);
+    }
+
+    function backupPassLog(button) {
+      beginButtonAction(button, 'BACKING UP...');
+      setActionMessage('Creating a dated Pass Log backup sheet...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .backupPassLogFromDashboard(teacherPin);
+    }
+
+    function toggleTestMode(button) {
+      const current = String(dashboardState.settings['Test Mode'] || '').toLowerCase() === 'yes';
+      saveSettings({ 'Test Mode': current ? 'No' : 'Yes' }, button, 'CHANGING...', current ? 'Turning Test Mode off...' : 'Turning Test Mode on...');
+    }
+
+    function toggleWaitingList(button) {
+      const current = String(dashboardState.settings['Waiting List Enabled'] || '').toLowerCase() === 'yes';
+      saveSettings({ 'Waiting List Enabled': current ? 'No' : 'Yes' }, button, 'CHANGING...', current ? 'Turning waiting list off...' : 'Turning waiting list on...');
+    }
+
+    function clearQueue(button) {
+      if (!window.confirm('Clear all students from the waiting list?')) return;
+      beginButtonAction(button, 'CLEARING...');
+      setActionMessage('Clearing waiting list...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .clearWaitingListFromDashboard(teacherPin);
+    }
+
+    function renderSettings(settings) {
+      document.getElementById('openDelay').value = settings['Passes Open After Start (Minutes)'] ?? 10;
+      document.getElementById('closeEarly').value = settings['Passes Close Before End (Minutes)'] ?? 10;
+      document.getElementById('longWarning').value = settings['Long Pass Warning'] ?? 10;
+      document.getElementById('veryLongWarning').value = settings['Very Long Pass Warning'] ?? 15;
+      document.getElementById('restroomLimit').value = settings['Restroom Pass Limit'] ?? 0;
+      document.getElementById('restroomLimitPeriod').value = settings['Restroom Limit Period'] || 'Day';
+      document.getElementById('buzzer').checked = String(settings['Buzzer Enabled'] || '').toLowerCase() === 'yes';
+      document.getElementById('clearAtEnd').checked = String(settings['Clear Queue at Period End'] || '').toLowerCase() === 'yes';
+    }
+
+    function savePassSettings(button) {
+      saveSettings({
+        'Passes Open After Start (Minutes)': document.getElementById('openDelay').value,
+        'Passes Close Before End (Minutes)': document.getElementById('closeEarly').value,
+        'Long Pass Warning': document.getElementById('longWarning').value,
+        'Very Long Pass Warning': document.getElementById('veryLongWarning').value,
+        'Restroom Pass Limit': document.getElementById('restroomLimit').value,
+        'Restroom Limit Period': document.getElementById('restroomLimitPeriod').value,
+        'Buzzer Enabled': document.getElementById('buzzer').checked ? 'Yes' : 'No',
+        'Clear Queue at Period End': document.getElementById('clearAtEnd').checked ? 'Yes' : 'No'
+      }, button, 'SAVING...', 'Saving pass settings...');
+    }
+
+    function renderDestinations(destinations) {
+      const body = document.getElementById('destinationBody');
+      body.innerHTML = '';
+      destinations.forEach(function(destination) {
+        const row = document.createElement('tr');
+        row.dataset.name = destination.name;
+        const isRestroom = String(destination.name || '').trim().toLowerCase() === 'restroom';
+
+        row.innerHTML = `
+          <td>${escapeHtml(destination.name)}</td>
+          <td><input class="destEnabled" type="checkbox" ${destination.enabled ? 'checked' : ''}></td>
+          <td><input class="destMaxOut" type="number" min="0" value="${destination.maxOut}"></td>
+          <td>${
+            isRestroom
+              ? '<span class="subtle" style="font-weight:bold">Uses restroom rule</span>'
+              : '<input class="destMaxDay" type="number" min="0" value="' + destination.maxPerDay + '">'
+          }</td>
+          <td><input class="destApproval" type="checkbox" ${destination.teacherApproval ? 'checked' : ''}></td>
+          <td><input class="destHallPass" type="checkbox" ${destination.countsAsHallPass ? 'checked' : ''}></td>
+          <td><input class="destSort" type="number" min="0" value="${destination.sortOrder}"></td>
+          <td><button class="primary saveDestination">Save</button></td>`;
+        row.querySelector('.saveDestination').addEventListener('click', function() { saveDestination(row, this); });
+        body.appendChild(row);
+      });
+
+      updateNewDestinationSortDefault(destinations);
+    }
+
+    function updateNewDestinationSortDefault(destinations) {
+      const input = document.getElementById('newDestinationSort');
+      if (!input || input.value !== '') return;
+
+      let next = 1;
+      (destinations || []).forEach(function(destination) {
+        const value = Number(destination.sortOrder);
+        if (Number.isFinite(value)) next = Math.max(next, Math.round(value) + 1);
+      });
+      input.value = next;
+    }
+
+    function saveDestination(row, button) {
+      const name = row.dataset.name;
+      const maxDayInput = row.querySelector('.destMaxDay');
+
+      const changes = {
+        enabled: row.querySelector('.destEnabled').checked,
+        maxOut: row.querySelector('.destMaxOut').value,
+        teacherApproval: row.querySelector('.destApproval').checked,
+        countsAsHallPass: row.querySelector('.destHallPass').checked,
+        sortOrder: row.querySelector('.destSort').value
+      };
+
+      if (maxDayInput) {
+        changes.maxPerDay = maxDayInput.value;
+      }
+      beginButtonAction(button, 'SAVING...');
+      setActionMessage('Saving ' + name + '...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .updateDestinationFromDashboard(teacherPin, name, changes);
+    }
+
+    function addDestination(button) {
+      const name = document.getElementById('newDestinationName').value.trim();
+      if (!name) {
+        setActionMessage('Enter a destination name.', 'error');
+        document.getElementById('newDestinationName').focus();
+        return;
+      }
+
+      const data = {
+        name: name,
+        enabled: document.getElementById('newDestinationEnabled').checked,
+        maxOut: document.getElementById('newDestinationMaxOut').value,
+        maxPerDay: document.getElementById('newDestinationMaxDay').value,
+        teacherApproval: document.getElementById('newDestinationApproval').checked,
+        countsAsHallPass: document.getElementById('newDestinationHallPass').checked,
+        sortOrder: document.getElementById('newDestinationSort').value
+      };
+
+      beginButtonAction(button, 'ADDING...');
+      setActionMessage('Adding ' + name + '...', 'processing');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          finishButtonAction(button);
+          if (result && result.success) {
+            document.getElementById('newDestinationName').value = '';
+            document.getElementById('newDestinationEnabled').checked = true;
+            document.getElementById('newDestinationMaxOut').value = '0';
+            document.getElementById('newDestinationMaxDay').value = '0';
+            document.getElementById('newDestinationApproval').checked = false;
+            document.getElementById('newDestinationHallPass').checked = false;
+            document.getElementById('newDestinationSort').value = '';
+          }
+          handleActionResult(result);
+        })
+        .withFailureHandler(function(error) {
+          finishButtonAction(button);
+          handleActionFailure(error);
+        })
+        .addDestinationFromDashboard(teacherPin, data);
+    }
+
+
+    function renderSchedules(schedules) {
+      const body = document.getElementById('scheduleBody');
+      body.innerHTML = '';
+      if (!schedules.length) { body.innerHTML = '<tr><td colspan="6">No schedule rows found.</td></tr>'; return; }
+      schedules.forEach(function(schedule) {
+        const row = document.createElement('tr');
+        row.dataset.sheetRow = schedule.sheetRow;
+        row.innerHTML = `
+          <td><select class="scheduleName">${scheduleOptions(schedule.schedule)}</select></td>
+          <td><input class="schedulePeriod" type="text" value="${escapeAttribute(schedule.period)}"></td>
+          <td><input class="scheduleStart" type="time" value="${escapeAttribute(schedule.startTime)}"></td>
+          <td><input class="scheduleEnd" type="time" value="${escapeAttribute(schedule.endTime)}"></td>
+          <td><button class="primary saveSchedule">Save</button></td>
+          <td><button class="red deleteSchedule">Delete</button></td>`;
+        row.querySelector('.saveSchedule').addEventListener('click', function() { saveScheduleRow(row, this); });
+        row.querySelector('.deleteSchedule').addEventListener('click', function() { deleteScheduleRow(row, this); });
+        body.appendChild(row);
+      });
+    }
+
+    function scheduleOptions(selected) {
+      return ['Regular', 'Minimum', 'Rally', 'Test'].map(function(name) {
+        return '<option value="' + name + '"' + (name === selected ? ' selected' : '') + '>' + name + '</option>';
+      }).join('');
+    }
+
+    function saveScheduleRow(row, button) {
+      const data = {
+        sheetRow: Number(row.dataset.sheetRow),
+        schedule: row.querySelector('.scheduleName').value,
+        period: row.querySelector('.schedulePeriod').value.trim(),
+        startTime: row.querySelector('.scheduleStart').value,
+        endTime: row.querySelector('.scheduleEnd').value
+      };
+      beginButtonAction(button, 'SAVING...');
+      setActionMessage('Saving schedule row...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .saveScheduleRowFromDashboard(teacherPin, data);
+    }
+
+    function addScheduleRow(button) {
+      const data = {
+        schedule: document.getElementById('newScheduleName').value,
+        period: document.getElementById('newSchedulePeriod').value.trim(),
+        startTime: document.getElementById('newScheduleStart').value,
+        endTime: document.getElementById('newScheduleEnd').value
+      };
+      beginButtonAction(button, 'ADDING...');
+      setActionMessage('Adding schedule row...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) {
+          finishButtonAction(button);
+          if (result && result.success) {
+            document.getElementById('newSchedulePeriod').value = '';
+            document.getElementById('newScheduleStart').value = '';
+            document.getElementById('newScheduleEnd').value = '';
+          }
+          handleActionResult(result);
+        })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .saveScheduleRowFromDashboard(teacherPin, data);
+    }
+
+    function deleteScheduleRow(row, button) {
+      if (!window.confirm('Delete this schedule row?')) return;
+      beginButtonAction(button, 'DELETING...');
+      setActionMessage('Deleting schedule row...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .deleteScheduleRowFromDashboard(teacherPin, Number(row.dataset.sheetRow));
+    }
+
+    function renderStudentOptions(students) {
+      const overrideSelect = document.getElementById('overrideStudent');
+      const reportSelect = document.getElementById('reportStudent');
+      const overrideValue = overrideSelect.value;
+      const reportValue = reportSelect.value;
+      const options = students.map(function(student) {
+        return '<option value="' + escapeAttribute(student.id) + '">' + escapeHtml(student.name) + ' (' + escapeHtml(student.id) + ')</option>';
+      }).join('');
+      overrideSelect.innerHTML = '<option value="">Choose Student</option>' + options;
+      reportSelect.innerHTML = '<option value="">Choose Student</option>' + options;
+      if (Array.from(overrideSelect.options).some(function(option) { return option.value === overrideValue; })) overrideSelect.value = overrideValue;
+      if (Array.from(reportSelect.options).some(function(option) { return option.value === reportValue; })) reportSelect.value = reportValue;
+    }
+
+
+    function renderRestroomAccessTable(students) {
+      const body = document.getElementById('restroomAccessBody');
+      if (!body) return;
+
+      body.innerHTML = '';
+
+      if (!students.length) {
+        body.innerHTML = '<tr><td colspan="4">No students found.</td></tr>';
+        return;
+      }
+
+      students.forEach(function(student) {
+        const row = document.createElement('tr');
+        row.dataset.studentId = student.id;
+        row.dataset.searchText = (
+          String(student.name || '') + ' ' + String(student.id || '')
+        ).toLowerCase();
+
+        row.innerHTML = `
+          <td>${escapeHtml(student.name)}</td>
+          <td>${escapeHtml(student.id)}</td>
+          <td><input class="restroomAllowedToggle" type="checkbox" ${student.restroomAllowed === false ? '' : 'checked'}></td>
+          <td><button class="primary saveRestroomAccess">Save</button></td>`;
+
+        row
+          .querySelector('.saveRestroomAccess')
+          .addEventListener('click', function() {
+            saveStudentRestroomAccess(row, this);
+          });
+
+        body.appendChild(row);
+      });
+
+      filterRestroomAccessTable();
+    }
+
+    function filterRestroomAccessTable() {
+      const input = document.getElementById('restroomStudentSearch');
+      const term = String(input ? input.value : '').trim().toLowerCase();
+
+      document
+        .querySelectorAll('#restroomAccessBody tr[data-student-id]')
+        .forEach(function(row) {
+          row.classList.toggle(
+            'hidden',
+            Boolean(term) && row.dataset.searchText.indexOf(term) === -1
+          );
+        });
+    }
+
+    function saveStudentRestroomAccess(row, button) {
+      const studentId = row.dataset.studentId;
+      const allowed = row.querySelector('.restroomAllowedToggle').checked;
+
+      beginButtonAction(button, 'SAVING...');
+      setActionMessage('Saving student restroom access...', 'processing');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          finishButtonAction(button);
+          handleActionResult(result);
+        })
+        .withFailureHandler(function(error) {
+          finishButtonAction(button);
+          handleActionFailure(error);
+        })
+        .updateStudentRestroomAccessFromDashboard(
+          teacherPin,
+          studentId,
+          allowed
+        );
+    }
+
+    function renderOverrideDestinations(destinations) {
+      const select = document.getElementById('overrideDestination');
+      const currentValue = select.value;
+      select.innerHTML = '<option value="">Choose Destination</option>';
+      destinations.filter(function(destination) { return destination.enabled; }).forEach(function(destination) {
+        const option = document.createElement('option');
+        option.value = destination.name;
+        option.textContent = destination.name;
+        select.appendChild(option);
+      });
+      if (Array.from(select.options).some(function(option) { return option.value === currentValue; })) select.value = currentValue;
+    }
+
+    function startManualOverride(button) {
+      const emergencyLock = Boolean(
+        dashboardState &&
+        dashboardState.settings &&
+        String(dashboardState.settings['Emergency Lock'] || '').toLowerCase() === 'yes'
+      );
+
+      if (emergencyLock) {
+        setActionMessage('Turn off Emergency Lock before starting a new pass.', 'error');
+        return;
+      }
+
+      const studentId = document.getElementById('overrideStudent').value;
+      const destination = document.getElementById('overrideDestination').value;
+      const overrideDailyLimit = document.getElementById('overrideDailyLimit').checked;
+      const overrideNote = document.getElementById('overrideNote').value.trim();
+
+      if (!studentId) { setActionMessage('Choose a student.', 'error'); return; }
+      if (!destination) { setActionMessage('Choose a destination.', 'error'); return; }
+
+      beginButtonAction(button, overrideDailyLimit ? 'OVERRIDING...' : 'STARTING...');
+      setActionMessage(
+        overrideDailyLimit
+          ? 'Starting teacher override with pass-limit permission...'
+          : 'Starting teacher override pass...',
+        'processing'
+      );
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          finishButtonAction(button);
+          if (result && result.success) {
+            document.getElementById('overrideStudent').value = '';
+            document.getElementById('overrideDestination').value = '';
+            document.getElementById('overrideDailyLimit').checked = false;
+            document.getElementById('overrideNote').value = '';
+          }
+          handleActionResult(result);
+        })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .startTeacherOverridePass(teacherPin, studentId, destination, overrideDailyLimit, overrideNote);
+    }
+
+    function renderWaiting(waiting) {
+      const body = document.getElementById('waitingBody');
+      body.innerHTML = '';
+      if (!waiting.length) { body.innerHTML = '<tr><td colspan="5">No students waiting.</td></tr>'; return; }
+      waiting.forEach(function(student) {
+        const row = document.createElement('tr');
+        const destination = dashboardState && dashboardState.destinations
+          ? dashboardState.destinations.find(function(item) { return String(item.name).toLowerCase() === String(student.destination).toLowerCase(); })
+          : null;
+        const needsOverride = Boolean(destination && destination.countsAsHallPass && dashboardState && dashboardState.schedule && !dashboardState.schedule.isOpen && dashboardState.schedule.period);
+        const emergencyLock = Boolean(
+          dashboardState &&
+          dashboardState.settings &&
+          String(dashboardState.settings['Emergency Lock'] || '').toLowerCase() === 'yes'
+        );
+
+        const canStart = Boolean(
+          !emergencyLock &&
+          dashboardState &&
+          dashboardState.schedule &&
+          (dashboardState.schedule.testMode || dashboardState.schedule.period)
+        );
+        row.innerHTML = `
+          <td>${escapeHtml(student.name)}</td>
+          <td>${escapeHtml(student.destination)}</td>
+          <td>${formatTime(student.requested)}</td>
+          <td><button class="${needsOverride ? 'purple' : 'green'} goButton" ${canStart ? '' : 'disabled'}>${needsOverride ? 'Override Go' : 'Go'}</button></td>
+          <td><button class="red cancelButton">Cancel</button></td>`;
+        row.querySelector('.goButton').addEventListener('click', function() { startWaitingPass(student.requestId, needsOverride, this); });
+        row.querySelector('.cancelButton').addEventListener('click', function() { cancelWaitingPass(student.requestId, this); });
+        body.appendChild(row);
+      });
+    }
+
+    function startWaitingPass(requestId, timeOverride, button, limitOverride = false) {
+      const busyText = limitOverride
+        ? 'LIMIT OVERRIDE...'
+        : (timeOverride ? 'OVERRIDING...' : 'STARTING...');
+
+      const processingText = limitOverride
+        ? 'Starting pass-limit override...'
+        : (timeOverride ? 'Starting time override pass...' : 'Starting pass...');
+
+      beginButtonAction(button, busyText);
+      setActionMessage(processingText, 'processing');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          finishButtonAction(button);
+
+          if (result && !result.success && result.needsLimitOverride && !limitOverride) {
+            const approved = window.confirm(
+              result.message + '\n\nOverride the pass limit for this one pass?'
+            );
+
+            if (approved) {
+              startWaitingPass(requestId, timeOverride, button, true);
+              return;
+            }
+          }
+
+          handleActionResult(result);
+        })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .startPass(requestId, teacherPin, timeOverride, limitOverride);
+    }
+
+    function cancelWaitingPass(requestId, button) {
+      beginButtonAction(button, 'CANCELLING...');
+      setActionMessage('Cancelling waiting request...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .cancelRequest(requestId, 'Teacher');
+    }
+
+    function renderOut(students) {
+      const body = document.getElementById('outBody');
+      body.innerHTML = '';
+      if (!students.length) { body.innerHTML = '<tr><td colspan="5">No students currently out.</td></tr>'; return; }
+      students.forEach(function(student) {
+        const row = document.createElement('tr');
+        row.dataset.leaveTime = student.leaveTime;
+        row.innerHTML = `
+          <td>${escapeHtml(student.name)}</td>
+          <td>${escapeHtml(student.destination)}</td>
+          <td>${formatTime(student.leaveTime)}</td>
+          <td class="elapsed">0:00</td>
+          <td><button class="primary returnButton">Return</button></td>`;
+        row.querySelector('.returnButton').addEventListener('click', function() { returnPass(student.passId, this); });
+        body.appendChild(row);
+      });
+      updateTimers();
+    }
+
+    function returnPass(passId, button) {
+      beginButtonAction(button, 'RETURNING...');
+      setActionMessage('Recording student return...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .returnStudent(passId);
+    }
+
+    function renderReportPeriods(schedules) {
+      const select = document.getElementById('reportPeriod');
+      if (!select) return;
+      const current = select.value;
+      const periods = [];
+      (schedules || []).forEach(function(row) {
+        const value = String(row.period || '').trim();
+        if (value && periods.indexOf(value) === -1 && value.toLowerCase() !== 'test') periods.push(value);
+      });
+      periods.sort(function(a,b) { return String(a).localeCompare(String(b), undefined, {numeric:true}); });
+      select.innerHTML = '<option value="">All Periods</option>' + periods.map(function(period) {
+        return '<option value="' + escapeAttribute(period) + '">Period ' + escapeHtml(period) + '</option>';
+      }).join('');
+      if (Array.from(select.options).some(function(option) { return option.value === current; })) select.value = current;
+    }
+
+    function updateReportTypeUI() {
+      const individual = document.getElementById('reportType').value === 'individual';
+      document.getElementById('reportStudentWrap').classList.toggle('hidden', !individual);
+      document.getElementById('reportAutoExpandWrap').classList.toggle('hidden', individual);
+    }
+
+    function applyReportPreset() {
+      const preset = document.getElementById('reportPreset').value;
+      const today = startOfLocalDay(new Date());
+      let start = new Date(today);
+      let end = new Date(today);
+      if (preset === 'week') {
+        const day = today.getDay();
+        const daysFromMonday = day === 0 ? 6 : day - 1;
+        start.setDate(today.getDate() - daysFromMonday);
+      } else if (preset === '30') {
+        start.setDate(today.getDate() - 29);
+      } else if (preset === 'custom') {
+        return;
+      }
+      document.getElementById('reportStart').value = toDateInputValue(start);
+      document.getElementById('reportEnd').value = toDateInputValue(end);
+    }
+
+    function generateReport(button) {
+      const type = document.getElementById('reportType').value;
+      const studentId = document.getElementById('reportStudent').value;
+      const startDate = document.getElementById('reportStart').value;
+      const endDate = document.getElementById('reportEnd').value;
+      if (type === 'individual' && !studentId) { setActionMessage('Choose a student.', 'error'); return; }
+      if (!startDate || !endDate) { setActionMessage('Choose a start and end date.', 'error'); return; }
+      beginButtonAction(button, 'GENERATING...');
+      setActionMessage('Generating report...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) {
+          finishButtonAction(button);
+          if (!result || !result.success) {
+            setActionMessage(result && result.message ? result.message : 'Report could not be generated.', 'error');
+            return;
+          }
+          currentReport = result;
+          reportDrilldownCache = {};
+          if (result.type === 'all') allReportSort = { key: 'studentName', direction: 'asc' };
+          renderReport(result);
+          document.getElementById('printReportButton').disabled = false;
+          document.getElementById('downloadReportButton').disabled = false;
+          setActionMessage('Report ready.', 'success');
+        })
+        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .generatePassReport(teacherPin, {
+          type: type,
+          studentId: studentId,
+          startDate: startDate,
+          endDate: endDate,
+          period: document.getElementById('reportPeriod').value,
+          includeTestData: document.getElementById('includeTestData').checked
+        });
+    }
+
+    function renderReport(report) {
+      const area = document.getElementById('reportPrintArea');
+      area.classList.remove('hidden');
+      document.getElementById('reportMeta').textContent = formatDateOnly(report.startDate) + ' through ' + formatDateOnly(report.endDate) + (report.period ? ' • Period ' + report.period : '') + (report.includeTestData ? ' • Includes test data' : '');
+      const head = document.getElementById('reportHead');
+      const body = document.getElementById('reportBody');
+      const summary = document.getElementById('reportSummary');
+      head.innerHTML = ''; body.innerHTML = ''; summary.innerHTML = '';
+
+      if (report.type === 'individual') {
+        document.getElementById('reportTitle').textContent = 'Student Pass Report: ' + report.studentName;
+        summary.innerHTML = `<div class="reportSummaryGrid">
+          <div class="stat"><div class="statLabel">Total Passes</div><div class="statValue">${report.summary.totalPasses}</div></div>
+          <div class="stat"><div class="statLabel">Restroom Passes</div><div class="statValue">${report.summary.restroomPasses}</div></div>
+          <div class="stat"><div class="statLabel">Completed Passes</div><div class="statValue">${report.summary.completedPasses}</div></div>
+          <div class="stat"><div class="statLabel">Average Completed</div><div class="statValue">${formatMinutes(report.summary.averageMinutes)}</div></div>
+          <div class="stat"><div class="statLabel">Longest Completed</div><div class="statValue">${formatMinutes(report.summary.longestMinutes)}</div></div>
+          <div class="stat"><div class="statLabel">Total Time Out of Class</div><div class="statValue">${formatMinutes(report.summary.totalMinutes)}</div></div>
+          <div class="stat"><div class="statLabel">Teacher Overrides</div><div class="statValue">${report.summary.overrides}</div></div>
+        </div>`;
+        head.innerHTML = '<tr><th>Date</th><th>Schedule</th><th>Period</th><th>Destination</th><th>Requested</th><th>Left</th><th>Returned</th><th>Duration</th><th>Override</th></tr>';
+        if (!report.detailRows.length) { body.innerHTML = '<tr><td colspan="9">No passes in this date range.</td></tr>'; return; }
+        report.detailRows.forEach(function(row) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${escapeHtml(formatDateOnly(row.date))}</td><td>${escapeHtml(row.schedule)}</td><td>${escapeHtml(row.period)}</td><td>${escapeHtml(row.destination)}</td><td>${escapeHtml(timeOnly(row.requested))}</td><td>${escapeHtml(timeOnly(row.left))}</td><td>${escapeHtml(timeOnly(row.returned) || '—')}</td><td>${row.completed ? formatMinutes(row.durationMinutes) : '—'}</td><td>${escapeHtml(row.override || '—')}</td>`;
+          body.appendChild(tr);
+        });
+        return;
+      }
+
+      document.getElementById('reportTitle').textContent = 'All Students Pass Report';
+      renderAllStudentsReport(report, false);
+    }
+
+    function renderAllStudentsReport(report, preserveExpanded) {
+      const head = document.getElementById('reportHead');
+      const body = document.getElementById('reportBody');
+      const expandedIds = preserveExpanded ? getExpandedReportStudentIds() : [];
+
+      const columns = [
+        { key: 'studentName', label: 'Student', type: 'text' },
+        { key: 'studentId', label: 'Student ID', type: 'text' },
+        { key: 'totalPasses', label: 'Total', type: 'number' },
+        { key: 'restroomPasses', label: 'Restroom', type: 'number' },
+        { key: 'completedPasses', label: 'Completed', type: 'number' },
+        { key: 'averageMinutes', label: 'Average', type: 'number' },
+        { key: 'longestMinutes', label: 'Longest', type: 'number' },
+        { key: 'totalMinutes', label: 'Total Time', type: 'number' },
+        { key: 'flagScore', label: 'Flag', type: 'number' },
+        { key: 'overrides', label: 'Overrides', type: 'number' }
+      ];
+
+      head.innerHTML = '<tr>' + columns.map(function(column) {
+        const active = allReportSort.key === column.key;
+        const arrow = active ? (allReportSort.direction === 'asc' ? '▲' : '▼') : '';
+        return '<th class="sortableReportHeader" data-sort-key="' + column.key + '" data-sort-type="' + column.type + '" title="Sort by ' + escapeHtml(column.label) + '">' + escapeHtml(column.label) + '<span class="sortArrow">' + arrow + '</span></th>';
+      }).join('') + '</tr>';
+
+      head.querySelectorAll('.sortableReportHeader').forEach(function(th) {
+        th.addEventListener('click', function() {
+          const key = th.dataset.sortKey;
+          if (allReportSort.key === key) {
+            allReportSort.direction = allReportSort.direction === 'asc' ? 'desc' : 'asc';
+          } else {
+            allReportSort.key = key;
+            allReportSort.direction = 'asc';
+          }
+          renderAllStudentsReport(report, true);
+        });
+      });
+
+      // Never display roster students who had zero passes in the selected range.
+      const visibleSummaryRows = (report.summaryRows || []).filter(function(row) {
+        return Number(row.totalPasses || 0) > 0;
+      }).slice();
+
+      const flagPassCount = Number(document.getElementById('flagPassCount').value || 5);
+      const flagAverageMinutes = Number(document.getElementById('flagAverageMinutes').value || 8);
+      visibleSummaryRows.forEach(function(row) {
+        row.flagLabels = [];
+        if (Number(row.totalPasses || 0) >= flagPassCount) row.flagLabels.push('Frequent');
+        if (Number(row.averageMinutes || 0) >= flagAverageMinutes) row.flagLabels.push('Long Avg');
+        row.flagScore = row.flagLabels.length;
+      });
+
+      const sortColumn = columns.find(function(column) { return column.key === allReportSort.key; }) || columns[0];
+      visibleSummaryRows.sort(function(a, b) {
+        let av = a[sortColumn.key];
+        let bv = b[sortColumn.key];
+        let comparison = 0;
+        if (sortColumn.type === 'number') {
+          comparison = Number(av || 0) - Number(bv || 0);
+        } else {
+          comparison = String(av || '').localeCompare(String(bv || ''), undefined, { numeric: true, sensitivity: 'base' });
+        }
+        if (comparison === 0 && sortColumn.key !== 'studentName') {
+          comparison = String(a.studentName || '').localeCompare(String(b.studentName || ''), undefined, { sensitivity: 'base' });
+        }
+        return allReportSort.direction === 'asc' ? comparison : -comparison;
+      });
+
+      body.innerHTML = '';
+      if (!visibleSummaryRows.length) {
+        body.innerHTML = '<tr><td colspan="10">No students had passes in this date range.</td></tr>';
+        return;
+      }
+
+      visibleSummaryRows.forEach(function(row) {
+        const tr = document.createElement('tr');
+        tr.className = 'reportSummaryRow';
+        tr.dataset.studentId = row.studentId;
+        const flagHtml = (row.flagLabels || []).map(function(label) { return '<span class="reportFlag">' + escapeHtml(label) + '</span>'; }).join('') || '—';
+        tr.innerHTML = `<td><div class="reportStudentCell"><button class="reportExpandButton" type="button" aria-expanded="false" title="Show individual pass history">▸</button><span class="reportStudentName">${escapeHtml(row.studentName)}</span></div></td><td>${escapeHtml(row.studentId)}</td><td>${row.totalPasses}</td><td>${row.restroomPasses}</td><td>${row.completedPasses}</td><td>${formatMinutes(row.averageMinutes)}</td><td>${formatMinutes(row.longestMinutes)}</td><td>${formatMinutes(row.totalMinutes)}</td><td>${flagHtml}</td><td>${row.overrides}</td>`;
+
+        const detailTr = document.createElement('tr');
+        detailTr.className = 'reportDetailRow hidden';
+        detailTr.innerHTML = '<td colspan="10"><div class="reportDrilldown"><div class="reportDrilldownMessage">Select the arrow to view this student’s pass history.</div></div></td>';
+
+        const expandButton = tr.querySelector('.reportExpandButton');
+        expandButton.addEventListener('click', function() {
+          toggleStudentReportDetails(row, detailTr, expandButton);
+        });
+
+        body.appendChild(tr);
+        body.appendChild(detailTr);
+
+        if (expandedIds.indexOf(String(row.studentId)) !== -1) {
+          loadStudentReportDetails(row, detailTr, expandButton);
+        }
+      });
+
+      if (!preserveExpanded && document.getElementById('autoExpandAllDetails').checked) {
+        autoExpandAllStudentDetails();
+      }
+    }
+
+    function getExpandedReportStudentIds() {
+      return Array.from(document.querySelectorAll('#reportBody .reportSummaryRow')).filter(function(row) {
+        const button = row.querySelector('.reportExpandButton');
+        return button && button.getAttribute('aria-expanded') === 'true';
+      }).map(function(row) {
+        return String(row.dataset.studentId || (row.children[1] ? row.children[1].textContent.trim() : ''));
+      }).filter(Boolean);
+    }
+
+    function autoExpandAllStudentDetails() {
+      const buttons = Array.from(document.querySelectorAll('#reportBody .reportExpandButton'));
+      if (!buttons.length) return;
+
+      setActionMessage('Report ready. Expanding all student details...', 'processing');
+      let index = 0;
+
+      function expandNext() {
+        while (index < buttons.length && buttons[index].getAttribute('aria-expanded') === 'true') {
+          index++;
+        }
+        if (index >= buttons.length) {
+          setActionMessage('Report ready. All student details expanded.', 'success');
+          return;
+        }
+
+        const button = buttons[index++];
+        const summaryRow = button.closest('tr');
+        const detailRow = summaryRow ? summaryRow.nextElementSibling : null;
+        const studentIdCell = summaryRow ? summaryRow.children[1] : null;
+        const studentName = summaryRow ? summaryRow.querySelector('.reportStudentName') : null;
+        if (!detailRow || !studentIdCell) {
+          expandNext();
+          return;
+        }
+
+        loadStudentReportDetails({
+          studentId: studentIdCell.textContent.trim(),
+          studentName: studentName ? studentName.textContent.trim() : ''
+        }, detailRow, button, expandNext);
+      }
+
+      expandNext();
+    }
+
+    function toggleStudentReportDetails(studentRow, detailTr, button) {
+      const isOpening = detailTr.classList.contains('hidden');
+
+      if (!isOpening) {
+        detailTr.classList.add('hidden');
+        button.textContent = '▸';
+        button.setAttribute('aria-expanded', 'false');
+        button.title = 'Show individual pass history';
+        return;
+      }
+
+      detailTr.classList.remove('hidden');
+      button.textContent = '▾';
+      button.setAttribute('aria-expanded', 'true');
+      button.title = 'Hide individual pass history';
+
+      if (!currentReport || currentReport.type !== 'all') {
+        renderStudentReportDrilldownError(detailTr, 'Generate the All Students report again.');
+        return;
+      }
+
+      loadStudentReportDetails(studentRow, detailTr, button);
+    }
+
+    function loadStudentReportDetails(studentRow, detailTr, button, onComplete) {
+      if (!currentReport || currentReport.type !== 'all') {
+        renderStudentReportDrilldownError(detailTr, 'Generate the All Students report again.');
+        if (onComplete) onComplete();
+        return;
+      }
+
+      detailTr.classList.remove('hidden');
+      button.textContent = '▾';
+      button.setAttribute('aria-expanded', 'true');
+      button.title = 'Hide individual pass history';
+
+      const cacheKey = [
+        studentRow.studentId,
+        currentReport.startDate,
+        currentReport.endDate,
+        currentReport.period || '',
+        currentReport.includeTestData ? '1' : '0'
+      ].join('|');
+
+      if (reportDrilldownCache[cacheKey]) {
+        renderStudentReportDrilldown(detailTr, reportDrilldownCache[cacheKey]);
+        if (onComplete) onComplete();
+        return;
+      }
+
+      const drilldown = detailTr.querySelector('.reportDrilldown');
+      drilldown.innerHTML = '<div class="reportDrilldownMessage">Loading individual pass history...</div>';
+      button.disabled = true;
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          button.disabled = false;
+          if (!result || !result.success) {
+            renderStudentReportDrilldownError(detailTr, result && result.message ? result.message : 'Student history could not be loaded.');
+            if (onComplete) onComplete();
+            return;
+          }
+          reportDrilldownCache[cacheKey] = result;
+          renderStudentReportDrilldown(detailTr, result);
+          if (onComplete) onComplete();
+        })
+        .withFailureHandler(function(error) {
+          button.disabled = false;
+          renderStudentReportDrilldownError(detailTr, error && error.message ? error.message : 'Student history could not be loaded.');
+          if (onComplete) onComplete();
+        })
+        .generatePassReport(teacherPin, {
+          type: 'individual',
+          studentId: studentRow.studentId,
+          startDate: currentReport.startDate,
+          endDate: currentReport.endDate,
+          period: currentReport.period || '',
+          includeTestData: currentReport.includeTestData
+        });
+    }
+
+    function renderStudentReportDrilldown(detailTr, report) {
+      const drilldown = detailTr.querySelector('.reportDrilldown');
+      if (!report.detailRows || !report.detailRows.length) {
+        drilldown.innerHTML = '<div class="reportDrilldownMessage">No passes in this date range.</div>';
+        return;
+      }
+
+      const columns = [
+        { key: 'date', label: 'Date', type: 'date' },
+        { key: 'schedule', label: 'Schedule', type: 'text' },
+        { key: 'period', label: 'Period', type: 'text' },
+        { key: 'destination', label: 'Destination', type: 'text' },
+        { key: 'requested', label: 'Requested', type: 'datetime' },
+        { key: 'left', label: 'Left', type: 'datetime' },
+        { key: 'returned', label: 'Returned', type: 'datetime' },
+        { key: 'durationMinutes', label: 'Duration', type: 'number' },
+        { key: 'override', label: 'Override', type: 'text' }
+      ];
+
+      if (!report._drilldownSort) {
+        report._drilldownSort = { key: 'date', direction: 'desc' };
+      }
+
+      const sort = report._drilldownSort;
+      const sortColumn = columns.find(function(column) {
+        return column.key === sort.key;
+      }) || columns[0];
+
+      const rows = report.detailRows.slice();
+      rows.sort(function(a, b) {
+        const comparison = compareStudentDetailValues_(a, b, sortColumn);
+        return sort.direction === 'asc' ? comparison : -comparison;
+      });
+
+      let html = `<div class="reportDrilldownHeader"><div class="reportDrilldownTitle">${escapeHtml(report.studentName)} — Individual Pass History</div><button type="button" class="reportStudentPrintButton">Print Student</button></div>`;
+      html += '<div class="tableWrap"><table><thead><tr>' + columns.map(function(column) {
+        const active = sort.key === column.key;
+        const arrow = active ? (sort.direction === 'asc' ? '▲' : '▼') : '';
+        return '<th class="sortableReportHeader studentDetailSortHeader" data-sort-key="' + column.key + '" title="Sort by ' + escapeHtml(column.label) + '">' + escapeHtml(column.label) + '<span class="sortArrow">' + arrow + '</span></th>';
+      }).join('') + '</tr></thead><tbody>';
+
+      rows.forEach(function(row) {
+        html += `<tr><td>${escapeHtml(formatDateOnly(row.date))}</td><td>${escapeHtml(row.schedule)}</td><td>${escapeHtml(row.period)}</td><td>${escapeHtml(row.destination)}</td><td>${escapeHtml(timeOnly(row.requested))}</td><td>${escapeHtml(timeOnly(row.left))}</td><td>${escapeHtml(timeOnly(row.returned) || '—')}</td><td>${row.completed ? formatMinutes(row.durationMinutes) : '—'}</td><td>${escapeHtml(row.override || '—')}</td></tr>`;
+      });
+
+      html += '</tbody></table></div>';
+      drilldown.innerHTML = html;
+
+      drilldown.querySelectorAll('.studentDetailSortHeader').forEach(function(header) {
+        header.addEventListener('click', function() {
+          const key = header.dataset.sortKey;
+          if (report._drilldownSort.key === key) {
+            report._drilldownSort.direction = report._drilldownSort.direction === 'asc' ? 'desc' : 'asc';
+          } else {
+            report._drilldownSort.key = key;
+            report._drilldownSort.direction =
+              key === 'date' ||
+              key === 'requested' ||
+              key === 'left' ||
+              key === 'returned' ||
+              key === 'durationMinutes'
+                ? 'desc'
+                : 'asc';
+          }
+          renderStudentReportDrilldown(detailTr, report);
+        });
+      });
+
+      const printButton = drilldown.querySelector('.reportStudentPrintButton');
+      if (printButton) {
+        printButton.addEventListener('click', function() {
+          printIndividualStudentReport(report);
+        });
+      }
+    }
+
+    function compareStudentDetailValues_(a, b, column) {
+      let av;
+      let bv;
+
+      if (column.type === 'number') {
+        av = Number(a[column.key]);
+        bv = Number(b[column.key]);
+        av = Number.isFinite(av) ? av : -1;
+        bv = Number.isFinite(bv) ? bv : -1;
+        return av - bv;
+      }
+
+      if (column.type === 'date') {
+        av = String(a[column.key] || '');
+        bv = String(b[column.key] || '');
+        return av.localeCompare(bv);
+      }
+
+      if (column.type === 'datetime') {
+        av = studentDetailDateTimeValue_(a[column.key]);
+        bv = studentDetailDateTimeValue_(b[column.key]);
+        return av - bv;
+      }
+
+      av = String(a[column.key] || '');
+      bv = String(b[column.key] || '');
+      return av.localeCompare(bv, undefined, {
+        numeric: true,
+        sensitivity: 'base'
+      });
+    }
+
+    function studentDetailDateTimeValue_(value) {
+      if (!value) return -1;
+      const parsed = new Date(value).getTime();
+      return Number.isFinite(parsed) ? parsed : -1;
+    }
+
+    function printIndividualStudentReport(report) {
+      if (!report || report.type !== 'individual') {
+        setActionMessage('Student report is not available to print.', 'error');
+        return;
+      }
+
+      const printWindow = window.open('', '_blank', 'width=1000,height=750');
+      if (!printWindow) {
+        setActionMessage('Allow pop-ups to print the student report.', 'error');
+        return;
+      }
+
+      const meta = formatDateOnly(report.startDate) + ' through ' + formatDateOnly(report.endDate) + (report.period ? ' • Period ' + report.period : '') + (report.includeTestData ? ' • Includes test data' : '');
+      const summary = report.summary || {};
+      let detailRows = '';
+
+      if (!report.detailRows || !report.detailRows.length) {
+        detailRows = '<tr><td colspan="9">No passes in this date range.</td></tr>';
+      } else {
+        report.detailRows.forEach(function(row) {
+          detailRows += `<tr><td>${escapeHtml(formatDateOnly(row.date))}</td><td>${escapeHtml(row.schedule)}</td><td>${escapeHtml(row.period)}</td><td>${escapeHtml(row.destination)}</td><td>${escapeHtml(timeOnly(row.requested))}</td><td>${escapeHtml(timeOnly(row.left))}</td><td>${escapeHtml(timeOnly(row.returned) || '—')}</td><td>${row.completed ? formatMinutes(row.durationMinutes) : '—'}</td><td>${escapeHtml(row.override || '—')}</td></tr>`;
+        });
+      }
+
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(report.studentName)} - Hall Pass Report</title><style>
+        body{font-family:Arial,sans-serif;color:#111;margin:28px;font-size:12px}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;margin-bottom:18px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 18px}.stat{border:1px solid #ccc;border-radius:6px;padding:8px}.label{font-size:10px;color:#555;text-transform:uppercase}.value{font-size:17px;font-weight:bold;margin-top:3px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:6px;text-align:left;white-space:nowrap}th{background:#eee}@media print{body{margin:0}}
+      </style></head><body>
+        <h1>Student Pass Report: ${escapeHtml(report.studentName)}</h1>
+        <div class="meta">${escapeHtml(meta)}</div>
+        <div class="summary">
+          <div class="stat"><div class="label">Total Passes</div><div class="value">${Number(summary.totalPasses || 0)}</div></div>
+          <div class="stat"><div class="label">Restroom Passes</div><div class="value">${Number(summary.restroomPasses || 0)}</div></div>
+          <div class="stat"><div class="label">Completed Passes</div><div class="value">${Number(summary.completedPasses || 0)}</div></div>
+          <div class="stat"><div class="label">Average Completed</div><div class="value">${formatMinutes(summary.averageMinutes)}</div></div>
+          <div class="stat"><div class="label">Longest Completed</div><div class="value">${formatMinutes(summary.longestMinutes)}</div></div>
+          <div class="stat"><div class="label">Total Time Out of Class</div><div class="value">${formatMinutes(summary.totalMinutes)}</div></div>
+          <div class="stat"><div class="label">Teacher Overrides</div><div class="value">${Number(summary.overrides || 0)}</div></div>
+        </div>
+        <table><thead><tr><th>Date</th><th>Schedule</th><th>Period</th><th>Destination</th><th>Requested</th><th>Left</th><th>Returned</th><th>Duration</th><th>Override</th></tr></thead><tbody>${detailRows}</tbody></table>
+      </body></html>`;
+
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(function() { printWindow.print(); }, 250);
+    }
+
+    function renderStudentReportDrilldownError(detailTr, message) {
+      const drilldown = detailTr.querySelector('.reportDrilldown');
+      drilldown.innerHTML = '<div class="reportDrilldownMessage reportDrilldownError">' + escapeHtml(message) + '</div>';
+    }
+
+    function printReport() {
+      if (!currentReport) { setActionMessage('Generate a report first.', 'error'); return; }
+      window.print();
+    }
+
+    function downloadReportCsv() {
+      if (!currentReport) { setActionMessage('Generate a report first.', 'error'); return; }
+      let rows = [];
+      let fileName = 'hall-pass-report.csv';
+      if (currentReport.type === 'individual') {
+        fileName = sanitizeFileName(currentReport.studentName) + '-hall-pass-report.csv';
+        rows.push(['Date','Schedule','Period','Destination','Requested','Left','Returned','Duration','Override']);
+        currentReport.detailRows.forEach(function(row) {
+          rows.push([formatDateOnly(row.date), row.schedule, row.period, row.destination, timeOnly(row.requested), timeOnly(row.left), timeOnly(row.returned), row.completed ? formatMinutes(row.durationMinutes) : '', row.override || '']);
+        });
+      } else {
+        rows.push(['Student','Student ID','Total Passes','Restroom Passes','Completed Passes','Average Completed Pass','Longest Completed Pass','Total Time Out','Teacher Overrides']);
+        (currentReport.summaryRows || []).filter(function(row) {
+          return Number(row.totalPasses || 0) > 0;
+        }).forEach(function(row) {
+          rows.push([row.studentName,row.studentId,row.totalPasses,row.restroomPasses,row.completedPasses,formatMinutes(row.averageMinutes),formatMinutes(row.longestMinutes),formatMinutes(row.totalMinutes),row.overrides]);
+        });
+      }
+      const csv = rows.map(function(row) { return row.map(csvCell).join(','); }).join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url; link.download = fileName;
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    function handleActionResult(result) {
+      if (!result || !result.success) {
+        setActionMessage(result && result.message ? result.message : 'The action could not be completed.', 'error');
+        return;
+      }
+      setActionMessage(result.message || 'Updated.', 'success');
+      refreshAfterAction();
+    }
+
+    function handleActionFailure(error) {
+      setActionMessage(error && error.message ? error.message : 'Something went wrong. Please try again.', 'error');
+    }
+
+    function updateTimers() {
+      if (!dashboardState) return;
+      const warning = Number(dashboardState.settings['Long Pass Warning'] || 10);
+      const danger = Number(dashboardState.settings['Very Long Pass Warning'] || 15);
+      document.querySelectorAll('#outBody tr[data-leave-time]').forEach(function(row) {
+        const start = new Date(row.dataset.leaveTime).getTime();
+        if (!Number.isFinite(start)) return;
+        const seconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
+        const minutes = Math.floor(seconds / 60);
+        const remainder = seconds % 60;
+        const elapsed = minutes + ':' + String(remainder).padStart(2, '0');
+        row.classList.remove('outWarning', 'outDanger');
+        if (minutes >= danger) {
+          row.classList.add('outDanger');
+          row.querySelector('.elapsed').textContent = '🚨 ' + elapsed;
+        } else if (minutes >= warning) {
+          row.classList.add('outWarning');
+          row.querySelector('.elapsed').textContent = '⚠ ' + elapsed;
+        } else {
+          row.querySelector('.elapsed').textContent = elapsed;
+        }
+      });
+    }
+
+    function setLoginMessage(text, error) {
+      const element = document.getElementById('loginMessage');
+      element.textContent = text || '';
+      element.className = 'message';
+      element.classList.add(error ? 'error' : 'warning');
+    }
+
+    function formatTime(value) {
+      if (!value) return '';
+      return new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function formatMinutes(value) {
+      value = Number(value);
+      if (!Number.isFinite(value) || value <= 0) return '0:00';
+      const totalSeconds = Math.round(value * 60);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return minutes + ':' + String(seconds).padStart(2, '0');
+    }
+
+    function escapeHtml(value) {
+      const div = document.createElement('div');
+      div.textContent = value == null ? '' : String(value);
+      return div.innerHTML;
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value).replace(/"/g, '&quot;');
+    }
+
+    function startOfLocalDay(date) {
+      const result = new Date(date); result.setHours(0,0,0,0); return result;
+    }
+
+    function toDateInputValue(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return year + '-' + month + '-' + day;
+    }
+
+    function formatDateOnly(value) {
+      if (!value) return '';
+      const parts = String(value).split('-');
+      if (parts.length === 3) return Number(parts[1]) + '/' + Number(parts[2]) + '/' + parts[0];
+      return String(value);
+    }
+
+    function timeOnly(value) {
+      if (!value) return '';
+      const text = String(value);
+      const match = text.match(/\s(\d{1,2}:\d{2}:\d{2}\s[AP]M)$/);
+      return match ? match[1] : text;
+    }
+
+    function csvCell(value) {
+      const text = value == null ? '' : String(value);
+      return '"' + text.replace(/"/g, '""') + '"';
+    }
+
+    function sanitizeFileName(value) {
+      return String(value || 'student').replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '-');
+    }
+
+    document.getElementById('teacherPin').addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') unlockDashboard(document.getElementById('loginButton'));
+    });
+
+    setInterval(function() { if (unlocked) refreshDashboard(false); }, 3000);
+    setInterval(function() { if (unlocked) updateTimers(); }, 1000);
+
+    window.onload = function() {
+      document.getElementById('teacherPin').focus();
+      updateReportTypeUI();
+    };
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const room = new URLSearchParams(window.location.search).get('room');
+      const label = document.getElementById('roomLabel');
+      if (label) label.textContent = room ? 'Room ' + String(room).toUpperCase() : '';
+    });
+  </script>
+</body>
+</html>

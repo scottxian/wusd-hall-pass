@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Westfield Hall Pass — Admin</title>
+  <style>
+    *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#222}
+    .header{background:#263238;color:#fff;padding:18px 20px}.header h1{margin:0 0 5px;font-size:27px}.header div{opacity:.9}
+    .container{max-width:1400px;margin:auto;padding:18px}.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+    .hidden{display:none!important}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}.stat{background:#eef2f5;border-radius:10px;padding:14px}.label{font-size:13px;color:#555}.value{font-size:27px;font-weight:bold;margin-top:4px}
+    .controls{display:grid;grid-template-columns:minmax(160px,220px) minmax(220px,1fr) auto;gap:10px;align-items:end} label{display:block;font-weight:bold;margin-bottom:5px} input,select{width:100%;padding:10px;border:2px solid #bbb;border-radius:7px;font-size:16px}button{border:0;border-radius:8px;padding:11px 16px;font-weight:bold;font-size:16px;cursor:pointer;background:#1f5ea8;color:#fff}button:disabled{opacity:.55;cursor:not-allowed}.gray{background:#5f6368}.red{background:#b3261e}
+    .message{min-height:24px;margin-top:8px;font-weight:bold}.error{color:#b3261e}.tableWrap{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:9px 10px;border-bottom:1px solid #ddd;text-align:left;white-space:nowrap}th{background:#e8eef5}.roomTag{display:inline-block;padding:3px 7px;border-radius:999px;background:#e3ebf4;font-weight:bold}.lock{color:#b3261e}
+    @media(max-width:700px){.controls{grid-template-columns:1fr}.container{padding:10px}.card{padding:13px}th,td{font-size:13px;padding:7px}.header h1{font-size:22px}}
+  </style>
+</head>
+<body>
+  <div class="header"><h1>Westfield Hall Pass — Campus Admin</h1><div id="adminName">Locked</div></div>
+  <div class="container">
+    <div id="loginCard" class="card">
+      <h2>Admin Login</h2>
+      <label for="adminPin">Admin PIN</label>
+      <input id="adminPin" type="password" inputmode="numeric" autocomplete="off" style="max-width:360px">
+      <div style="margin-top:10px"><button id="loginButton" onclick="login()">Unlock Campus Dashboard</button></div>
+      <div id="loginMessage" class="message"></div>
+    </div>
+
+    <div id="dashboard" class="hidden">
+      <div class="grid" style="margin-bottom:16px">
+        <div class="stat"><div class="label">Active Rooms</div><div id="statRooms" class="value">0</div></div>
+        <div class="stat"><div class="label">Students Out</div><div id="statOut" class="value">0</div></div>
+        <div class="stat"><div class="label">Waiting</div><div id="statWaiting" class="value">0</div></div>
+      </div>
+
+      <div class="card">
+        <div class="controls">
+          <div><label for="roomFilter">Room</label><select id="roomFilter" onchange="refresh()"><option value="">All Rooms</option></select></div>
+          <div><label for="search">History Search</label><input id="search" placeholder="Student, ID, destination, room..." onkeydown="if(event.key==='Enter')refresh()"></div>
+          <button class="gray" onclick="refresh(this)">Refresh</button>
+        </div>
+        <div id="message" class="message"></div>
+      </div>
+
+      <div class="card"><h2>Students Out Right Now</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Left</th><th>Time Gone</th></tr></thead><tbody id="outBody"></tbody></table></div></div>
+      <div class="card"><h2>Waiting</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Requested</th></tr></thead><tbody id="waitingBody"></tbody></table></div></div>
+      <div class="card"><h2>Recent Pass History</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Left</th><th>Returned</th><th>Status</th></tr></thead><tbody id="historyBody"></tbody></table></div></div>
+    </div>
+  </div>
+
+  <script src="config.js"></script><script src="api-shim.js"></script>
+  <script>
+    let unlocked=false, lastState=null;
+    function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+    function fmt(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString([], {month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'});}
+    function elapsed(v){const ms=Date.now()-new Date(v).getTime();if(!Number.isFinite(ms))return '—';const m=Math.max(0,Math.floor(ms/60000));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0');}
+    function setMsg(t,e=false){const x=document.getElementById('message');x.textContent=t||'';x.className='message'+(e?' error':'');}
+    async function login(){const pin=document.getElementById('adminPin').value.trim(),b=document.getElementById('loginButton'),m=document.getElementById('loginMessage');if(!pin){m.textContent='Enter the Admin PIN.';m.className='message error';return;}b.disabled=true;b.textContent='UNLOCKING...';try{const r=await hallpassApi.call('adminLogin',[pin]);if(!r.success){m.textContent=r.message;m.className='message error';return;}unlocked=true;document.getElementById('loginCard').classList.add('hidden');document.getElementById('dashboard').classList.remove('hidden');document.getElementById('adminName').textContent=r.admin.name;await refresh();}catch(e){m.textContent=e.message;m.className='message error';}finally{b.disabled=false;b.textContent='Unlock Campus Dashboard';}}
+    async function refresh(button){if(!unlocked)return; if(button)button.disabled=true;setMsg('Refreshing...');try{const room=document.getElementById('roomFilter').value,search=document.getElementById('search').value.trim();const r=await hallpassApi.call('adminState',[room,search]);if(!r.success){setMsg(r.message,true);return;}lastState=r;render(r);setMsg('Updated.');}catch(e){setMsg(e.message,true);}finally{if(button)button.disabled=false;}}
+    function render(r){document.getElementById('statRooms').textContent=r.campusStats.activeRooms;document.getElementById('statOut').textContent=r.campusStats.out;document.getElementById('statWaiting').textContent=r.campusStats.waiting;const sel=document.getElementById('roomFilter'),cur=sel.value;if(sel.options.length<=1){sel.innerHTML='<option value="">All Rooms</option>'+r.rooms.map(x=>`<option value="${esc(x.key)}">${esc(x.room)}${x.emergencyLock?' — LOCKED':''}</option>`).join('');sel.value=cur;}
+      const out=document.getElementById('outBody');out.innerHTML=r.out.length?r.out.map(x=>`<tr><td><span class="roomTag">${esc(x.roomKey.toUpperCase())}</span></td><td>${esc(x.name)}<div style="font-size:12px;color:#666">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${fmt(x.leaveTime)}</td><td data-left="${esc(x.leaveTime)}">${elapsed(x.leaveTime)}</td></tr>`).join(''):'<tr><td colspan="5">No students currently out.</td></tr>';
+      const w=document.getElementById('waitingBody');w.innerHTML=r.waiting.length?r.waiting.map(x=>`<tr><td><span class="roomTag">${esc(x.roomKey.toUpperCase())}</span></td><td>${esc(x.name)}<div style="font-size:12px;color:#666">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${fmt(x.requested)}</td></tr>`).join(''):'<tr><td colspan="4">No students waiting.</td></tr>';
+      const h=document.getElementById('historyBody');h.innerHTML=r.history.length?r.history.map(x=>`<tr><td><span class="roomTag">${esc(x.roomKey.toUpperCase())}</span></td><td>${esc(x.name)}<div style="font-size:12px;color:#666">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${fmt(x.left)}</td><td>${fmt(x.returned)}</td><td>${esc(x.statusNote||'')}</td></tr>`).join(''):'<tr><td colspan="6">No matching pass history.</td></tr>';
+    }
+    setInterval(()=>{document.querySelectorAll('[data-left]').forEach(x=>x.textContent=elapsed(x.dataset.left));},1000);
+    setInterval(()=>{if(unlocked)refresh();},5000);
+  </script>
+</body></html>
