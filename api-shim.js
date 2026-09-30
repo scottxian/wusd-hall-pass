@@ -1,8 +1,14 @@
 (function () {
   'use strict';
 
-  const params = new URLSearchParams(window.location.search);
-  const roomKey = String(params.get('room') || '').trim().toLowerCase();
+  function getRoomKey() {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      return String(params.get('room') || '').trim().toLowerCase();
+    } catch (e) {
+      return '';
+    }
+  }
   const SESSION_KEY = 'westfield_hallpass_teacher_session';
 
   function getApiUrl() {
@@ -14,6 +20,7 @@
   }
 
   async function call(action, args) {
+    const roomKey = getRoomKey();
     if (!action.startsWith('admin') && !roomKey) {
       throw new Error('This Hall Pass link is missing its room. Add ?room=d4 (or the correct room key).');
     }
@@ -80,11 +87,12 @@
 
   window.hallpassApi = {
     call,
-    roomKey,
+    get roomKey() { return getRoomKey(); },
     clearTeacherSession() { sessionStorage.removeItem(SESSION_KEY); }
   };
 
   document.addEventListener('DOMContentLoaded', function () {
+    const roomKey = getRoomKey();
     if (roomKey) document.documentElement.dataset.room = roomKey;
   });
 })();
