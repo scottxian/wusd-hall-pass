@@ -196,12 +196,8 @@
           <h2>Quick Controls</h2>
           <div class="controlGroup">
             <h3>Schedule Mode</h3>
-            <div class="buttonRow">
-              <button class="primary scheduleButton" data-schedule="Regular" onclick="changeSchedule('Regular', this)">Regular</button>
-              <button class="primary scheduleButton" data-schedule="Minimum" onclick="changeSchedule('Minimum', this)">Minimum</button>
-              <button class="primary scheduleButton" data-schedule="Rally" onclick="changeSchedule('Rally', this)">Rally</button>
-              <button class="purple scheduleButton" data-schedule="Test" onclick="changeSchedule('Test', this)">Test</button>
-            </div>
+            <div id="scheduleButtons" class="buttonRow"></div>
+            <div class="subtle">Bell times are managed by Campus Admin. Choose which master schedule this room uses today.</div>
           </div>
 
           <div class="controlGroup emergencyCard">
@@ -290,27 +286,6 @@
           </details>
         </div>
 
-        <div class="card">
-          <h2>Advanced Schedule Setup</h2>
-          <p>Edit the actual bell times here. Schedule Mode above chooses which set is active today.</p>
-          <div class="tableWrap">
-            <table>
-              <thead><tr><th>Schedule</th><th>Period</th><th>Start</th><th>End</th><th>Save</th><th>Delete</th></tr></thead>
-              <tbody id="scheduleBody"></tbody>
-            </table>
-          </div>
-
-          <details>
-            <summary>Add Schedule Row</summary>
-            <div class="controlGrid">
-              <div><label for="newScheduleName">Schedule</label><select id="newScheduleName"><option value="Regular">Regular</option><option value="Minimum">Minimum</option><option value="Rally">Rally</option><option value="Test">Test</option></select></div>
-              <div><label for="newSchedulePeriod">Period</label><input id="newSchedulePeriod" type="text"></div>
-              <div><label for="newScheduleStart">Start</label><input id="newScheduleStart" type="time"></div>
-              <div><label for="newScheduleEnd">End</label><input id="newScheduleEnd" type="time"></div>
-            </div>
-            <button class="primary" onclick="addScheduleRow(this)">Add Schedule Row</button>
-          </details>
-        </div>
       </section>
 
       <section id="tab-reports" class="tabPanel">
@@ -478,7 +453,7 @@
       if (includeControls) {
         renderSettings(state.settings);
         renderDestinations(state.destinations);
-        renderSchedules(state.schedules || []);
+        renderScheduleChoices(state.schedules || [], state.settings["Today's Schedule"] || '');
         renderStudentOptions(state.students || []);
         renderRestroomAccessTable(state.students || []);
         renderOverrideDestinations(state.destinations || []);
@@ -506,6 +481,31 @@
       document.getElementById('completedToday').textContent = stats.completedPasses || 0;
       document.getElementById('averageTime').textContent = formatMinutes(stats.averageMinutes);
       document.getElementById('longestTime').textContent = formatMinutes(stats.longestMinutes);
+    }
+
+    function renderScheduleChoices(schedules, selected) {
+      const holder = document.getElementById('scheduleButtons');
+      if (!holder) return;
+      const names = [];
+      (schedules || []).forEach(function(row) {
+        const name = String(row.schedule || '').trim();
+        if (name && !names.some(function(x) { return x.toLowerCase() === name.toLowerCase(); })) names.push(name);
+      });
+      holder.innerHTML = '';
+      if (!names.length) {
+        holder.innerHTML = '<span class="subtle">No master schedules have been configured by Admin.</span>';
+        return;
+      }
+      names.forEach(function(name) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'primary scheduleButton';
+        button.dataset.schedule = name;
+        button.textContent = name;
+        button.classList.toggle('active', name.toLowerCase() === String(selected || '').toLowerCase());
+        button.addEventListener('click', function() { changeSchedule(name, button); });
+        holder.appendChild(button);
+      });
     }
 
     function renderQuickControls(state) {
@@ -731,81 +731,6 @@
         .addDestinationFromDashboard(teacherPin, data);
     }
 
-
-    function renderSchedules(schedules) {
-      const body = document.getElementById('scheduleBody');
-      body.innerHTML = '';
-      if (!schedules.length) { body.innerHTML = '<tr><td colspan="6">No schedule rows found.</td></tr>'; return; }
-      schedules.forEach(function(schedule) {
-        const row = document.createElement('tr');
-        row.dataset.sheetRow = schedule.sheetRow;
-        row.innerHTML = `
-          <td><select class="scheduleName">${scheduleOptions(schedule.schedule)}</select></td>
-          <td><input class="schedulePeriod" type="text" value="${escapeAttribute(schedule.period)}"></td>
-          <td><input class="scheduleStart" type="time" value="${escapeAttribute(schedule.startTime)}"></td>
-          <td><input class="scheduleEnd" type="time" value="${escapeAttribute(schedule.endTime)}"></td>
-          <td><button class="primary saveSchedule">Save</button></td>
-          <td><button class="red deleteSchedule">Delete</button></td>`;
-        row.querySelector('.saveSchedule').addEventListener('click', function() { saveScheduleRow(row, this); });
-        row.querySelector('.deleteSchedule').addEventListener('click', function() { deleteScheduleRow(row, this); });
-        body.appendChild(row);
-      });
-    }
-
-    function scheduleOptions(selected) {
-      return ['Regular', 'Minimum', 'Rally', 'Test'].map(function(name) {
-        return '<option value="' + name + '"' + (name === selected ? ' selected' : '') + '>' + name + '</option>';
-      }).join('');
-    }
-
-    function saveScheduleRow(row, button) {
-      const data = {
-        sheetRow: Number(row.dataset.sheetRow),
-        schedule: row.querySelector('.scheduleName').value,
-        period: row.querySelector('.schedulePeriod').value.trim(),
-        startTime: row.querySelector('.scheduleStart').value,
-        endTime: row.querySelector('.scheduleEnd').value
-      };
-      beginButtonAction(button, 'SAVING...');
-      setActionMessage('Saving schedule row...', 'processing');
-      google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
-        .saveScheduleRowFromDashboard(teacherPin, data);
-    }
-
-    function addScheduleRow(button) {
-      const data = {
-        schedule: document.getElementById('newScheduleName').value,
-        period: document.getElementById('newSchedulePeriod').value.trim(),
-        startTime: document.getElementById('newScheduleStart').value,
-        endTime: document.getElementById('newScheduleEnd').value
-      };
-      beginButtonAction(button, 'ADDING...');
-      setActionMessage('Adding schedule row...', 'processing');
-      google.script.run
-        .withSuccessHandler(function(result) {
-          finishButtonAction(button);
-          if (result && result.success) {
-            document.getElementById('newSchedulePeriod').value = '';
-            document.getElementById('newScheduleStart').value = '';
-            document.getElementById('newScheduleEnd').value = '';
-          }
-          handleActionResult(result);
-        })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
-        .saveScheduleRowFromDashboard(teacherPin, data);
-    }
-
-    function deleteScheduleRow(row, button) {
-      if (!window.confirm('Delete this schedule row?')) return;
-      beginButtonAction(button, 'DELETING...');
-      setActionMessage('Deleting schedule row...', 'processing');
-      google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
-        .deleteScheduleRowFromDashboard(teacherPin, Number(row.dataset.sheetRow));
-    }
 
     function renderStudentOptions(students) {
       const overrideSelect = document.getElementById('overrideStudent');
