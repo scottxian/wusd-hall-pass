@@ -197,7 +197,7 @@
           <div class="controlGroup">
             <h3>Schedule Mode</h3>
             <div id="scheduleButtons" class="buttonRow"></div>
-            <div class="subtle">Bell times are managed by Campus Admin. Choose which master schedule this room uses today.</div>
+            <div id="scheduleSourceHint" class="subtle">Bell times are managed by Campus Admin. A teacher choice applies only for today; Auto follows the school calendar or room default.</div>
           </div>
 
           <div class="controlGroup emergencyCard">
@@ -492,8 +492,18 @@
         if (name && !names.some(function(x) { return x.toLowerCase() === name.toLowerCase(); })) names.push(name);
       });
       holder.innerHTML = '';
+      const auto = document.createElement('button');
+      auto.type = 'button';
+      auto.className = 'primary scheduleButton';
+      auto.dataset.schedule = '__AUTO__';
+      auto.textContent = 'Auto';
+      auto.addEventListener('click', function() { changeSchedule('__AUTO__', auto); });
+      holder.appendChild(auto);
       if (!names.length) {
-        holder.innerHTML = '<span class="subtle">No master schedules have been configured by Admin.</span>';
+        const note = document.createElement('span');
+        note.className = 'subtle';
+        note.textContent = 'No master schedules have been configured by Admin.';
+        holder.appendChild(note);
         return;
       }
       names.forEach(function(name) {
@@ -502,16 +512,20 @@
         button.className = 'primary scheduleButton';
         button.dataset.schedule = name;
         button.textContent = name;
-        button.classList.toggle('active', name.toLowerCase() === String(selected || '').toLowerCase());
         button.addEventListener('click', function() { changeSchedule(name, button); });
         holder.appendChild(button);
       });
     }
 
     function renderQuickControls(state) {
+      const scheduleSource = String(state.settings['Schedule Source'] || 'Room Default');
       document.querySelectorAll('.scheduleButton').forEach(function(button) {
-        button.classList.toggle('active', String(button.dataset.schedule).toLowerCase() === String(state.settings["Today's Schedule"] || '').toLowerCase());
+        const isAuto = button.dataset.schedule === '__AUTO__';
+        const isTeacherOverride = scheduleSource.toLowerCase() === 'teacher override';
+        button.classList.toggle('active', isAuto ? !isTeacherOverride : (isTeacherOverride && String(button.dataset.schedule).toLowerCase() === String(state.settings["Today's Schedule"] || '').toLowerCase()));
       });
+      const sourceHint = document.getElementById('scheduleSourceHint');
+      if (sourceHint) sourceHint.textContent = 'Current source: ' + scheduleSource + '. ' + (scheduleSource === 'School Calendar' ? 'Admin calendar is selecting ' + String(state.settings["Today's Schedule"] || '') + ' today.' : scheduleSource === 'Teacher Override' ? 'This room is overriding the automatic schedule for today only.' : 'Auto is using this room’s default schedule.');
 
       const restroom = state.destinations.find(function(destination) { return String(destination.name).toLowerCase() === 'restroom'; });
       document.getElementById('restroomOpen').classList.toggle('active', Boolean(restroom && restroom.enabled));
@@ -549,7 +563,7 @@
     }
 
     function changeSchedule(schedule, button) {
-      saveSettings({ "Today's Schedule": schedule }, button, 'CHANGING...', 'Changing schedule to ' + schedule + '...');
+      saveSettings({ "Today's Schedule": schedule }, button, 'CHANGING...', schedule === '__AUTO__' ? 'Returning to the automatic school calendar/default...' : 'Changing today\'s schedule to ' + schedule + '...');
     }
 
     function setRestroom(enabled, button) {
