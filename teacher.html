@@ -262,28 +262,15 @@
         </div>
 
         <div class="card">
-          <h2>Destinations</h2>
-          <p>Edit existing destinations here. Disable a destination instead of deleting it so historical reports stay consistent.</p>
+          <h2>Room Destinations</h2>
+          <p>Campus Admin manages destination names and default behavior. For this room, choose whether each destination is available and optionally override the default Max Out. Leave the override blank to use the school default.</p>
           <div class="tableWrap">
             <table>
-              <thead><tr><th>Destination</th><th>Enabled</th><th>Max Out<br><span class="fieldHint">0 = no limit</span></th><th>Max/Day<br><span class="fieldHint">0 = no limit</span></th><th>Teacher Approval</th><th>Hall Pass</th><th>Sort</th><th>Save</th></tr></thead>
+              <thead><tr><th>Destination</th><th>Schoolwide</th><th>Enabled in This Room</th><th>Default Max Out</th><th>Max Out Override</th><th>Effective Max Out</th><th>Save</th></tr></thead>
               <tbody id="destinationBody"></tbody>
             </table>
           </div>
-
-          <details>
-            <summary>Add Destination</summary>
-            <div class="controlGrid">
-              <div><label for="newDestinationName">Destination</label><input id="newDestinationName" type="text" placeholder="Destination name"></div>
-              <div class="checkboxLabel"><label><input id="newDestinationEnabled" type="checkbox" checked>Enabled</label></div>
-              <div><label for="newDestinationMaxOut">Max Out <span class="fieldHint">(0 = no limit)</span></label><input id="newDestinationMaxOut" type="number" min="0" value="0"></div>
-              <div><label for="newDestinationMaxDay">Max/Day <span class="fieldHint">(0 = no limit)</span></label><input id="newDestinationMaxDay" type="number" min="0" value="0"></div>
-              <div class="checkboxLabel"><label><input id="newDestinationApproval" type="checkbox">Teacher Approval</label></div>
-              <div class="checkboxLabel"><label><input id="newDestinationHallPass" type="checkbox">Hall Pass</label></div>
-              <div><label for="newDestinationSort">Sort</label><input id="newDestinationSort" type="number" min="0"></div>
-            </div>
-            <button class="primary" onclick="addDestination(this)">Add Destination</button>
-          </details>
+          <div class="subtle">Destination name, teacher approval, hall-pass behavior, and display order are controlled by Campus Admin.</div>
         </div>
 
       </section>
@@ -646,192 +633,35 @@
       destinations.forEach(function(destination) {
         const row = document.createElement('tr');
         row.dataset.name = destination.name;
-        const isRestroom = String(destination.name || '').trim().toLowerCase() === 'restroom';
-
+        const schoolwideEnabled = destination.schoolwideEnabled !== false;
+        const roomEnabled = destination.roomEnabled !== false;
+        const overrideValue = destination.maxOutOverride == null ? '' : String(destination.maxOutOverride);
         row.innerHTML = `
-          <td>${escapeHtml(destination.name)}</td>
-          <td><input class="destEnabled" type="checkbox" ${destination.enabled ? 'checked' : ''}></td>
-          <td><input class="destMaxOut" type="number" min="0" value="${destination.maxOut}"></td>
-          <td>${
-            isRestroom
-              ? '<span class="subtle" style="font-weight:bold">Uses restroom rule</span>'
-              : '<input class="destMaxDay" type="number" min="0" value="' + destination.maxPerDay + '">'
-          }</td>
-          <td><input class="destApproval" type="checkbox" ${destination.teacherApproval ? 'checked' : ''}></td>
-          <td><input class="destHallPass" type="checkbox" ${destination.countsAsHallPass ? 'checked' : ''}></td>
-          <td><input class="destSort" type="number" min="0" value="${destination.sortOrder}"></td>
-          <td><button class="primary saveDestination">Save</button></td>`;
-        row.querySelector('.saveDestination').addEventListener('click', function() { saveDestination(row, this); });
+          <td><strong>${escapeHtml(destination.name)}</strong></td>
+          <td>${schoolwideEnabled ? 'Enabled' : '<span class="subtle">Disabled by Admin</span>'}</td>
+          <td><input class="destEnabled" type="checkbox" ${roomEnabled ? 'checked' : ''} ${schoolwideEnabled ? '' : 'disabled'}></td>
+          <td>${destination.defaultMaxOut === 0 ? '0 <span class="fieldHint">(no limit)</span>' : escapeHtml(destination.defaultMaxOut)}</td>
+          <td><input class="destMaxOverride" type="number" min="0" value="${escapeAttribute(overrideValue)}" placeholder="Use default" ${schoolwideEnabled ? '' : 'disabled'}></td>
+          <td>${destination.maxOut === 0 ? '0 <span class="fieldHint">(no limit)</span>' : escapeHtml(destination.maxOut)}</td>
+          <td><button class="primary saveDestination" ${schoolwideEnabled ? '' : 'disabled'}>Save</button></td>`;
+        const save = row.querySelector('.saveDestination');
+        if (save) save.addEventListener('click', function() { saveDestination(row, this); });
         body.appendChild(row);
       });
-
-      updateNewDestinationSortDefault(destinations);
-    }
-
-    function updateNewDestinationSortDefault(destinations) {
-      const input = document.getElementById('newDestinationSort');
-      if (!input || input.value !== '') return;
-
-      let next = 1;
-      (destinations || []).forEach(function(destination) {
-        const value = Number(destination.sortOrder);
-        if (Number.isFinite(value)) next = Math.max(next, Math.round(value) + 1);
-      });
-      input.value = next;
     }
 
     function saveDestination(row, button) {
       const name = row.dataset.name;
-      const maxDayInput = row.querySelector('.destMaxDay');
-
       const changes = {
         enabled: row.querySelector('.destEnabled').checked,
-        maxOut: row.querySelector('.destMaxOut').value,
-        teacherApproval: row.querySelector('.destApproval').checked,
-        countsAsHallPass: row.querySelector('.destHallPass').checked,
-        sortOrder: row.querySelector('.destSort').value
+        maxOutOverride: row.querySelector('.destMaxOverride').value
       };
-
-      if (maxDayInput) {
-        changes.maxPerDay = maxDayInput.value;
-      }
       beginButtonAction(button, 'SAVING...');
-      setActionMessage('Saving ' + name + '...', 'processing');
+      setActionMessage('Saving ' + name + ' room settings...', 'processing');
       google.script.run
         .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
         .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
         .updateDestinationFromDashboard(teacherPin, name, changes);
-    }
-
-    function addDestination(button) {
-      const name = document.getElementById('newDestinationName').value.trim();
-      if (!name) {
-        setActionMessage('Enter a destination name.', 'error');
-        document.getElementById('newDestinationName').focus();
-        return;
-      }
-
-      const data = {
-        name: name,
-        enabled: document.getElementById('newDestinationEnabled').checked,
-        maxOut: document.getElementById('newDestinationMaxOut').value,
-        maxPerDay: document.getElementById('newDestinationMaxDay').value,
-        teacherApproval: document.getElementById('newDestinationApproval').checked,
-        countsAsHallPass: document.getElementById('newDestinationHallPass').checked,
-        sortOrder: document.getElementById('newDestinationSort').value
-      };
-
-      beginButtonAction(button, 'ADDING...');
-      setActionMessage('Adding ' + name + '...', 'processing');
-
-      google.script.run
-        .withSuccessHandler(function(result) {
-          finishButtonAction(button);
-          if (result && result.success) {
-            document.getElementById('newDestinationName').value = '';
-            document.getElementById('newDestinationEnabled').checked = true;
-            document.getElementById('newDestinationMaxOut').value = '0';
-            document.getElementById('newDestinationMaxDay').value = '0';
-            document.getElementById('newDestinationApproval').checked = false;
-            document.getElementById('newDestinationHallPass').checked = false;
-            document.getElementById('newDestinationSort').value = '';
-          }
-          handleActionResult(result);
-        })
-        .withFailureHandler(function(error) {
-          finishButtonAction(button);
-          handleActionFailure(error);
-        })
-        .addDestinationFromDashboard(teacherPin, data);
-    }
-
-
-    function renderStudentOptions(students) {
-      const overrideSelect = document.getElementById('overrideStudent');
-      const reportSelect = document.getElementById('reportStudent');
-      const overrideValue = overrideSelect.value;
-      const reportValue = reportSelect.value;
-      const options = students.map(function(student) {
-        return '<option value="' + escapeAttribute(student.id) + '">' + escapeHtml(student.name) + ' (' + escapeHtml(student.id) + ')</option>';
-      }).join('');
-      overrideSelect.innerHTML = '<option value="">Choose Student</option>' + options;
-      reportSelect.innerHTML = '<option value="">Choose Student</option>' + options;
-      if (Array.from(overrideSelect.options).some(function(option) { return option.value === overrideValue; })) overrideSelect.value = overrideValue;
-      if (Array.from(reportSelect.options).some(function(option) { return option.value === reportValue; })) reportSelect.value = reportValue;
-    }
-
-
-    function renderRestroomAccessTable(students) {
-      const body = document.getElementById('restroomAccessBody');
-      if (!body) return;
-
-      body.innerHTML = '';
-
-      if (!students.length) {
-        body.innerHTML = '<tr><td colspan="4">No students found.</td></tr>';
-        return;
-      }
-
-      students.forEach(function(student) {
-        const row = document.createElement('tr');
-        row.dataset.studentId = student.id;
-        row.dataset.searchText = (
-          String(student.name || '') + ' ' + String(student.id || '')
-        ).toLowerCase();
-
-        row.innerHTML = `
-          <td>${escapeHtml(student.name)}</td>
-          <td>${escapeHtml(student.id)}</td>
-          <td><input class="restroomAllowedToggle" type="checkbox" ${student.restroomAllowed === false ? '' : 'checked'}></td>
-          <td><button class="primary saveRestroomAccess">Save</button></td>`;
-
-        row
-          .querySelector('.saveRestroomAccess')
-          .addEventListener('click', function() {
-            saveStudentRestroomAccess(row, this);
-          });
-
-        body.appendChild(row);
-      });
-
-      filterRestroomAccessTable();
-    }
-
-    function filterRestroomAccessTable() {
-      const input = document.getElementById('restroomStudentSearch');
-      const term = String(input ? input.value : '').trim().toLowerCase();
-
-      document
-        .querySelectorAll('#restroomAccessBody tr[data-student-id]')
-        .forEach(function(row) {
-          row.classList.toggle(
-            'hidden',
-            Boolean(term) && row.dataset.searchText.indexOf(term) === -1
-          );
-        });
-    }
-
-    function saveStudentRestroomAccess(row, button) {
-      const studentId = row.dataset.studentId;
-      const allowed = row.querySelector('.restroomAllowedToggle').checked;
-
-      beginButtonAction(button, 'SAVING...');
-      setActionMessage('Saving student restroom access...', 'processing');
-
-      google.script.run
-        .withSuccessHandler(function(result) {
-          finishButtonAction(button);
-          handleActionResult(result);
-        })
-        .withFailureHandler(function(error) {
-          finishButtonAction(button);
-          handleActionFailure(error);
-        })
-        .updateStudentRestroomAccessFromDashboard(
-          teacherPin,
-          studentId,
-          allowed
-        );
     }
 
     function renderOverrideDestinations(destinations) {
