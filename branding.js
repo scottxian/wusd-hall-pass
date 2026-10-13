@@ -21,6 +21,8 @@
   let schoolText = null;
   let schoolLogo = null;
   let currentLogo = '';
+  let studentRoomTitle = null;
+  let activePage = 'student';
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -65,13 +67,28 @@
     banner.appendChild(inner);
     document.body.insertBefore(banner, document.body.firstChild);
 
-    // Move the EXISTING page header into the center rather than duplicate it.
-    // Its original IDs and live-rendering handlers remain unchanged.
+    // Only the teacher/admin headings belong between the logos. The student's
+    // existing live OPEN/CLOSED/TEST bar stays below the entire brand header.
     const page = window.location.pathname.split('/').pop().toLowerCase();
-    const currentHeader = page === 'teacher.html' || page === 'admin.html'
-      ? document.querySelector('body > .header')
-      : document.getElementById('statusBar');
-    if (currentHeader) middle.appendChild(currentHeader);
+    activePage = page === 'teacher.html' ? 'teacher' :
+      page === 'admin.html' ? 'admin' : 'student';
+    document.documentElement.classList.add('hp-page-' + activePage);
+
+    if (activePage === 'student') {
+      const context = el('div', 'hp-student-context');
+      studentRoomTitle = el('strong', 'hp-student-room', 'Student hall pass');
+      context.appendChild(studentRoomTitle);
+      context.appendChild(el('span', 'hp-student-caption', 'Request a pass'));
+      middle.appendChild(context);
+    } else {
+      const currentHeader = document.querySelector('body > .header');
+      if (currentHeader) {
+        middle.appendChild(currentHeader);
+        const heading = currentHeader.querySelector('h1');
+        if (heading) heading.textContent = activePage === 'teacher'
+          ? 'Teacher Dashboard' : 'Campus Administration';
+      }
+    }
 
     const params = new URLSearchParams(window.location.search);
     render({ organizationKey: params.get('org'), schoolKey: params.get('school') });
@@ -93,6 +110,16 @@
 
     schoolText.textContent = name;
     schoolText.parentNode.hidden = !name;
+
+    const room = String(context.key || context.roomKey || context.room ||
+      params.get('room') || '').trim();
+    if (activePage === 'student' && studentRoomTitle) {
+      studentRoomTitle.textContent = room ? 'Room ' + room.toUpperCase() : 'Student hall pass';
+    } else if (activePage === 'teacher') {
+      const heading = banner.querySelector('.hp-brand-middle > .header h1');
+      if (heading) heading.textContent = 'Teacher Dashboard' +
+        (room ? ' — Room ' + room.toUpperCase() : '');
+    }
 
     const logo = registration && registration.logo ? registration.logo : '';
     if (logo === currentLogo) return;
