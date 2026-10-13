@@ -1,11 +1,11 @@
-/* Hall Pilot brand strip: visual only, outside pass/window controls. */
+/* Hall Pilot shared brand strip. School artwork and sizing are unchanged. */
 .hp-brand-bar {
-  background: #eef5ff; color: #102b56; border-bottom: 3px solid #0966ef;
+  background: #fff; color: #102e59; border-bottom: 2px solid #1765cb;
   font-family: Arial, sans-serif;
 }
 .hp-brand-inner {
   max-width: 1450px; margin: 0 auto; min-height: 80px;
-  padding: 8px 20px; display: grid; align-items: center;
+  padding: 7px 20px; display: grid; align-items: center;
   grid-template-columns: minmax(160px, 205px) minmax(0, 1fr) minmax(190px, 320px);
   grid-template-areas: "product middle school"; gap: 16px;
 }
@@ -17,12 +17,11 @@
   grid-area: middle; min-width: 0; text-align: center;
   display: flex; align-items: center; justify-content: center;
 }
-.hp-brand-school { grid-area: school; }
+.hp-brand-school { grid-area: school; justify-content: flex-end; text-align: right; }
 .hp-brand-mark { flex: 0 0 auto; width: 48px; height: 48px; object-fit: contain; }
 .hp-brand-words { display: flex; flex-direction: column; gap: 3px; }
 .hp-brand-name { font-size: 21px; font-weight: 800; line-height: 1.08; }
 .hp-brand-tagline { color: #597092; font-size: 12px; line-height: 1.25; }
-.hp-brand-school { justify-content: flex-end; text-align: right; }
 .hp-brand-school[hidden], .hp-brand-school-logo[hidden] { display: none !important; }
 .hp-brand-school-logo {
   order: 2; width: 76px; height: 70px; object-fit: contain;
@@ -32,37 +31,114 @@
   font-size: 15px; font-weight: 700; line-height: 1.3;
   max-width: 320px;
 }
-/* Retain the existing student status bar, with its live green/red/purple
-   statuses and timer, inside the compact middle column. */
-.hp-brand-middle #statusBar {
-  width: 100%; min-width: 0; padding: 8px 12px; border-radius: 10px;
-  text-align: center; color: #fff; font-size: 19px;
-  font-weight: bold; line-height: 1.2;
-}
-.hp-brand-middle #statusMain { display: block; }
-.hp-brand-middle #scheduleMode,
-.hp-brand-middle #scopeLabel,
-.hp-brand-middle #statusDetail {
-  display: block; margin-top: 2px; font-size: 12px;
-  line-height: 1.25; font-weight: normal; overflow-wrap: anywhere;
-}
-.hp-brand-middle #statusTimer {
-  display: block; margin-top: 3px; font-size: 19px;
-  line-height: 1.15; font-weight: bold;
-}
-/* The teacher/admin page's existing header elements keep their IDs,
-   authentication and live updates, but no longer consume a second row. */
+
+/* Central page identity. The teacher/admin original headers and their IDs
+   stay connected to the existing application code. */
 .hp-brand-middle > .header {
-  width: 100%; background: transparent; color: #102b56;
+  width: 100%; background: transparent; color: #102e59;
   padding: 0; text-align: center;
 }
 .hp-brand-middle > .header h1 {
-  margin: 0 0 3px; font-size: 18px; line-height: 1.2;
+  margin: 0 0 4px; font-size: 20px; line-height: 1.2;
 }
 .hp-brand-middle > .header .headerStatus,
 .hp-brand-middle > .header #adminName {
-  font-size: 12px; line-height: 1.3; overflow-wrap: anywhere;
+  font-size: 13px; line-height: 1.35; overflow-wrap: anywhere;
 }
+.hp-page-teacher .hp-brand-middle #roomLabel { display: none; }
+.hp-student-context {
+  display: flex; flex-direction: column; gap: 3px; align-items: center;
+  color: #102e59;
+}
+.hp-student-room { font-size: 20px; line-height: 1.15; }
+.hp-student-caption { color: #597092; font-size: 13px; }
+
+/* Student kiosk: only the live status strip uses red, green, or test purple.
+   The room/request/list UI is a neutral background. */
+.hp-page-student body,
+.hp-page-student body.page-open,
+.hp-page-student body.page-closed,
+.hp-page-student body.page-test {
+  background: #f4f6f9;
+}
+.hp-page-student #statusBar {
+  margin: 0; padding: 12px 16px; border-radius: 0;
+  font-size: 24px; line-height: 1.18;
+}
+.hp-page-student #statusMain { display: block; }
+.hp-page-student #scheduleMode,
+.hp-page-student #statusDetail {
+  display: block; margin-top: 3px; font-size: 14px;
+  line-height: 1.3; font-weight: normal;
+}
+.hp-page-student #scopeLabel { display: none; }
+.hp-page-student #statusTimer {
+  display: block; margin-top: 4px; font-size: 21px;
+  line-height: 1.2; font-weight: bold;
+}
+.hp-page-student .container {
+  max-width: 1250px; padding: 16px;
+  display: grid; grid-template-columns: minmax(0, 1fr);
+  gap: 14px; align-items: start;
+}
+.hp-page-student .container > .card {
+  min-width: 0; margin-bottom: 0;
+  padding: 16px 18px;
+}
+.hp-page-student .container > .card h2 {
+  font-size: 21px; margin: 0 0 12px;
+}
+.hp-page-student #idStep {
+  display: flex; align-items: stretch; gap: 10px;
+}
+.hp-page-student #studentId {
+  flex: 1 1 auto; min-width: 0; margin-bottom: 0;
+  padding: 11px 13px; font-size: 19px;
+}
+.hp-page-student #continueButton {
+  flex: 0 0 auto; padding: 10px 18px; font-size: 16px;
+}
+.hp-page-student #message {
+  min-height: 0; margin-top: 0;
+}
+.hp-page-student #message:not(:empty) { margin-top: 10px; }
+.hp-page-student .container > .card:nth-child(n+2) {
+  overflow-x: auto; 
+}
+.hp-page-student .container > .card:nth-child(n+2) table {
+  min-width: 495px;
+}
+.hp-page-student .container th,
+.hp-page-student .container td {
+  padding: 9px 7px; font-size: 14px; white-space: nowrap;
+}
+.hp-page-student .container table button {
+  padding: 8px 9px; font-size: 14px; white-space: nowrap;
+}
+@media(min-width: 1000px) {
+  .hp-page-student .container {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hp-page-student .container > .card:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Admin: keep the existing school picker and organization details,
+   but stop using an entire tall card for just those two fields. */
+.hp-page-admin #dashboard > .card:first-child {
+  padding: 9px 16px; margin-bottom: 10px !important;
+}
+.hp-page-admin #dashboard > .card:first-child .sectionHead {
+  gap: 10px; align-items: center;
+}
+.hp-page-admin #dashboard > .card:first-child label {
+  margin-bottom: 3px; font-size: 13px;
+}
+.hp-page-admin #dashboard > .card:first-child select {
+  padding: 7px 9px; min-height: 38px;
+}
+
 @media(max-width:800px) {
   .hp-brand-inner {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -78,10 +154,16 @@
   .hp-brand-tagline { font-size: 10px; }
   .hp-brand-school-name { font-size: 11px; max-width: 156px; }
   .hp-brand-school-logo { width: 45px; height: 45px; }
-  .hp-brand-middle #statusBar { padding: 7px 9px; font-size: 17px; }
-  .hp-brand-middle #statusTimer { font-size: 17px; }
-  .hp-brand-middle #scheduleMode,
-  .hp-brand-middle #scopeLabel,
-  .hp-brand-middle #statusDetail { font-size: 11px; }
   .hp-brand-middle > .header h1 { font-size: 17px; }
+  .hp-brand-middle > .header .headerStatus { font-size: 12px; }
+  .hp-student-room { font-size: 17px; }
+  .hp-student-caption { font-size: 12px; }
+  .hp-page-student #statusBar { padding: 10px 12px; font-size: 20px; }
+  .hp-page-student #scheduleMode,
+  .hp-page-student #statusDetail { font-size: 13px; }
+  .hp-page-student #statusTimer { font-size: 19px; }
+  .hp-page-student .container { padding: 12px; gap: 12px; }
+  .hp-page-student .container > .card { padding: 14px; }
+  .hp-page-student #idStep { flex-direction: column; align-items: stretch; }
+  .hp-page-student #studentId { flex: auto; }
 }
