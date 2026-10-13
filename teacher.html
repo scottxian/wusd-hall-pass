@@ -462,32 +462,10 @@
       renderQuickControls(state);
     }
 
-    // Browser-tab display only; canonical URL/database keys are untouched.
-    function hallpassTabPart(value, uppercase) {
-      const text = String(value || '').trim().replace(/[_-]+/g, ' ');
-      return uppercase ? text.toUpperCase() : text.replace(/\b[a-z]/g, function(c) { return c.toUpperCase(); });
-    }
-    let hallpassTitleTeacherNames = '';
-    let hallpassTitleLookupStarted = false;
-    function updateHallpassRoomTitle(kind, room) {
-      room = room || {};
-      if (room.teacherNames) hallpassTitleTeacherNames = String(room.teacherNames).trim();
-      const org = hallpassTabPart(room.organizationKey || '', true);
-      const school = hallpassTabPart(room.schoolKey || '', false);
-      const roomKey = String(room.key || '').trim().toUpperCase();
-      const displayRoom = roomKey ? 'Room ' + roomKey + (hallpassTitleTeacherNames ? ' (' + hallpassTitleTeacherNames + ')' : '') : '';
-      document.title = ['Hall Pass ' + kind, org, school, displayRoom].filter(Boolean).join(' - ');
-    }
+    // Display-only browser title. Never change room scope or trigger API lookups.
     function requestHallpassRoomTitle(kind, room) {
-      updateHallpassRoomTitle(kind, room);
-      if (hallpassTitleLookupStarted || !window.hallpassApi || !(room && (room.key || room.room))) return;
-      hallpassTitleLookupStarted = true;
-      window.hallpassApi.call('getRoomDisplayMetadata', []).then(function(result) {
-        if (result && result.success && result.room) updateHallpassRoomTitle(kind, result.room);
-      }).catch(function(error) {
-        // The hall pass remains usable even when the optional title lookup fails.
-        console.warn('Hall Pass browser title metadata unavailable:', error && error.message ? error.message : error);
-      });
+      const key = String((room && (room.key || room.room)) || '').trim().toUpperCase();
+      document.title = 'Hall Pass ' + kind + (key ? ' - Room ' + key : '');
     }
 
     function renderRoomContext(room) {
@@ -644,7 +622,7 @@
     function toggleEmergencyLock(button) {
       const current = String(dashboardState.settings['Emergency Lock'] || '').toLowerCase() === 'yes';
       const turnOn = !current;
-      if (turnOn && !window.confirm('Turn on Emergency Lock? This blocks all new student requests and clears the waiting list.')) return;
+      if (turnOn && !window.confirm('Lock this room?\nNew passes stop, and the waiting list clears.')) return;
       beginButtonAction(button, turnOn ? 'LOCKING...' : 'UNLOCKING...');
       setActionMessage(turnOn ? 'Locking student pass requests...' : 'Reopening student pass requests...', 'processing');
       google.script.run
@@ -673,7 +651,7 @@
     }
 
     function clearQueue(button) {
-      if (!window.confirm('Clear all students from the waiting list?')) return;
+      if (!window.confirm("Clear this room's waiting list?")) return;
       beginButtonAction(button, 'CLEARING...');
       setActionMessage('Clearing waiting list...', 'processing');
       google.script.run
@@ -1000,7 +978,7 @@
 
           if (result && !result.success && result.needsLimitOverride && !limitOverride) {
             const approved = window.confirm(
-              result.message + '\n\nOverride the pass limit for this one pass?'
+              'Pass limit reached.\nAllow this pass anyway?'
             );
 
             if (approved) {
