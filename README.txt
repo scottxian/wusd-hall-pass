@@ -963,3 +963,34 @@ Deployment:
 Identify files requiring replacement.
 Document required backend deployment, migration, or configuration changes.
 Record production verification status.
+Hall Pass - Short Browser-Tab Titles
+Date: October 12, 2026
+Type: User interface improvement
+Status: Offline smoke tests passed; production verification pending
+
+Changes:
+- Student tabs now show "Hall Pass Student - Room D4" (room varies dynamically).
+- Teacher tabs now show "Hall Pass Teacher - Room D4" (room varies dynamically).
+- Admin tabs now show "Hall Pass Admin - Westfield" (school varies dynamically).
+- Full organization, school, and room details remain in the page headers.
+- Removed unnecessary title-related API calls from the student and teacher pages.
+- Preserved existing V1.14.4 teacher search, Auto schedule, and popup cleanup.
+
+Files Affected:
+index.html
+teacher.html
+admin.html
+
+Compatibility:
+No database, Supabase function, API shim, or pass-processing changes.
+No SQL migration required.
+
+Deployment:
+Replace index.html, teacher.html, and admin.html on GitHub Pages.
+Keep existing config.js, api-shim.js, and Supabase functions unchanged.
+
+Testing:
+Static JavaScript validation and simulated browser title/UI tests passed.
+Live production verification is pending.
+
+--------------------------------------------------
