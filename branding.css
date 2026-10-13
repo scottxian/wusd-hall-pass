@@ -1,6 +1,6 @@
 /* Hall Pilot brand strip: visual only, outside pass/window controls. */
 .hp-brand-bar {
-  background: #fff; color: #102b56; border-bottom: 1px solid #dce5f1;
+  background: #eef5ff; color: #102b56; border-bottom: 3px solid #0966ef;
   font-family: Arial, sans-serif;
 }
 .hp-brand-inner {
