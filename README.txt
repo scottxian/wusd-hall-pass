@@ -833,3 +833,37 @@ DEPLOY
 5. Verify the Teacher Override Student dropdown is populated.
 6. Under Controls, search "Christian" in Student Restroom Access.
 
+Campus Hall Pass — Browser Tab Title Patch
+=======================================
+
+Base package: V1.14.1 Canonical Multi-Tenant Upgrade — CORRECTED
+Teacher page: User-supplied V1.14.4 (search/roster fixes retained)
+Patch: Titles only, plus a one-time read-only display-metadata API endpoint.
+
+Expected with org=wusd, school=westfield, room=d4 and assigned teacher Scott Christian:
+  Student: Hall Pass Student - WUSD - Westfield - Room D4 (Christian)
+  Teacher: Hall Pass Teacher - WUSD - Westfield - Room D4 (Christian)
+  Admin:   Hall Pass Admin - WUSD - Westfield
+
+Files changed versus the supplied baseline ZIP:
+  index.html: browser title and metadata title lookup
+  teacher.html: replaced with user-supplied V1.14.4, then added title logic
+  admin.html: dynamic browser title on login and school switches
+  supabase/functions/hallpass-public/index.ts: added getRoomDisplayMetadata (read-only)
+  TITLE-UPDATE-README.txt: this file
+No changes to the staff Edge Function, database schema, or pass operations.
+
+Deployment:
+1. Preserve your current live config.js (it is not included in the supplied ZIP).
+2. Deploy only the changed public Edge Function using your existing Supabase deployment process.
+3. Upload the three changed HTML files to the same GitHub Pages location.
+   Leave existing api-shim.js, config.js, and all other production files untouched.
+4. Open the normal student/teacher/admin URLs (include org/school/room).
+5. Confirm the exact browser tab titles. Existing staff assignments supply surnames.
+
+Limitations:
+- If no active teacher is assigned to a room, the title omits the teacher parentheses.
+- If several active teachers are assigned, surnames are joined with " / ".
+- Without the updated public Edge Function, the rest of the pages still work but titles omit the teacher names.
+- Automated tests use a mocked server; they do not certify the production Supabase deployment,
+  teacher PIN login, pass writes, or a live GitHub Pages rollout.
