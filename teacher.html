@@ -1,6 +1,8 @@
 <!DOCTYPE html>
+<!-- Hall Pass V1.14.1 — canonical organization/school/room scope -->
 <html>
 <head>
+  <meta name="hallpass-version" content="1.14.1">
   <base target="_top">
   <style>
     * { box-sizing: border-box; }
@@ -432,6 +434,7 @@
 
     function renderState(state, includeControls) {
       dashboardState = state;
+      renderRoomContext(state.room);
       renderStatus(state);
       renderStats(state.stats);
       renderWaiting(state.waiting);
@@ -446,6 +449,31 @@
         renderOverrideDestinations(state.destinations || []);
         renderReportPeriods(state.schedules || []);
       }
+    }
+
+    function renderRoomContext(room) {
+      room = room || {};
+
+      if (
+        room.organizationKey &&
+        room.schoolKey &&
+        (room.key || room.room) &&
+        window.hallpassApi &&
+        typeof window.hallpassApi.applyCanonicalScope === 'function'
+      ) {
+        window.hallpassApi.applyCanonicalScope(room);
+      }
+
+      const label = document.getElementById('roomLabel');
+      if (!label) return;
+
+      const parts = [];
+      if (room.organization) parts.push(String(room.organization));
+      else if (room.organizationKey) parts.push(String(room.organizationKey).toUpperCase());
+      if (room.school) parts.push(String(room.school));
+      else if (room.schoolKey) parts.push(String(room.schoolKey));
+      if (room.room || room.key) parts.push('Room ' + String(room.room || room.key).toUpperCase());
+      label.textContent = parts.join(' • ');
     }
 
     function renderStatus(state) {
@@ -1475,9 +1503,12 @@
   </script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      const room = new URLSearchParams(window.location.search).get('room');
-      const label = document.getElementById('roomLabel');
-      if (label) label.textContent = room ? 'Room ' + String(room).toUpperCase() : '';
+      const params = new URLSearchParams(window.location.search);
+      renderRoomContext({
+        organizationKey: String(params.get('org') || '').trim().toLowerCase(),
+        schoolKey: String(params.get('school') || '').trim().toLowerCase(),
+        key: String(params.get('room') || '').trim().toLowerCase()
+      });
     });
   </script>
 </body>

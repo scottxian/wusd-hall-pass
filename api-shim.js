@@ -1,14 +1,19 @@
+// Hall Pass V1.14.1 — canonical organization/school/room-aware API shim
 (function () {
   'use strict';
 
-  function getRoomKey() {
+  function getQueryKey(name) {
     try {
       const params = new URLSearchParams(window.location.search || '');
-      return String(params.get('room') || '').trim().toLowerCase();
+      return String(params.get(name) || '').trim().toLowerCase();
     } catch (e) {
       return '';
     }
   }
+
+  function getRoomKey() { return getQueryKey('room'); }
+  function getSchoolKey() { return getQueryKey('school'); }
+  function getOrgKey() { return getQueryKey('org'); }
 
   const SESSION_KEY = 'westfield_hallpass_teacher_session';
 
@@ -73,14 +78,29 @@
     args = Array.isArray(args) ? args : [];
     const staff = isStaffAction(action, args);
     const roomKey = getRoomKey();
+    const schoolKey = getSchoolKey();
+    const orgKey = getOrgKey();
+    const adminAction = String(action || '').startsWith('admin');
 
-    if (!String(action || '').startsWith('admin') && !roomKey) {
-      throw new Error('This Hall Pass link is missing its room. Add ?room=d4 (or the correct room key).');
+    if (!adminAction && !roomKey) {
+      throw new Error('This Hall Pass link is missing its room.');
+    }
+
+    // Canonical room links contain all three scoped keys. A bare room key is
+    // accepted only for explicit pre-V1.14 legacy aliases. Partial scope is
+    // never inferred because school and room keys are allowed to repeat.
+    if (!adminAction && Boolean(orgKey) !== Boolean(schoolKey)) {
+      throw new Error('This Hall Pass link is incomplete. Use the full organization, school, and room link.');
+    }
+    if (adminAction && schoolKey && !orgKey) {
+      throw new Error('This Admin link is incomplete. A school must be paired with its organization.');
     }
 
     const payload = {
       action,
       args,
+      orgKey,
+      schoolKey,
       roomKey
     };
 
@@ -138,19 +158,51 @@
     });
   }
 
+  function applyCanonicalScope(scope) {
+    scope = scope || {};
+    const orgKey = normalizeScopeValue(scope.organizationKey);
+    const schoolKey = normalizeScopeValue(scope.schoolKey);
+    const roomKey = normalizeScopeValue(scope.key || scope.roomKey);
+    if (!orgKey || !schoolKey || !roomKey) return false;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('org', orgKey);
+    url.searchParams.set('school', schoolKey);
+    url.searchParams.set('room', roomKey);
+    history.replaceState(null, '', url);
+
+    document.documentElement.dataset.organization = orgKey;
+    document.documentElement.dataset.school = schoolKey;
+    document.documentElement.dataset.room = roomKey;
+    return true;
+  }
+
+  function normalizeScopeValue(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  window.HALLPASS_BUILD = '1.14.1';
+
   window.google = window.google || {};
   window.google.script = window.google.script || {};
   window.google.script.run = makeRunner(null, null);
 
   window.hallpassApi = {
     call,
+    get organizationKey() { return getOrgKey(); },
+    get schoolKey() { return getSchoolKey(); },
     get roomKey() { return getRoomKey(); },
+    applyCanonicalScope,
     clearTeacherSession() { sessionStorage.removeItem(SESSION_KEY); }
   };
 
   document.addEventListener('DOMContentLoaded', function () {
     const roomKey = getRoomKey();
+    const schoolKey = getSchoolKey();
+    const orgKey = getOrgKey();
     if (roomKey) document.documentElement.dataset.room = roomKey;
+    if (schoolKey) document.documentElement.dataset.school = schoolKey;
+    if (orgKey) document.documentElement.dataset.organization = orgKey;
 
     // The student kiosk must never retain a staff session. This also clears any
     // legacy V1.7 session that may have been minted by a teacher-approved pass.
