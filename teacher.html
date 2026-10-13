@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Hall Pass V1.14.1 — canonical organization/school/room scope -->
+<!-- Hall Pass V1.14.2 — teacher student-search + Auto schedule clarity -->
 <html>
 <head>
   <meta name="hallpass-version" content="1.14.1">
@@ -34,6 +34,10 @@
     .gray { background: #ddd; color: #222; }
     .active { outline: 4px solid #ffd54f; outline-offset: 2px; }
     .buttonRow { display: flex; flex-wrap: wrap; gap: 9px; }
+    .studentSearchRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; align-items: end; }
+    .studentSearchRow button { min-height: 42px; }
+    .searchStatus { min-height: 20px; margin-top: 7px; font-size: 14px; color: #555; }
+    @media (max-width: 520px) { .studentSearchRow { grid-template-columns: 1fr; } }
     .controlGroup { margin-bottom: 20px; }
     .controlGrid, .reportControls { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 16px; }
     label { display: block; margin-bottom: 6px; font-weight: bold; }
@@ -248,11 +252,13 @@
         <div class="card">
           <h2>Student Restroom Access</h2>
           <p>The global restroom limit applies to all students. Turn restroom access off here for individual students. Existing blank roster values count as allowed.</p>
-          <div class="controlGrid">
-            <div>
-              <label for="restroomStudentSearch">Find Student</label>
-              <input id="restroomStudentSearch" type="text" placeholder="Search by student name or ID" oninput="filterRestroomAccessTable()">
+          <div>
+            <label for="restroomStudentSearch">Find Student</label>
+            <div class="studentSearchRow">
+              <input id="restroomStudentSearch" type="text" placeholder="Search by student name or ID" autocomplete="off">
+              <button id="restroomStudentSearchButton" type="button" class="primary">Search</button>
             </div>
+            <div id="restroomStudentSearchStatus" class="searchStatus" aria-live="polite"></div>
           </div>
           <div class="tableWrap">
             <table>
@@ -332,6 +338,7 @@
     let currentReport = null;
     let reportDrilldownCache = {};
     let allReportSort = { key: 'studentName', direction: 'asc' };
+    let restroomAccessStudents = [];
 
     function showTab(name) {
       document.querySelectorAll('.tabButton').forEach(function(button) {
@@ -439,7 +446,6 @@
       renderStats(state.stats);
       renderWaiting(state.waiting);
       renderOut(state.out);
-      renderQuickControls(state);
       if (includeControls) {
         renderSettings(state.settings);
         renderDestinations(state.destinations);
@@ -449,6 +455,7 @@
         renderOverrideDestinations(state.destinations || []);
         renderReportPeriods(state.schedules || []);
       }
+      renderQuickControls(state);
     }
 
     function renderRoomContext(room) {
@@ -534,13 +541,24 @@
 
     function renderQuickControls(state) {
       const scheduleSource = String(state.settings['Schedule Source'] || 'Room Default');
+      const isTeacherOverride = scheduleSource.toLowerCase() === 'teacher override';
+      const effectiveSchedule = String((state.schedule && state.schedule.schedule) || state.settings["Today's Schedule"] || '').trim();
       document.querySelectorAll('.scheduleButton').forEach(function(button) {
         const isAuto = button.dataset.schedule === '__AUTO__';
-        const isTeacherOverride = scheduleSource.toLowerCase() === 'teacher override';
         button.classList.toggle('active', isAuto ? !isTeacherOverride : (isTeacherOverride && String(button.dataset.schedule).toLowerCase() === String(state.settings["Today's Schedule"] || '').toLowerCase()));
+        if (isAuto) {
+          button.textContent = !isTeacherOverride && effectiveSchedule ? 'Auto — ' + effectiveSchedule : 'Auto';
+          button.title = !isTeacherOverride && effectiveSchedule ? 'Automatic schedule is currently using ' + effectiveSchedule : 'Return to the automatic school calendar or room default';
+        }
       });
       const sourceHint = document.getElementById('scheduleSourceHint');
-      if (sourceHint) sourceHint.textContent = 'Current source: ' + scheduleSource + '. ' + (scheduleSource === 'School Calendar' ? 'Admin calendar is selecting ' + String(state.settings["Today's Schedule"] || '') + ' today.' : scheduleSource === 'Teacher Override' ? 'This room is overriding the automatic schedule for today only.' : 'Auto is using this room’s default schedule.');
+      if (sourceHint) {
+        if (isTeacherOverride) {
+          sourceHint.textContent = 'Teacher override active — ' + (effectiveSchedule || String(state.settings["Today's Schedule"] || '')) + '. Select Auto to return to the school calendar or room default.';
+        } else {
+          sourceHint.textContent = 'Auto is active — ' + (effectiveSchedule || 'No schedule selected') + '. Source: ' + scheduleSource + '.';
+        }
+      }
 
       const restroom = state.destinations.find(function(destination) { return String(destination.name).toLowerCase() === 'restroom'; });
       document.getElementById('restroomOpen').classList.toggle('active', Boolean(restroom && restroom.enabled));
@@ -653,6 +671,75 @@
         'Buzzer Enabled': document.getElementById('buzzer').checked ? 'Yes' : 'No',
         'Clear Queue at Period End': document.getElementById('clearAtEnd').checked ? 'Yes' : 'No'
       }, button, 'SAVING...', 'Saving pass settings...');
+    }
+
+    function renderRestroomAccessTable(students) {
+      restroomAccessStudents = Array.isArray(students) ? students.slice() : [];
+      filterRestroomAccessTable();
+    }
+
+    function filterRestroomAccessTable() {
+      const input = document.getElementById('restroomStudentSearch');
+      const body = document.getElementById('restroomAccessBody');
+      const status = document.getElementById('restroomStudentSearchStatus');
+      if (!body) return;
+
+      const query = String(input ? input.value : '').trim().toLowerCase();
+      const matches = restroomAccessStudents.filter(function(student) {
+        if (!query) return true;
+        return String(student.name || '').toLowerCase().includes(query) ||
+          String(student.id || '').toLowerCase().includes(query);
+      });
+
+      body.innerHTML = '';
+
+      if (!matches.length) {
+        body.innerHTML = '<tr><td colspan="4">No students match this search.</td></tr>';
+        if (status) status.textContent = query ? 'No students found for “' + String(input.value || '').trim() + '”.' : 'No students are available.';
+        return;
+      }
+
+      matches.forEach(function(student) {
+        const row = document.createElement('tr');
+        const allowed = student.restroomAllowed !== false;
+        row.innerHTML = '<td>' + escapeHtml(student.name) + '</td>' +
+          '<td>' + escapeHtml(student.id) + '</td>' +
+          '<td><label><input class="restroomAllowedToggle" type="checkbox" ' + (allowed ? 'checked' : '') + '> Allowed</label></td>' +
+          '<td><button type="button" class="primary saveRestroomAccessButton">Save</button></td>';
+        const checkbox = row.querySelector('.restroomAllowedToggle');
+        const button = row.querySelector('.saveRestroomAccessButton');
+        button.addEventListener('click', function() {
+          saveStudentRestroomAccess(student.id, checkbox.checked, button);
+        });
+        body.appendChild(row);
+      });
+
+      if (status) {
+        status.textContent = query
+          ? matches.length + ' student' + (matches.length === 1 ? '' : 's') + ' found.'
+          : restroomAccessStudents.length + ' students shown. Type a name or ID to narrow the list.';
+      }
+    }
+
+    function saveStudentRestroomAccess(studentId, allowed, button) {
+      beginButtonAction(button, 'SAVING...');
+      setActionMessage('Saving restroom access...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) {
+          finishButtonAction(button);
+          if (!result || !result.success) {
+            setActionMessage(result && result.message ? result.message : 'Restroom access could not be saved.', 'error');
+            return;
+          }
+          const student = restroomAccessStudents.find(function(item) { return String(item.id) === String(studentId); });
+          if (student) student.restroomAllowed = allowed;
+          setActionMessage(result.message || 'Restroom access updated.', 'success');
+        })
+        .withFailureHandler(function(error) {
+          finishButtonAction(button);
+          setActionMessage(error && error.message ? error.message : 'Restroom access could not be saved.', 'error');
+        })
+        .updateStudentRestroomAccessFromDashboard(teacherPin, studentId, allowed);
     }
 
     function renderDestinations(destinations) {
@@ -1491,6 +1578,19 @@
 
     document.getElementById('teacherPin').addEventListener('keydown', function(event) {
       if (event.key === 'Enter') unlockDashboard(document.getElementById('loginButton'));
+    });
+
+    document.getElementById('restroomStudentSearchButton').addEventListener('click', function() {
+      filterRestroomAccessTable();
+    });
+    document.getElementById('restroomStudentSearch').addEventListener('input', function() {
+      filterRestroomAccessTable();
+    });
+    document.getElementById('restroomStudentSearch').addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        filterRestroomAccessTable();
+      }
     });
 
     setInterval(function() { if (unlocked) refreshDashboard(false); }, 3000);
