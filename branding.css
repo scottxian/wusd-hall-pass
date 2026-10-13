@@ -6,7 +6,8 @@
 .hp-brand-inner {
   max-width: 1450px; margin: 0 auto; min-height: 80px;
   padding: 7px 20px; display: grid; align-items: center;
-  grid-template-columns: minmax(160px, 205px) minmax(0, 1fr) minmax(190px, 320px);
+  /* Equal flexible side columns place the middle title at the true page center. */
+  grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
   grid-template-areas: "product middle school"; gap: 16px;
 }
 .hp-brand-product, .hp-brand-school {
@@ -28,8 +29,9 @@
   flex: 0 0 auto;
 }
 .hp-brand-school-name {
-  font-size: 15px; font-weight: 700; line-height: 1.3;
-  max-width: 320px;
+  /* Keep the complete school name together on laptop/Chromebook screens. */
+  font-size: clamp(12px, 1vw, 15px); font-weight: 700; line-height: 1.3;
+  max-width: none; white-space: nowrap;
 }
 
 /* Central page identity. The teacher/admin original headers and their IDs
@@ -53,13 +55,27 @@
 .hp-student-room { font-size: 20px; line-height: 1.15; }
 .hp-student-caption { color: #597092; font-size: 13px; }
 
-/* Student kiosk: only the live status strip uses red, green, or test purple.
-   The room/request/list UI is a neutral background. */
-.hp-page-student body,
-.hp-page-student body.page-open,
-.hp-page-student body.page-closed,
+/* Keep pass status unambiguous. Closed pages get visible but restrained red
+   accents; open and test states follow their established green/purple colors. */
+.hp-page-student body {
+  --hp-pass-accent: #b3261e;
+  --hp-pass-soft: #fae0dd;
+  background: #faeae8;
+}
+.hp-page-student body.page-closed {
+  --hp-pass-accent: #b3261e;
+  --hp-pass-soft: #fae0dd;
+  background: #faeae8;
+}
+.hp-page-student body.page-open {
+  --hp-pass-accent: #16863a;
+  --hp-pass-soft: #e1f1e6;
+  background: #edf7f0;
+}
 .hp-page-student body.page-test {
-  background: #f4f6f9;
+  --hp-pass-accent: #6a1b9a;
+  --hp-pass-soft: #f0e2f6;
+  background: #f5edf9;
 }
 .hp-page-student #statusBar {
   margin: 0; padding: 12px 16px; border-radius: 0;
@@ -84,9 +100,14 @@
 .hp-page-student .container > .card {
   min-width: 0; margin-bottom: 0;
   padding: 16px 18px;
+  border-top: 4px solid var(--hp-pass-accent, #b3261e);
 }
 .hp-page-student .container > .card h2 {
   font-size: 21px; margin: 0 0 12px;
+  color: var(--hp-pass-accent, #b3261e);
+}
+.hp-page-student .container th {
+  background: var(--hp-pass-soft, #fae0dd);
 }
 .hp-page-student #idStep {
   display: flex; align-items: stretch; gap: 10px;
@@ -139,7 +160,7 @@
   padding: 7px 9px; min-height: 38px;
 }
 
-@media(max-width:800px) {
+@media(max-width:960px) {
   .hp-brand-inner {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas: "product school" "middle middle";
@@ -152,7 +173,7 @@
   .hp-brand-mark { width: 36px; height: 36px; }
   .hp-brand-name { font-size: 16px; }
   .hp-brand-tagline { font-size: 10px; }
-  .hp-brand-school-name { font-size: 11px; max-width: 156px; }
+  .hp-brand-school-name { font-size: 11px; }
   .hp-brand-school-logo { width: 45px; height: 45px; }
   .hp-brand-middle > .header h1 { font-size: 17px; }
   .hp-brand-middle > .header .headerStatus { font-size: 12px; }
@@ -166,4 +187,10 @@
   .hp-page-student .container > .card { padding: 14px; }
   .hp-page-student #idStep { flex-direction: column; align-items: stretch; }
   .hp-page-student #studentId { flex: auto; }
+}
+
+/* The complete school name stays on one line when there is room; on a very
+   narrow phone wrapping is preferable to clipping the school logo/title. */
+@media(max-width:540px) {
+  .hp-brand-school-name { white-space: normal; max-width: 150px; }
 }
