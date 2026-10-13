@@ -6,7 +6,8 @@
 <head>
   <meta name="hallpass-version" content="1.14.5">
   <base target="_top">
-  <title>Hall Pass Teacher</title>
+  <title>Hall Pilot Teacher</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #222; }
@@ -120,6 +121,7 @@
     .hpStudentNote { color:#555; padding:9px 12px; font-size:13px; }
     .hpStudentPicker input:focus, .hpStudentHints input:focus { outline:3px solid #8db5e7; outline-offset:0; }
 </style>
+<link rel="stylesheet" href="branding.css">
 </head>
 <body>
   <div class="header">
@@ -342,7 +344,7 @@
   </div>
 
   <script src="config.js"></script>
-  <script src="api-shim.js"></script>
+  <script src="api-shim.js"></script><script src="branding.js" defer></script>
 
   <script>
   /* Hall Pass: student name / ID type-ahead. Page-local, zero backend changes. */
@@ -630,7 +632,7 @@
     // Display-only browser title. Never change room scope or trigger API lookups.
     function requestHallpassRoomTitle(kind, room) {
       const key = String((room && (room.key || room.room)) || '').trim().toUpperCase();
-      document.title = 'Hall Pass ' + kind + (key ? ' - Room ' + key : '');
+      document.title = 'Hall Pilot ' + kind + (key ? ' - Room ' + key : '');
     }
 
     function renderRoomContext(room) {
@@ -656,6 +658,7 @@
       else if (room.schoolKey) parts.push(String(room.schoolKey));
       if (room.room || room.key) parts.push('Room ' + String(room.room || room.key).toUpperCase());
       label.textContent = parts.join(' • ');
+      if (window.HallPilotBranding) window.HallPilotBranding.render(room);
       requestHallpassRoomTitle('Teacher', room);
     }
 

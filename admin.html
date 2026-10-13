@@ -5,7 +5,8 @@
   <meta name="hallpass-version" content="1.14.5">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hall Pass Admin</title>
+  <title>Hall Pilot Admin</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <style>
     *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#222}
     .header{background:#263238;color:#fff;padding:18px 20px}.header h1{margin:0 0 5px;font-size:27px}.header div{opacity:.9}
@@ -28,10 +29,11 @@
     .hpStudentNote { color:#555; padding:9px 12px; font-size:13px; }
     .hpStudentPicker input:focus, .hpStudentHints input:focus { outline:3px solid #8db5e7; outline-offset:0; }
 </style>
+<link rel="stylesheet" href="branding.css">
 </head>
 <body>
   <!-- Hall Pass Admin v1.14.1 — canonical organization / school aware -->
-  <div class="header"><h1>Hall Pass — Admin</h1><div id="adminName">Locked</div></div>
+  <div class="header"><h1>Hall Pilot — Admin</h1><div id="adminName">Locked</div></div>
   <div class="container">
     <div id="loginCard" class="card">
       <h2>Admin Login</h2><label for="adminPin">Admin PIN</label>
@@ -289,7 +291,7 @@
 
   <div id="teacherModal" class="modalBackdrop hidden" aria-hidden="true"><div class="modal"><h2 id="teacherModalTitle">Add Teacher</h2><input id="teacherEditId" type="hidden"><div class="formGrid"><div><label for="teacherNameInput">Teacher Name</label><input id="teacherNameInput" placeholder="Last name or display name"></div><div><label for="teacherEmailInput">Email <span class="muted">(optional)</span></label><input id="teacherEmailInput" type="email"></div><div><label for="teacherRoleInput">Organization Role</label><select id="teacherRoleInput"><option value="teacher">Teacher</option><option value="admin">Organization Admin</option></select></div><div><label for="teacherSchoolAdminInput">This School</label><select id="teacherSchoolAdminInput"><option value="false">Teacher access</option><option value="true">School Admin</option></select></div><div><label for="teacherActiveInput">Status</label><select id="teacherActiveInput"><option value="true">Active</option><option value="false">Disabled</option></select></div><div><label for="teacherPinInput">PIN</label><input id="teacherPinInput" type="password" inputmode="numeric" placeholder="4–10 digits"><div id="pinHint" class="muted">Required for a new teacher.</div></div></div><div style="margin-top:12px"><label>Assigned Rooms</label><div id="teacherRoomChecks" class="roomChecks"></div></div><div id="teacherModalMessage" class="message"></div><div class="modalActions"><button class="gray" data-close="teacherModal">Cancel</button><button id="saveTeacherButton">Save Teacher</button></div></div></div>
 
-  <script src="config.js"></script><script src="api-shim.js"></script>
+  <script src="config.js"></script><script src="api-shim.js"></script><script src="branding.js" defer></script>
 
   <script>
   /* Hall Pass: student name / ID type-ahead. Page-local, zero backend changes. */
@@ -455,10 +457,10 @@
     function studentUrl(key){return siteBase()+'?'+scopedQuery(key)} function teacherUrl(key){return siteBase()+'teacher.html?'+scopedQuery(key)}
     function updateHallpassAdminTitle(){
       const school=String(currentSchoolKey()||'').trim().replace(/[_-]+/g,' ').replace(/\b[a-z]/g,c=>c.toUpperCase());
-      document.title='Hall Pass Admin' + (school ? ' - ' + school : '');
+      document.title='Hall Pilot Admin' + (school ? ' - ' + school : '');
     }
-    function applyAdminContext(r){if(r?.organization)adminAccess.organization=r.organization;if(Array.isArray(r?.schools))adminAccess.schools=r.schools;if(r?.selectedSchool)adminAccess.selectedSchool=r.selectedSchool;if(typeof r?.organizationAdmin==='boolean')adminAccess.organizationAdmin=r.organizationAdmin;const org=adminAccess.organization;$('organizationLabel').textContent=org?`${org.name} (${org.key})`:'—';const select=$('schoolSelector');if(select){const selected=currentSchoolKey();const activeSchools=(adminAccess.schools||[]).filter(x=>x.active!==false);select.innerHTML=activeSchools.map(x=>`<option value="${esc(x.key)}">${esc(x.name)}</option>`).join('');if(selected&&[...select.options].some(o=>o.value===selected))select.value=selected;else if(activeSchools.length){select.value=activeSchools[0].key;}}if(org){$('organizationPanelName').textContent=org.name;$('organizationPanelKey').textContent='Organization key: '+org.key;}const add=$('addSchoolButton');if(add)add.classList.toggle('hidden',adminAccess.organizationAdmin!==true);updateHallpassAdminTitle()}
-    function setSchoolInUrl(key){const url=new URL(location.href);if(currentOrgKey())url.searchParams.set('org',currentOrgKey());else url.searchParams.delete('org');if(key)url.searchParams.set('school',key);else url.searchParams.delete('school');url.searchParams.delete('room');history.replaceState(null,'',url);updateHallpassAdminTitle()}
+    function applyAdminContext(r){if(r?.organization)adminAccess.organization=r.organization;if(Array.isArray(r?.schools))adminAccess.schools=r.schools;if(r?.selectedSchool)adminAccess.selectedSchool=r.selectedSchool;if(typeof r?.organizationAdmin==='boolean')adminAccess.organizationAdmin=r.organizationAdmin;const org=adminAccess.organization;$('organizationLabel').textContent=org?`${org.name} (${org.key})`:'—';const select=$('schoolSelector');if(select){const selected=currentSchoolKey();const activeSchools=(adminAccess.schools||[]).filter(x=>x.active!==false);select.innerHTML=activeSchools.map(x=>`<option value="${esc(x.key)}">${esc(x.name)}</option>`).join('');if(selected&&[...select.options].some(o=>o.value===selected))select.value=selected;else if(activeSchools.length){select.value=activeSchools[0].key;}}if(org){$('organizationPanelName').textContent=org.name;$('organizationPanelKey').textContent='Organization key: '+org.key;}const add=$('addSchoolButton');if(add)add.classList.toggle('hidden',adminAccess.organizationAdmin!==true);updateHallpassAdminTitle();if(window.HallPilotBranding){window.HallPilotBranding.render({organizationKey:currentOrgKey(),schoolKey:currentSchoolKey(),schoolName:adminAccess.selectedSchool?.name||''})}}
+    function setSchoolInUrl(key){const url=new URL(location.href);if(currentOrgKey())url.searchParams.set('org',currentOrgKey());else url.searchParams.delete('org');if(key)url.searchParams.set('school',key);else url.searchParams.delete('school');url.searchParams.delete('room');history.replaceState(null,'',url);updateHallpassAdminTitle();if(window.HallPilotBranding){window.HallPilotBranding.render({organizationKey:currentOrgKey(),schoolKey:key,schoolName:adminAccess.selectedSchool?.name||''})}}
     function teachersForRoom(room){return management.teachers.filter(t=>(room?.teacherIds||[]).includes(t.id))}
     function setupMessageForRoom(room){return `${adminAccess.organization?.name||'Hall Pass'}
 ${adminAccess.selectedSchool?.name||'School'} — ${room.room}

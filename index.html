@@ -5,7 +5,8 @@
 <head>
   <meta name="hallpass-version" content="1.14.1">
   <base target="_top">
-  <title>Hall Pass Student</title>
+  <title>Hall Pilot Student</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <script>
     (function () {
       const p = new URLSearchParams(window.location.search);
@@ -290,6 +291,7 @@
       }
     }
   </style>
+<link rel="stylesheet" href="branding.css">
 </head>
 
 
@@ -473,7 +475,7 @@
 
 
   <script src="config.js"></script>
-  <script src="api-shim.js"></script>
+  <script src="api-shim.js"></script><script src="branding.js" defer></script>
 
   <script>
 
@@ -705,7 +707,7 @@
     // Display-only browser title. Never change room scope or trigger API lookups.
     function requestHallpassRoomTitle(kind, room) {
       const key = String((room && (room.key || room.room)) || '').trim().toUpperCase();
-      document.title = 'Hall Pass ' + kind + (key ? ' - Room ' + key : '');
+      document.title = 'Hall Pilot ' + kind + (key ? ' - Room ' + key : '');
     }
 
     function renderRoomScope(state) {
@@ -730,6 +732,7 @@
       else if (room.schoolKey) parts.push(String(room.schoolKey));
       if (room.room || room.key) parts.push('Room ' + String(room.room || room.key).toUpperCase());
       label.textContent = parts.join(' • ');
+      if (window.HallPilotBranding) window.HallPilotBranding.render(room);
       requestHallpassRoomTitle('Student', room);
     }
 
