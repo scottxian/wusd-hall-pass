@@ -867,3 +867,99 @@ Limitations:
 - Without the updated public Edge Function, the rest of the pages still work but titles omit the teacher names.
 - Automated tests use a mocked server; they do not certify the production Supabase deployment,
   teacher PIN login, pass writes, or a live GitHub Pages rollout.
+
+Version 1.14.4 - Teacher UI and Browser Titles
+Date: October 12, 2026
+Type: User interface improvements
+Status: Offline smoke tests passed; live deployment verification pending
+
+Changes:
+1. Preserved the V1.14.4 teacher student-search and roster-loading repairs.
+2. Preserved the improved Auto schedule display showing the effective schedule.
+3. Standardized browser-tab titles across Admin, Teacher, and Student pages.
+4. Added dynamic organization, school, room, and assigned-teacher information to browser titles.
+5. Added read-only room display information through the public API.
+6. Supported assigned-teacher names without hardcoding them.
+
+Files affected:
+index.html
+teacher.html
+admin.html
+supabase/functions/hallpass-public/index.ts
+
+Compatibility:
+No database schema changes.
+No changes to pass-management operations.
+Existing teacher V1.14.4 functionality retained.
+
+Testing:
+JavaScript parsing passed.
+All three pages loaded in simulated browser tests.
+Browser-tab titles displayed correctly using test data.
+Teacher search and Auto schedule display passed simulated tests.
+Live Supabase and production deployment not tested.
+
+
+Version 1.14.4 - Confirmation Popup Cleanup
+Date: October 12, 2026
+Type: User interface improvements
+Status: Offline smoke tests passed; live deployment verification pending
+
+Changes:
+1. Simplified wording in 12 existing confirmation and input dialogs.
+2. Clarified whether actions affect one student, one room, or the campus.
+3. Shortened emergency-lock, waiting-list, pass-limit override, room-deletion, schedule, and administrative confirmation messages.
+4. Simplified student cancellation and teacher PIN prompts.
+5. Retained native browser OK/Cancel dialogs.
+6. Preserved existing confirmation and cancellation logic.
+
+Files affected:
+index.html
+teacher.html
+admin.html
+
+Compatibility:
+No Supabase changes for the popup cleanup.
+No database schema changes.
+No modifications to pass-management operations.
+Existing browser titles, student search, roster loading, and schedule displays retained.
+
+Testing:
+JavaScript parsing passed.
+All three pages loaded successfully in simulated browser tests.
+Confirmation cancellation paths were tested.
+Cancel prevented the associated write operations in simulated tests.
+Teacher student-search and Auto schedule functions remained operational with mocked data.
+No live Supabase writes or production deployment tests performed.
+
+Deployment:
+Replace index.html, teacher.html, and admin.html with the updated versions.
+No additional database migrations or Edge Function changes are required for the popup cleanup.
+Production verification pending.
+
+
+Standard Format for Future Updates
+
+Version [Version Number] - [Update Name]
+Date: [Date]
+Type: [Feature / Bug Fix / UI / Security / Performance]
+Status: [Testing and Deployment Status]
+
+Changes:
+Describe what was added, corrected, or improved.
+
+Files affected:
+List modified application files.
+
+Compatibility:
+Identify unchanged functionality.
+Document any database, API, or configuration changes.
+
+Testing:
+Describe tests actually completed.
+Record failed or untested scenarios.
+
+Deployment:
+Identify files requiring replacement.
+Document required backend deployment, migration, or configuration changes.
+Record production verification status.
