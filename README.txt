@@ -806,3 +806,30 @@ WHAT CHANGED
 
 EXPECTED TEST
 - Search for Christian. The current 182-student master roster should return multiple matches.
+
+WESTFIELD HALL PASS — V1.14.4 TEACHER ROSTER REPAIR
+
+BASE
+----
+V1.14.3 Canonical Multi-Tenant
+
+FILES TO REPLACE
+Replace only teacher.html on GitHub Pages.
+No SQL, Edge Function, api-shim.js, admin.html, index.html, or config.js changes are required.
+
+FIXES
+- Restores the missing renderStudentOptions() helper.
+- This helper populates both Teacher Override > Student and Reports > Individual Student dropdowns.
+- Its absence caused renderState() to stop before Student Restroom Access could render, producing "Student roster has not loaded" even when the backend returned students.
+- Retains the V1.14.3 student search behavior: live search, Search button, Enter key, reload, and loaded-count feedback.
+- Retains Auto schedule effective-schedule display from V1.14.2/1.14.3.
+- Clarifies that Student Restroom Access changes are for THIS ROOM only.
+
+DEPLOY
+1. Replace teacher.html in the GitHub Pages repository.
+2. Commit the change.
+3. Hard-refresh the teacher page.
+4. Log in.
+5. Verify the Teacher Override Student dropdown is populated.
+6. Under Controls, search "Christian" in Student Restroom Access.
+
