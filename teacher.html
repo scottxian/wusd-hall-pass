@@ -6,6 +6,7 @@
 <head>
   <meta name="hallpass-version" content="1.14.1">
   <base target="_top">
+  <title>Hall Pass Teacher</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #222; }
@@ -461,6 +462,34 @@
       renderQuickControls(state);
     }
 
+    // Browser-tab display only; canonical URL/database keys are untouched.
+    function hallpassTabPart(value, uppercase) {
+      const text = String(value || '').trim().replace(/[_-]+/g, ' ');
+      return uppercase ? text.toUpperCase() : text.replace(/\b[a-z]/g, function(c) { return c.toUpperCase(); });
+    }
+    let hallpassTitleTeacherNames = '';
+    let hallpassTitleLookupStarted = false;
+    function updateHallpassRoomTitle(kind, room) {
+      room = room || {};
+      if (room.teacherNames) hallpassTitleTeacherNames = String(room.teacherNames).trim();
+      const org = hallpassTabPart(room.organizationKey || '', true);
+      const school = hallpassTabPart(room.schoolKey || '', false);
+      const roomKey = String(room.key || '').trim().toUpperCase();
+      const displayRoom = roomKey ? 'Room ' + roomKey + (hallpassTitleTeacherNames ? ' (' + hallpassTitleTeacherNames + ')' : '') : '';
+      document.title = ['Hall Pass ' + kind, org, school, displayRoom].filter(Boolean).join(' - ');
+    }
+    function requestHallpassRoomTitle(kind, room) {
+      updateHallpassRoomTitle(kind, room);
+      if (hallpassTitleLookupStarted || !window.hallpassApi || !(room && (room.key || room.room))) return;
+      hallpassTitleLookupStarted = true;
+      window.hallpassApi.call('getRoomDisplayMetadata', []).then(function(result) {
+        if (result && result.success && result.room) updateHallpassRoomTitle(kind, result.room);
+      }).catch(function(error) {
+        // The hall pass remains usable even when the optional title lookup fails.
+        console.warn('Hall Pass browser title metadata unavailable:', error && error.message ? error.message : error);
+      });
+    }
+
     function renderRoomContext(room) {
       room = room || {};
 
@@ -484,6 +513,7 @@
       else if (room.schoolKey) parts.push(String(room.schoolKey));
       if (room.room || room.key) parts.push('Room ' + String(room.room || room.key).toUpperCase());
       label.textContent = parts.join(' • ');
+      requestHallpassRoomTitle('Teacher', room);
     }
 
     function renderStatus(state) {
