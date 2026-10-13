@@ -1040,7 +1040,7 @@ After GitHub Pages publishes, hard-refresh teacher and admin pages and verify al
 
 
 ------------------------------------------------------------
-Branding-only update — October 13, 2026 (pending asset upload)
+Branding-only update — October 13, 2026
 ------------------------------------------------------------
 
 Added display-only Hall Pilot branding support across student, teacher and
@@ -1050,7 +1050,7 @@ organization + school URL/context keys. Westfield's Wildcats logo is
 registered as assets/schools/wusd--westfield.webp.
 
 Important:
-- The Wildcats asset must exist before this change is deployed.
+- The optimized Wildcats asset is included in assets/schools/.
 - This is a STATIC asset registry. No admin upload screen was added.
 - A missing school image is hidden; the school name remains visible.
 - The existing red/green student status area is not modified.
