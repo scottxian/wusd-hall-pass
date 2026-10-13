@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<!-- Hall Pass V1.14.2 — teacher student-search + Auto schedule clarity -->
+<!-- Hall Pass build: V1.14.3 teacher student-search fix -->
+<!-- Hall Pass V1.14.3 — teacher student-search + Auto schedule clarity -->
 <html>
 <head>
   <meta name="hallpass-version" content="1.14.1">
@@ -339,6 +340,7 @@
     let reportDrilldownCache = {};
     let allReportSort = { key: 'studentName', direction: 'asc' };
     let restroomAccessStudents = [];
+    let restroomRosterRefreshRunning = false;
 
     function showTab(name) {
       document.querySelectorAll('.tabButton').forEach(function(button) {
@@ -673,6 +675,18 @@
       }, button, 'SAVING...', 'Saving pass settings...');
     }
 
+    function studentDisplayName(student) {
+      return String(
+        (student && (student.name ?? student.studentName ?? student.student_name)) || ''
+      ).trim();
+    }
+
+    function studentDisplayId(student) {
+      return String(
+        (student && (student.id ?? student.studentId ?? student.student_id ?? student.studentNumber ?? student.student_number)) || ''
+      ).trim();
+    }
+
     function renderRestroomAccessTable(students) {
       restroomAccessStudents = Array.isArray(students) ? students.slice() : [];
       filterRestroomAccessTable();
@@ -684,41 +698,79 @@
       const status = document.getElementById('restroomStudentSearchStatus');
       if (!body) return;
 
-      const query = String(input ? input.value : '').trim().toLowerCase();
+      const rawQuery = String(input ? input.value : '').trim();
+      const query = rawQuery.toLocaleLowerCase();
       const matches = restroomAccessStudents.filter(function(student) {
         if (!query) return true;
-        return String(student.name || '').toLowerCase().includes(query) ||
-          String(student.id || '').toLowerCase().includes(query);
+        const name = studentDisplayName(student).toLocaleLowerCase();
+        const id = studentDisplayId(student).toLocaleLowerCase();
+        return name.includes(query) || id.includes(query);
       });
 
       body.innerHTML = '';
 
+      if (!restroomAccessStudents.length) {
+        body.innerHTML = '<tr><td colspan="4">Student roster has not loaded.</td></tr>';
+        if (status) status.textContent = '0 students loaded. Click Search to reload the school roster.';
+        return;
+      }
+
       if (!matches.length) {
         body.innerHTML = '<tr><td colspan="4">No students match this search.</td></tr>';
-        if (status) status.textContent = query ? 'No students found for “' + String(input.value || '').trim() + '”.' : 'No students are available.';
+        if (status) status.textContent = 'No students found for “' + rawQuery + '” (' + restroomAccessStudents.length + ' students loaded).';
         return;
       }
 
       matches.forEach(function(student) {
         const row = document.createElement('tr');
-        const allowed = student.restroomAllowed !== false;
-        row.innerHTML = '<td>' + escapeHtml(student.name) + '</td>' +
-          '<td>' + escapeHtml(student.id) + '</td>' +
+        const name = studentDisplayName(student);
+        const id = studentDisplayId(student);
+        const allowed = student.restroomAllowed !== false && student.restroom_allowed !== false;
+        row.innerHTML = '<td>' + escapeHtml(name) + '</td>' +
+          '<td>' + escapeHtml(id) + '</td>' +
           '<td><label><input class="restroomAllowedToggle" type="checkbox" ' + (allowed ? 'checked' : '') + '> Allowed</label></td>' +
           '<td><button type="button" class="primary saveRestroomAccessButton">Save</button></td>';
         const checkbox = row.querySelector('.restroomAllowedToggle');
         const button = row.querySelector('.saveRestroomAccessButton');
         button.addEventListener('click', function() {
-          saveStudentRestroomAccess(student.id, checkbox.checked, button);
+          saveStudentRestroomAccess(id, checkbox.checked, button);
         });
         body.appendChild(row);
       });
 
       if (status) {
         status.textContent = query
-          ? matches.length + ' student' + (matches.length === 1 ? '' : 's') + ' found.'
-          : restroomAccessStudents.length + ' students shown. Type a name or ID to narrow the list.';
+          ? matches.length + ' student' + (matches.length === 1 ? '' : 's') + ' found (' + restroomAccessStudents.length + ' students loaded).'
+          : restroomAccessStudents.length + ' students loaded. Type a name or ID to narrow the list.';
       }
+    }
+
+    function reloadRestroomRosterAndSearch(button) {
+      if (restroomRosterRefreshRunning) return;
+      restroomRosterRefreshRunning = true;
+      if (button) beginButtonAction(button, 'SEARCHING...');
+      const status = document.getElementById('restroomStudentSearchStatus');
+      if (status) status.textContent = 'Reloading school roster...';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          restroomRosterRefreshRunning = false;
+          if (button) finishButtonAction(button);
+          if (!result || !result.success) {
+            if (status) status.textContent = result && result.message ? result.message : 'Student roster could not be loaded.';
+            return;
+          }
+          dashboardState = result;
+          restroomAccessStudents = Array.isArray(result.students) ? result.students.slice() : [];
+          renderStudentOptions(restroomAccessStudents);
+          filterRestroomAccessTable();
+        })
+        .withFailureHandler(function(error) {
+          restroomRosterRefreshRunning = false;
+          if (button) finishButtonAction(button);
+          if (status) status.textContent = error && error.message ? error.message : 'Student roster could not be loaded.';
+        })
+        .getTeacherDashboardState(teacherPin);
     }
 
     function saveStudentRestroomAccess(studentId, allowed, button) {
@@ -1581,7 +1633,7 @@
     });
 
     document.getElementById('restroomStudentSearchButton').addEventListener('click', function() {
-      filterRestroomAccessTable();
+      reloadRestroomRosterAndSearch(this);
     });
     document.getElementById('restroomStudentSearch').addEventListener('input', function() {
       filterRestroomAccessTable();
@@ -1589,7 +1641,7 @@
     document.getElementById('restroomStudentSearch').addEventListener('keydown', function(event) {
       if (event.key === 'Enter') {
         event.preventDefault();
-        filterRestroomAccessTable();
+        reloadRestroomRosterAndSearch(document.getElementById('restroomStudentSearchButton'));
       }
     });
 
