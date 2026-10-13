@@ -35,6 +35,7 @@
     banner.setAttribute('aria-label', 'Hall Pilot and school branding');
 
     const inner = el('div', 'hp-brand-inner');
+    const middle = el('div', 'hp-brand-middle');
     const product = el('div', 'hp-brand-product');
     const mark = el('img', 'hp-brand-mark');
     mark.src = 'assets/hall-pilot-mark.svg';
@@ -59,9 +60,18 @@
     school.appendChild(schoolText);
 
     inner.appendChild(product);
+    inner.appendChild(middle);
     inner.appendChild(school);
     banner.appendChild(inner);
     document.body.insertBefore(banner, document.body.firstChild);
+
+    // Move the EXISTING page header into the center rather than duplicate it.
+    // Its original IDs and live-rendering handlers remain unchanged.
+    const page = window.location.pathname.split('/').pop().toLowerCase();
+    const currentHeader = page === 'teacher.html' || page === 'admin.html'
+      ? document.querySelector('body > .header')
+      : document.getElementById('statusBar');
+    if (currentHeader) middle.appendChild(currentHeader);
 
     const params = new URLSearchParams(window.location.search);
     render({ organizationKey: params.get('org'), schoolKey: params.get('school') });
