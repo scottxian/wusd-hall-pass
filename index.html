@@ -487,6 +487,8 @@
 
     let requestSequence = 0;
     let latestAcceptedSequence = 0;
+    // Display-only reminder following a successful student return.
+    let pendingReturnReminder = null;
 
 
     /* =====================================================
@@ -649,6 +651,52 @@
               state.out
             );
 
+            // The waiting table is now rendered from fresh server data.
+            // Never tell a student it is their turn unless that row's
+            // normal Go button is enabled and the destination is free.
+            if (pendingReturnReminder) {
+              const reminder = pendingReturnReminder;
+              pendingReturnReminder = null;
+              const message = document.getElementById('message');
+
+              if (
+                !actionRunning &&
+                Date.now() <= reminder.expiresAt &&
+                message && message.textContent === 'Welcome back.' &&
+                Array.isArray(state.waiting) &&
+                Array.isArray(state.out) &&
+                !state.out.some(function(student) {
+                  return String(student.passId) === reminder.passId ||
+                    String(student.destination || '').trim().toLowerCase() ===
+                    reminder.destination;
+                })
+              ) {
+                const nextIndex = state.waiting.findIndex(function(student) {
+                  return String(student.destination || '').trim().toLowerCase() ===
+                    reminder.destination;
+                });
+                const next = state.waiting[nextIndex];
+                const rows = document.getElementById('waitingBody').rows;
+                const row = nextIndex >= 0 ? rows[nextIndex] : null;
+                const goButton = row && row.querySelector('button.go');
+
+                if (
+                  next &&
+                  String(next.requestId) === reminder.requestId &&
+                  String(next.name || '').trim() &&
+                  goButton &&
+                  !goButton.disabled
+                ) {
+                  setMessage(
+                    "Welcome back. Quietly remind " +
+                      String(next.name).trim() +
+                      " that it's their turn.",
+                    'success'
+                  );
+                }
+              }
+            }
+
             if (
               wasOpen === false &&
               state.schedule.isOpen === true &&
@@ -691,6 +739,8 @@
 
     function beginAction() {
 
+      // A new action supersedes any previous return reminder.
+      pendingReturnReminder = null;
       actionRunning =
         true;
 
@@ -1869,6 +1919,23 @@
         return;
       }
 
+      // Remember only the next waiting student at this destination.
+      // If the queue changes before the fresh read, show Welcome back only.
+      const returning = pageState && Array.isArray(pageState.out)
+        ? pageState.out.find(function(student) {
+            return String(student.passId) === String(passId);
+          })
+        : null;
+      const destinationKey = returning
+        ? String(returning.destination || '').trim().toLowerCase()
+        : '';
+      const nextWaiting = destinationKey && pageState &&
+        Array.isArray(pageState.waiting)
+        ? pageState.waiting.find(function(student) {
+            return String(student.destination || '').trim().toLowerCase() ===
+              destinationKey;
+          })
+        : null;
 
       beginAction();
 
@@ -1916,6 +1983,16 @@
               return;
             }
 
+
+            // The pass is already returned. This affects the message only.
+            pendingReturnReminder = returning && nextWaiting
+              ? {
+                  passId: String(passId),
+                  destination: destinationKey,
+                  requestId: String(nextWaiting.requestId),
+                  expiresAt: Date.now() + 15000
+                }
+              : null;
 
             setMessage(
               'Welcome back.',
