@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<!-- Hall Pass V1.14.1 — canonical tenant scope -->
+<!-- Hall Pass V1.14.5 — student type-ahead on canonical multi-tenant admin -->
 <html>
 <head>
-  <meta name="hallpass-version" content="1.14.1">
+  <meta name="hallpass-version" content="1.14.5">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hall Pass Admin</title>
@@ -15,7 +15,19 @@
     .message{min-height:24px;margin-top:8px;font-weight:bold}.error{color:#b3261e}.success{color:#19733c}.tableWrap{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:9px 10px;border-bottom:1px solid #ddd;text-align:left;white-space:nowrap;vertical-align:middle}th{background:#e8eef5}.roomTag{display:inline-block;padding:3px 7px;border-radius:999px;background:#e3ebf4;font-weight:bold}.lock{color:#b3261e}.muted{color:#666;font-size:13px}.inactive td:not(:last-child){opacity:.58}.destinationMuted{opacity:.58}.destinationAction{opacity:1!important;filter:none!important}.destinationEditButton{opacity:1!important;filter:none!important;background:#1f5ea8!important;color:#fff!important;cursor:pointer!important}.destinationEditButton:hover{background:#184b86!important}.checkRow{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.checkRow label{font-weight:normal;margin:0;display:flex;align-items:center;gap:5px}.checkRow input{width:auto}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.tabButton{background:#dfe6ec;color:#222}.tabButton.active{background:#1f5ea8;color:#fff}.panel{display:none}.panel.active{display:block}.actions{display:flex;gap:6px;flex-wrap:wrap}.small{padding:7px 10px;font-size:13px}.sectionHead{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:40px 14px;overflow:auto;z-index:10}.modal{background:white;width:min(760px,100%);border-radius:12px;padding:20px;box-shadow:0 6px 30px rgba(0,0,0,.25)}.modal h2{margin-top:0}.modalActions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px}.roomChecks{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:7px;background:#f5f7f8;padding:10px;border-radius:8px}.roomChecks label{font-weight:normal;margin:0;display:flex;gap:6px;align-items:center}.roomChecks input{width:auto}
     .wizardModal{width:min(920px,100%)}.wizardProgress{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:4px 0 18px}.wizardProgress div{padding:8px 6px;border-radius:7px;background:#e8edf2;text-align:center;font-size:13px;font-weight:bold;color:#555}.wizardProgress div.active{background:#1f5ea8;color:#fff}.wizardProgress div.done{background:#dcefe3;color:#175d31}.wizardStep{display:none}.wizardStep.active{display:block}.wizardChoice{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0 14px}.wizardChoice label{font-weight:normal;display:flex;align-items:center;gap:6px;margin:0}.wizardChoice input{width:auto}.wizardReview{background:#f5f7f8;border-radius:9px;padding:14px}.wizardReviewGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.wizardReviewItem{background:#fff;border:1px solid #d9dfe4;border-radius:8px;padding:10px}.wizardReviewItem strong{display:block;margin-bottom:3px}.wizardDestinationTable input[type=checkbox]{width:auto}.wizardDestinationTable input[type=number]{min-width:110px}.wizardSchoolDisabled{color:#8a3a32;font-weight:bold}.wizardHint{background:#eef4fb;border-left:4px solid #1f5ea8;padding:10px 12px;border-radius:5px;margin:10px 0}.wizardUrl{word-break:break-all;font-family:monospace;font-size:12px}.roomLinkGrid{display:grid;gap:12px;margin-top:12px}.roomLinkCard{background:#f5f7f8;border:1px solid #d9dfe4;border-radius:9px;padding:12px}.roomLinkCard label{margin-bottom:6px}.roomLinkRow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:7px;align-items:center}.roomLinkRow input{font-family:monospace;font-size:13px;background:#fff}.setupMessagePreview{white-space:pre-wrap;background:#f5f7f8;border:1px solid #d9dfe4;border-radius:9px;padding:12px;font-size:13px;line-height:1.45;margin-top:8px}.teacherEmailRow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #e1e5e8;flex-wrap:wrap}.teacherEmailRow:last-child{border-bottom:0}.teacherEmailIdentity strong{display:block}.teacherEmailIdentity span{font-size:13px;color:#666}.sortableReportHeader{cursor:pointer;user-select:none}.sortableReportHeader:hover{background:#d8e3ee}.sortableReportHeader:focus{outline:3px solid #7aa7d8;outline-offset:-3px}.sortArrow{display:inline-block;min-width:14px;margin-left:4px;font-size:12px;color:#1f5ea8}
     @media(max-width:700px){.container{padding:10px}.card{padding:13px}th,td{font-size:13px;padding:7px}.header h1{font-size:22px}.modalBackdrop{padding:15px 8px}}
-  </style>
+  
+    /* Shared student type-ahead controls. Native selects remain the source of student IDs. */
+    .hpStudentPicker, .hpStudentHints { position:relative; min-width:0; }
+    .hpStudentPicker select.hpStudentPickerNative { display:none; }
+    .hpStudentPicker input, .hpStudentHints input { width:100%; }
+    .hpStudentOptions { position:absolute; left:0; right:0; top:100%; z-index:35; background:white; border:1px solid #a7b2bf; border-radius:0 0 8px 8px; box-shadow:0 6px 18px rgba(0,0,0,.16); max-height:264px; overflow-y:auto; }
+    .hpStudentOptions[hidden] { display:none!important; }
+    .hpStudentOption { display:block; width:100%; padding:10px 12px; font:inherit; text-align:left; cursor:pointer; background:#fff; color:#222; border:0; border-bottom:1px solid #edf0f4; border-radius:0; white-space:normal; }
+    .hpStudentOption:hover, .hpStudentOption.hpFocused { background:#e6f0fc; color:#173d6b; }
+    .hpStudentOption:last-child { border-bottom:0; }
+    .hpStudentNote { color:#555; padding:9px 12px; font-size:13px; }
+    .hpStudentPicker input:focus, .hpStudentHints input:focus { outline:3px solid #8db5e7; outline-offset:0; }
+</style>
 </head>
 <body>
   <!-- Hall Pass Admin v1.14.1 — canonical organization / school aware -->
@@ -278,6 +290,159 @@
   <div id="teacherModal" class="modalBackdrop hidden" aria-hidden="true"><div class="modal"><h2 id="teacherModalTitle">Add Teacher</h2><input id="teacherEditId" type="hidden"><div class="formGrid"><div><label for="teacherNameInput">Teacher Name</label><input id="teacherNameInput" placeholder="Last name or display name"></div><div><label for="teacherEmailInput">Email <span class="muted">(optional)</span></label><input id="teacherEmailInput" type="email"></div><div><label for="teacherRoleInput">Organization Role</label><select id="teacherRoleInput"><option value="teacher">Teacher</option><option value="admin">Organization Admin</option></select></div><div><label for="teacherSchoolAdminInput">This School</label><select id="teacherSchoolAdminInput"><option value="false">Teacher access</option><option value="true">School Admin</option></select></div><div><label for="teacherActiveInput">Status</label><select id="teacherActiveInput"><option value="true">Active</option><option value="false">Disabled</option></select></div><div><label for="teacherPinInput">PIN</label><input id="teacherPinInput" type="password" inputmode="numeric" placeholder="4–10 digits"><div id="pinHint" class="muted">Required for a new teacher.</div></div></div><div style="margin-top:12px"><label>Assigned Rooms</label><div id="teacherRoomChecks" class="roomChecks"></div></div><div id="teacherModalMessage" class="message"></div><div class="modalActions"><button class="gray" data-close="teacherModal">Cancel</button><button id="saveTeacherButton">Save Teacher</button></div></div></div>
 
   <script src="config.js"></script><script src="api-shim.js"></script>
+
+  <script>
+  /* Hall Pass: student name / ID type-ahead. Page-local, zero backend changes. */
+  window.HallPassStudentAutocomplete = (function () {
+    const controls = new Map();
+    const LIMIT = 8;
+    function normalize(v) { return String(v == null ? '' : v).toLocaleLowerCase().trim(); }
+    function makeList(input) {
+      const list = document.createElement('div');
+      list.className = 'hpStudentOptions';
+      list.id = input.id + '-options';
+      list.setAttribute('role', 'listbox');
+      list.hidden = true;
+      input.setAttribute('role', 'combobox');
+      input.setAttribute('aria-autocomplete', 'list');
+      input.setAttribute('aria-controls', list.id);
+      input.setAttribute('aria-expanded', 'false');
+      input.parentNode.appendChild(list);
+      return list;
+    }
+    function install(input, list, getRows, onPick, clearValue) {
+      let matches = [], active = -1;
+      function close() {
+        list.hidden = true;
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
+        active = -1;
+      }
+      function markActive(index) {
+        const items = Array.from(list.querySelectorAll('.hpStudentOption'));
+        if (!items.length) return;
+        active = (index + items.length) % items.length;
+        items.forEach((element, i) => {
+          element.classList.toggle('hpFocused', i === active);
+          element.setAttribute('aria-selected', i === active ? 'true' : 'false');
+        });
+        input.setAttribute('aria-activedescendant', items[active].id);
+        items[active].scrollIntoView({block:'nearest'});
+      }
+      function choose(index) {
+        if (!matches[index]) return;
+        onPick(matches[index]);
+        close();
+      }
+      function update(showWhenEmpty) {
+        const q = normalize(input.value);
+        list.replaceChildren();
+        matches = [];
+        if (!q && !showWhenEmpty) { close(); return; }
+        const rows = getRows();
+        const candidates = rows.filter(row => !q || normalize(row.label).includes(q) || normalize(row.id).includes(q));
+        matches = candidates.slice(0, LIMIT);
+        matches.forEach((row, i) => {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'hpStudentOption';
+          item.id = list.id + '-item-' + i;
+          item.setAttribute('role', 'option');
+          item.setAttribute('aria-selected', 'false');
+          item.textContent = row.label;
+          item.addEventListener('mousedown', e => e.preventDefault());
+          item.addEventListener('click', () => choose(i));
+          list.appendChild(item);
+        });
+        const note = document.createElement('div');
+        note.className = 'hpStudentNote';
+        if (!rows.length) note.textContent = 'Student roster not loaded.';
+        else if (!candidates.length) note.textContent = 'No matching students.';
+        else if (candidates.length > LIMIT) note.textContent = 'Keep typing to narrow the results.';
+        if (note.textContent) list.appendChild(note);
+        list.hidden = false;
+        input.setAttribute('aria-expanded', 'true');
+        input.removeAttribute('aria-activedescendant');
+        active = -1;
+      }
+      input.addEventListener('input', () => { clearValue(); update(false); });
+      input.addEventListener('focus', () => { if (input.value) input.select(); update(false); });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (list.hidden) update(true);
+          if (matches.length) markActive(active < 0 ? (e.key === 'ArrowDown' ? 0 : matches.length - 1) : active + (e.key === 'ArrowDown' ? 1 : -1));
+        } else if (e.key === 'Enter' && !list.hidden && matches.length && active >= 0) {
+          e.preventDefault(); e.stopPropagation(); choose(active);
+        } else if (e.key === 'Escape' && !list.hidden) {
+          e.preventDefault(); close();
+        }
+      });
+      input.addEventListener('blur', () => setTimeout(close, 130));
+      return {update, close};
+    }
+    function enhanceSelect(id, hint, allowBlank) {
+      if (controls.has(id)) return controls.get(id);
+      const select = document.getElementById(id);
+      if (!select) return null;
+      const parent = document.createElement('div');
+      parent.className = 'hpStudentPicker';
+      select.parentNode.insertBefore(parent, select);
+      parent.appendChild(select);
+      select.classList.add('hpStudentPickerNative');
+      const input = document.createElement('input');
+      input.id = id + '-autocomplete';
+      input.type = 'text';
+      input.autocomplete = 'off';
+      input.placeholder = hint || 'Start typing student name or ID';
+      input.setAttribute('aria-label', hint || 'Find student');
+      parent.appendChild(input);
+      document.querySelectorAll('label[for="' + id + '"]').forEach(label => label.htmlFor = input.id);
+      const list = makeList(input);
+      function rows() {
+        return Array.from(select.options).filter(opt => (allowBlank || opt.value !== '')).map(opt => ({id:opt.value, label:opt.textContent.trim()}));
+      }
+      function sync() {
+        const chosen = select.selectedOptions[0];
+        input.value = select.value && chosen ? chosen.textContent.trim() : '';
+        control.close();
+      }
+      const control = install(input, list, rows, row => {
+        select.value = row.id;
+        input.value = row.id ? row.label : '';
+        select.dispatchEvent(new Event('change', {bubbles:true}));
+      }, () => { select.value = ''; });
+      select.addEventListener('change', sync);
+      const api = {refresh:sync, input, select};
+      controls.set(id, api);
+      sync();
+      return api;
+    }
+    function enhanceTextSearch(id, getStudents, onPick) {
+      if (controls.has(id)) return controls.get(id);
+      const input = document.getElementById(id);
+      if (!input) return null;
+      const parent = document.createElement('div');
+      parent.className = 'hpStudentHints';
+      input.parentNode.insertBefore(parent, input);
+      parent.appendChild(input);
+      const list = makeList(input);
+      const control = install(input, list, () => {
+        const rows = getStudents() || [];
+        return rows.map(s => ({id:String(s.studentId ?? s.id ?? ''), label:String(s.name ?? s.studentName ?? '') + ' (' + String(s.studentId ?? s.id ?? '') + ')'})).filter(s => s.id);
+      }, row => {
+        input.value = row.id; // Search by exact ID to distinguish students with the same name.
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+        if (onPick) onPick(row);
+      }, () => {});
+      const api = {refresh:() => { if (document.activeElement === input && input.value) control.update(false); }, input};
+      controls.set(id, api);
+      return api;
+    }
+    return {enhanceSelect, enhanceTextSearch, refresh(id) {const control = controls.get(id); if (control) control.refresh();}};
+  })();
+  </script>
+
   <script>
     let unlocked=false,lastState=null,management={rooms:[],teachers:[]},destinationsState={rows:[]},reportOptions=null,currentCampusReport=null,reportSortState={main:null,secondary:null},bulkCalendarPreview=null,onboardingStep=1,onboardingDestinations=[],adminAccess={organization:null,schools:[],selectedSchool:null,organizationAdmin:false},organizationState={schools:[]};
     window.HALLPASS_ADMIN_BUILD='1.14.1';
@@ -327,7 +492,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
 
     async function setCampusLock(){const turnOn=!(lastState&&lastState.campusEmergencyLock);if(turnOn&&!window.confirm('Lock every room at this school?\nNew passes stop; waiting lists clear.'))return;const b=$('campusLockButton');b.disabled=true;setMsg('campusLockMessage',turnOn?'Locking campus...':'Unlocking campus...');try{const r=await hallpassApi.call('adminSetCampusLock',[turnOn]);if(!r.success){setMsg('campusLockMessage',r.message,true);return;}await Promise.all([refreshLive(),refreshSecurity()]);setMsg('campusLockMessage',r.message)}catch(e){setMsg('campusLockMessage',e.message,true)}finally{b.disabled=false}}
 
-    async function refreshStudents(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('studentsMessage','Refreshing...');try{const r=await hallpassApi.call('adminStudentsState',[{includeInactive:true}]);if(!r.success){setMsg('studentsMessage',r.message,true);return;}studentsState=r;renderStudents();setMsg('studentsMessage',`${r.rows.length} students loaded.`)}catch(e){setMsg('studentsMessage',e.message,true)}finally{if(button)button.disabled=false}}
+    async function refreshStudents(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('studentsMessage','Refreshing...');try{const r=await hallpassApi.call('adminStudentsState',[{includeInactive:true}]);if(!r.success){setMsg('studentsMessage',r.message,true);return;}studentsState=r;renderStudents();HallPassStudentAutocomplete.refresh('studentSearch');HallPassStudentAutocomplete.refresh('search');setMsg('studentsMessage',`${r.rows.length} students loaded.`)}catch(e){setMsg('studentsMessage',e.message,true)}finally{if(button)button.disabled=false}}
     function visibleStudents(){const term=$('studentSearch').value.trim().toLowerCase(),status=$('studentStatusFilter').value;return (studentsState.rows||[]).filter(x=>(status==='all'||(status==='active'&&x.active)||(status==='inactive'&&!x.active))&&(!term||(`${x.studentId} ${x.name}`).toLowerCase().includes(term)))}
     function renderStudents(){const rows=visibleStudents();$('studentsBody').innerHTML=rows.length?rows.map(x=>`<tr class="${x.active?'':'inactive'}"><td>${esc(x.studentId)}</td><td><strong>${esc(x.name)}</strong></td><td>${x.active?'Active':'Disabled'}</td><td>${x.restroomAllowed?'Allowed':'Disabled'}</td><td><button class="small" data-edit-student="${esc(x.id)}">Edit</button></td></tr>`).join(''):'<tr><td colspan="5">No students found.</td></tr>'}
     function openStudent(id=''){const x=(studentsState.rows||[]).find(s=>s.id===id);$('studentEditUuid').value=x?.id||'';$('studentModalTitle').textContent=x?'Edit Student':'Add Student';$('studentIdInput').value=x?.studentId||'';$('studentNameInput').value=x?.name||'';$('studentActiveInput').value=String(x?.active!==false);$('studentRestroomInput').value=String(x?.restroomAllowed!==false);setMsg('studentModalMessage','');showModal('studentModal')}
@@ -380,7 +545,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
 
     function isoDateLocal(d){const x=new Date(d.getTime()-d.getTimezoneOffset()*60000);return x.toISOString().slice(0,10)}
     function setDefaultReportDates(){if($('campusReportEnd').value)return;const end=new Date(),start=new Date();start.setDate(end.getDate()-29);$('campusReportStart').value=isoDateLocal(start);$('campusReportEnd').value=isoDateLocal(end)}
-    async function refreshReportOptions(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('reportsMessage','Loading report filters...');try{const r=await hallpassApi.call('adminReportOptions',[]);if(!r.success){setMsg('reportsMessage',r.message,true);return;}reportOptions=r;const roomCur=$('campusReportRoom').value,studentCur=$('campusReportStudent').value,destCur=$('campusReportDestination').value;$('campusReportRoom').innerHTML='<option value="">All Rooms</option>'+r.rooms.map(x=>`<option value="${esc(x.key)}">${esc(x.room)}${x.active?'':' (disabled)'}</option>`).join('');$('campusReportStudent').innerHTML='<option value="">All Students</option>'+r.students.map(x=>`<option value="${esc(x.id)}">${esc(x.name)} (${esc(x.id)})${x.active?'':' — disabled'}</option>`).join('');$('campusReportDestination').innerHTML='<option value="">All Destinations</option>'+r.destinations.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');$('campusReportRoom').value=roomCur;$('campusReportStudent').value=studentCur;$('campusReportDestination').value=destCur;setDefaultReportDates();setMsg('reportsMessage','Filters ready.')}catch(e){setMsg('reportsMessage',e.message,true)}finally{if(button)button.disabled=false}}
+    async function refreshReportOptions(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('reportsMessage','Loading report filters...');try{const r=await hallpassApi.call('adminReportOptions',[]);if(!r.success){setMsg('reportsMessage',r.message,true);return;}reportOptions=r;const roomCur=$('campusReportRoom').value,studentCur=$('campusReportStudent').value,destCur=$('campusReportDestination').value;$('campusReportRoom').innerHTML='<option value="">All Rooms</option>'+r.rooms.map(x=>`<option value="${esc(x.key)}">${esc(x.room)}${x.active?'':' (disabled)'}</option>`).join('');$('campusReportStudent').innerHTML='<option value="">All Students</option>'+r.students.map(x=>`<option value="${esc(x.id)}">${esc(x.name)} (${esc(x.id)})${x.active?'':' — disabled'}</option>`).join('');$('campusReportDestination').innerHTML='<option value="">All Destinations</option>'+r.destinations.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');$('campusReportRoom').value=roomCur;$('campusReportStudent').value=studentCur;HallPassStudentAutocomplete.refresh('campusReportStudent');$('campusReportDestination').value=destCur;setDefaultReportDates();setMsg('reportsMessage','Filters ready.')}catch(e){setMsg('reportsMessage',e.message,true)}finally{if(button)button.disabled=false}}
     function reportMinutes(v){v=Number(v);if(!Number.isFinite(v)||v<=0)return '0:00';const sec=Math.round(v*60);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')}
     function reportDateTime(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString()}
     function campusReportOptionsFromForm(){return {startDate:$('campusReportStart').value,endDate:$('campusReportEnd').value,roomKey:$('campusReportRoom').value,studentId:$('campusReportStudent').value,destination:$('campusReportDestination').value,includeTestData:$('campusIncludeTestData').checked,longMinutes:Number($('longPassMinutes').value||10),frequentCount:Number($('frequentPassCount').value||5)}}
@@ -445,6 +610,18 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function openTeacher(id=''){const t=management.teachers.find(x=>x.id===id);if((t?.role==='admin'||t?.schoolAdmin)&&adminAccess.organizationAdmin!==true){setMsg('manageMessage','Only an Organization Admin can manage Admin accounts.',true);return}$('teacherEditId').value=t?.id||'';$('teacherModalTitle').textContent=t?'Edit Teacher':'Add Teacher';$('teacherNameInput').value=t?.name||'';$('teacherEmailInput').value=t?.email||'';$('teacherRoleInput').value=t?.role||'teacher';$('teacherSchoolAdminInput').value=String(t?.schoolAdmin===true);$('teacherActiveInput').value=String(t?.active!==false);$('teacherRoleInput').disabled=adminAccess.organizationAdmin!==true;$('teacherSchoolAdminInput').disabled=adminAccess.organizationAdmin!==true;$('teacherPinInput').value='';$('pinHint').textContent=t?'Leave blank to keep the current PIN; enter a new PIN to reset it.':'Required for a new teacher.';fillRoomChecks('teacherRoomChecks',t?.roomIds||[],'rooms');setMsg('teacherModalMessage','');showModal('teacherModal')}
     async function saveTeacher(){const b=$('saveTeacherButton'),id=$('teacherEditId').value,data={name:$('teacherNameInput').value.trim(),email:$('teacherEmailInput').value.trim(),role:$('teacherRoleInput').value,schoolAdmin:$('teacherSchoolAdminInput').value==='true',active:$('teacherActiveInput').value==='true',pin:$('teacherPinInput').value.trim(),roomIds:selectedChecks('teacherRoomChecks')};b.disabled=true;setMsg('teacherModalMessage','Saving...');try{const r=id?await hallpassApi.call('adminUpdateTeacher',[id,data]):await hallpassApi.call('adminCreateTeacher',[data]);if(!r.success){setMsg('teacherModalMessage',r.message,true);return;}hideModal('teacherModal');await refreshManagement();setMsg('manageMessage',r.message)}catch(e){setMsg('teacherModalMessage',e.message,true)}finally{b.disabled=false}}
     function showModal(id){$(id).classList.remove('hidden');$(id).setAttribute('aria-hidden','false')} function hideModal(id){$(id).classList.add('hidden');$(id).setAttribute('aria-hidden','true')}
+    HallPassStudentAutocomplete.enhanceSelect('campusReportStudent', 'All students — type name or ID', true);
+    HallPassStudentAutocomplete.enhanceTextSearch('studentSearch', () => studentsState.rows || []);
+    HallPassStudentAutocomplete.enhanceTextSearch('search', () => studentsState.rows || [], () => refreshLive());
+    // Load the master roster only when a user asks for student suggestions in Live Campus.
+    let studentHintLoadRequested = false;
+    $('search').addEventListener('focus', () => {
+      if (unlocked && !studentHintLoadRequested && !(studentsState.rows || []).length) {
+        studentHintLoadRequested = true;
+        refreshStudents().finally(() => { studentHintLoadRequested = false; });
+      }
+    });
+
     $('campusLockButton').addEventListener('click',setCampusLock);$('refreshStudents').addEventListener('click',e=>refreshStudents(e.currentTarget));$('refreshDestinations').addEventListener('click',e=>refreshDestinations(e.currentTarget));$('addDestinationButton').addEventListener('click',()=>openDestination());$('saveDestinationButton').addEventListener('click',saveMasterDestination);$('addStudentButton').addEventListener('click',()=>openStudent());$('importStudentsButton').addEventListener('click',openStudentImport);$('saveStudentButton').addEventListener('click',saveStudent);$('previewStudentImport').addEventListener('click',previewStudentImport);$('confirmStudentImport').addEventListener('click',confirmStudentImport);$('studentSearch').addEventListener('input',renderStudents);$('studentStatusFilter').addEventListener('change',renderStudents);$('refreshSecurity').addEventListener('click',e=>refreshSecurity(e.currentTarget));$('saveSecurity').addEventListener('click',saveSecurity);$('clearAllLockouts').addEventListener('click',()=>clearLockout('',''));$('refreshCalendar').addEventListener('click',e=>refreshCalendar(e.currentTarget));$('saveCalendarEntry').addEventListener('click',saveCalendarEntry);$('previewWeeklyCalendar').addEventListener('click',()=>previewBulkCalendar(buildWeeklyCalendarDates(),'weekly'));$('previewListedCalendar').addEventListener('click',()=>previewBulkCalendar(buildListedCalendarDates(),'listed'));$('applyBulkCalendar').addEventListener('click',applyBulkCalendar);$('clearBulkCalendar').addEventListener('click',clearBulkCalendarPreview);$('bulkConflictMode').addEventListener('change',()=>{if(bulkCalendarPreview)previewBulkCalendar(bulkCalendarPreview.dates,bulkCalendarPreview.source)});
     $('refreshReportOptions').addEventListener('click',e=>refreshReportOptions(e.currentTarget));$('generateCampusReport').addEventListener('click',generateCampusReport);$('downloadCampusReport').addEventListener('click',downloadCampusReport);$('reportType').addEventListener('change',()=>{reportSortState={main:null,secondary:null};if(currentCampusReport)renderCampusReport()});$('exportStudents').addEventListener('click',e=>exportBackupDataset('students',e.currentTarget));$('exportPasses').addEventListener('click',e=>exportBackupDataset('passes',e.currentTarget));$('exportConfiguration').addEventListener('click',e=>exportBackupDataset('configuration',e.currentTarget));$('exportAudit').addEventListener('click',e=>exportBackupDataset('audit',e.currentTarget));$('downloadFullBackup').addEventListener('click',e=>exportBackupDataset('full',e.currentTarget));
     $('refreshAudit').addEventListener('click',e=>refreshAudit(e.currentTarget));$('auditRoomFilter').addEventListener('change',()=>refreshAudit());$('auditSearch').addEventListener('keydown',e=>{if(e.key==='Enter')refreshAudit()});$('loginButton').addEventListener('click',login);$('adminPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('refreshLive').addEventListener('click',e=>refreshLive(e.currentTarget));$('roomFilter').addEventListener('change',()=>refreshLive());$('search').addEventListener('keydown',e=>{if(e.key==='Enter')refreshLive()});$('refreshManage').addEventListener('click',e=>refreshManagement(e.currentTarget));$('refreshSchedules').addEventListener('click',e=>refreshManagement(e.currentTarget));$('addScheduleButton').addEventListener('click',()=>openSchedule());$('saveScheduleButton').addEventListener('click',saveSchedule);$('onboardRoomButton').addEventListener('click',openOnboardingWizard);$('addRoomButton').addEventListener('click',()=>openRoom());$('addTeacherButton').addEventListener('click',()=>openTeacher());$('saveRoomButton').addEventListener('click',saveRoom);$('saveTeacherButton').addEventListener('click',saveTeacher);

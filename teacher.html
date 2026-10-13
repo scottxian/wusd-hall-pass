@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- Hall Pass V1.14.4 — teacher roster/search repair -->
+<!-- Hall Pass V1.14.5 — searchable student selection; preserves V1.14.4 teacher repairs -->
 <!-- Hall Pass build: V1.14.3 teacher student-search fix -->
 <!-- Hall Pass V1.14.3 — teacher student-search + Auto schedule clarity -->
 <html>
 <head>
-  <meta name="hallpass-version" content="1.14.1">
+  <meta name="hallpass-version" content="1.14.5">
   <base target="_top">
   <title>Hall Pass Teacher</title>
   <style>
@@ -107,6 +107,18 @@
       button, .tabButton { font-size: 14px; }
     }
     .fieldHint { font-weight: 600; font-size: 0.82em; opacity: 0.72; }
+
+    /* Shared student type-ahead controls. Native selects remain the source of student IDs. */
+    .hpStudentPicker, .hpStudentHints { position:relative; min-width:0; }
+    .hpStudentPicker select.hpStudentPickerNative { display:none; }
+    .hpStudentPicker input, .hpStudentHints input { width:100%; }
+    .hpStudentOptions { position:absolute; left:0; right:0; top:100%; z-index:35; background:white; border:1px solid #a7b2bf; border-radius:0 0 8px 8px; box-shadow:0 6px 18px rgba(0,0,0,.16); max-height:264px; overflow-y:auto; }
+    .hpStudentOptions[hidden] { display:none!important; }
+    .hpStudentOption { display:block; width:100%; padding:10px 12px; font:inherit; text-align:left; cursor:pointer; background:#fff; color:#222; border:0; border-bottom:1px solid #edf0f4; border-radius:0; white-space:normal; }
+    .hpStudentOption:hover, .hpStudentOption.hpFocused { background:#e6f0fc; color:#173d6b; }
+    .hpStudentOption:last-child { border-bottom:0; }
+    .hpStudentNote { color:#555; padding:9px 12px; font-size:13px; }
+    .hpStudentPicker input:focus, .hpStudentHints input:focus { outline:3px solid #8db5e7; outline-offset:0; }
 </style>
 </head>
 <body>
@@ -331,6 +343,159 @@
 
   <script src="config.js"></script>
   <script src="api-shim.js"></script>
+
+  <script>
+  /* Hall Pass: student name / ID type-ahead. Page-local, zero backend changes. */
+  window.HallPassStudentAutocomplete = (function () {
+    const controls = new Map();
+    const LIMIT = 8;
+    function normalize(v) { return String(v == null ? '' : v).toLocaleLowerCase().trim(); }
+    function makeList(input) {
+      const list = document.createElement('div');
+      list.className = 'hpStudentOptions';
+      list.id = input.id + '-options';
+      list.setAttribute('role', 'listbox');
+      list.hidden = true;
+      input.setAttribute('role', 'combobox');
+      input.setAttribute('aria-autocomplete', 'list');
+      input.setAttribute('aria-controls', list.id);
+      input.setAttribute('aria-expanded', 'false');
+      input.parentNode.appendChild(list);
+      return list;
+    }
+    function install(input, list, getRows, onPick, clearValue) {
+      let matches = [], active = -1;
+      function close() {
+        list.hidden = true;
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
+        active = -1;
+      }
+      function markActive(index) {
+        const items = Array.from(list.querySelectorAll('.hpStudentOption'));
+        if (!items.length) return;
+        active = (index + items.length) % items.length;
+        items.forEach((element, i) => {
+          element.classList.toggle('hpFocused', i === active);
+          element.setAttribute('aria-selected', i === active ? 'true' : 'false');
+        });
+        input.setAttribute('aria-activedescendant', items[active].id);
+        items[active].scrollIntoView({block:'nearest'});
+      }
+      function choose(index) {
+        if (!matches[index]) return;
+        onPick(matches[index]);
+        close();
+      }
+      function update(showWhenEmpty) {
+        const q = normalize(input.value);
+        list.replaceChildren();
+        matches = [];
+        if (!q && !showWhenEmpty) { close(); return; }
+        const rows = getRows();
+        const candidates = rows.filter(row => !q || normalize(row.label).includes(q) || normalize(row.id).includes(q));
+        matches = candidates.slice(0, LIMIT);
+        matches.forEach((row, i) => {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'hpStudentOption';
+          item.id = list.id + '-item-' + i;
+          item.setAttribute('role', 'option');
+          item.setAttribute('aria-selected', 'false');
+          item.textContent = row.label;
+          item.addEventListener('mousedown', e => e.preventDefault());
+          item.addEventListener('click', () => choose(i));
+          list.appendChild(item);
+        });
+        const note = document.createElement('div');
+        note.className = 'hpStudentNote';
+        if (!rows.length) note.textContent = 'Student roster not loaded.';
+        else if (!candidates.length) note.textContent = 'No matching students.';
+        else if (candidates.length > LIMIT) note.textContent = 'Keep typing to narrow the results.';
+        if (note.textContent) list.appendChild(note);
+        list.hidden = false;
+        input.setAttribute('aria-expanded', 'true');
+        input.removeAttribute('aria-activedescendant');
+        active = -1;
+      }
+      input.addEventListener('input', () => { clearValue(); update(false); });
+      input.addEventListener('focus', () => { if (input.value) input.select(); update(false); });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (list.hidden) update(true);
+          if (matches.length) markActive(active < 0 ? (e.key === 'ArrowDown' ? 0 : matches.length - 1) : active + (e.key === 'ArrowDown' ? 1 : -1));
+        } else if (e.key === 'Enter' && !list.hidden && matches.length && active >= 0) {
+          e.preventDefault(); e.stopPropagation(); choose(active);
+        } else if (e.key === 'Escape' && !list.hidden) {
+          e.preventDefault(); close();
+        }
+      });
+      input.addEventListener('blur', () => setTimeout(close, 130));
+      return {update, close};
+    }
+    function enhanceSelect(id, hint, allowBlank) {
+      if (controls.has(id)) return controls.get(id);
+      const select = document.getElementById(id);
+      if (!select) return null;
+      const parent = document.createElement('div');
+      parent.className = 'hpStudentPicker';
+      select.parentNode.insertBefore(parent, select);
+      parent.appendChild(select);
+      select.classList.add('hpStudentPickerNative');
+      const input = document.createElement('input');
+      input.id = id + '-autocomplete';
+      input.type = 'text';
+      input.autocomplete = 'off';
+      input.placeholder = hint || 'Start typing student name or ID';
+      input.setAttribute('aria-label', hint || 'Find student');
+      parent.appendChild(input);
+      document.querySelectorAll('label[for="' + id + '"]').forEach(label => label.htmlFor = input.id);
+      const list = makeList(input);
+      function rows() {
+        return Array.from(select.options).filter(opt => (allowBlank || opt.value !== '')).map(opt => ({id:opt.value, label:opt.textContent.trim()}));
+      }
+      function sync() {
+        const chosen = select.selectedOptions[0];
+        input.value = select.value && chosen ? chosen.textContent.trim() : '';
+        control.close();
+      }
+      const control = install(input, list, rows, row => {
+        select.value = row.id;
+        input.value = row.id ? row.label : '';
+        select.dispatchEvent(new Event('change', {bubbles:true}));
+      }, () => { select.value = ''; });
+      select.addEventListener('change', sync);
+      const api = {refresh:sync, input, select};
+      controls.set(id, api);
+      sync();
+      return api;
+    }
+    function enhanceTextSearch(id, getStudents, onPick) {
+      if (controls.has(id)) return controls.get(id);
+      const input = document.getElementById(id);
+      if (!input) return null;
+      const parent = document.createElement('div');
+      parent.className = 'hpStudentHints';
+      input.parentNode.insertBefore(parent, input);
+      parent.appendChild(input);
+      const list = makeList(input);
+      const control = install(input, list, () => {
+        const rows = getStudents() || [];
+        return rows.map(s => ({id:String(s.studentId ?? s.id ?? ''), label:String(s.name ?? s.studentName ?? '') + ' (' + String(s.studentId ?? s.id ?? '') + ')'})).filter(s => s.id);
+      }, row => {
+        input.value = row.id; // Search by exact ID to distinguish students with the same name.
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+        if (onPick) onPick(row);
+      }, () => {});
+      const api = {refresh:() => { if (document.activeElement === input && input.value) control.update(false); }, input};
+      controls.set(id, api);
+      return api;
+    }
+    return {enhanceSelect, enhanceTextSearch, refresh(id) {const control = controls.get(id); if (control) control.refresh();}};
+  })();
+  </script>
+
 
   <script>
     let teacherPin = '';
@@ -711,6 +876,7 @@
         if (Array.from(select.options).some(function(option) { return option.value === currentValue; })) {
           select.value = currentValue;
         }
+        HallPassStudentAutocomplete.refresh(selectId);
       });
     }
 
@@ -729,6 +895,7 @@
     function renderRestroomAccessTable(students) {
       restroomAccessStudents = Array.isArray(students) ? students.slice() : [];
       filterRestroomAccessTable();
+      HallPassStudentAutocomplete.refresh('restroomStudentSearch');
     }
 
     function filterRestroomAccessTable() {
@@ -916,6 +1083,7 @@
           finishButtonAction(button);
           if (result && result.success) {
             document.getElementById('overrideStudent').value = '';
+            HallPassStudentAutocomplete.refresh('overrideStudent');
             document.getElementById('overrideDestination').value = '';
             document.getElementById('overrideDailyLimit').checked = false;
             document.getElementById('overrideNote').value = '';
@@ -1666,6 +1834,14 @@
     function sanitizeFileName(value) {
       return String(value || 'student').replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '-');
     }
+
+    HallPassStudentAutocomplete.enhanceSelect('overrideStudent', 'Type student name or ID');
+    HallPassStudentAutocomplete.enhanceSelect('reportStudent', 'Type student name or ID');
+    HallPassStudentAutocomplete.enhanceTextSearch('restroomStudentSearch', function() {
+      return restroomAccessStudents.map(function(student) {
+        return {studentId:studentDisplayId(student), name:studentDisplayName(student)};
+      });
+    });
 
     document.getElementById('teacherPin').addEventListener('keydown', function(event) {
       if (event.key === 'Enter') unlockDashboard(document.getElementById('loginButton'));
