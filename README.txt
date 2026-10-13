@@ -1038,3 +1038,22 @@ Replace only teacher.html and admin.html in GitHub.
 Do not run any SQL migration or redeploy Supabase functions.
 After GitHub Pages publishes, hard-refresh teacher and admin pages and verify all search locations.
 
+
+------------------------------------------------------------
+Branding-only update — October 13, 2026 (pending asset upload)
+------------------------------------------------------------
+
+Added display-only Hall Pilot branding support across student, teacher and
+administrator screens. Uses the Hall Pilot paper-plane favicon and mark,
+a responsive white brand strip, and school-specific logos chosen by the
+organization + school URL/context keys. Westfield's Wildcats logo is
+registered as assets/schools/wusd--westfield.webp.
+
+Important:
+- The Wildcats asset must exist before this change is deployed.
+- This is a STATIC asset registry. No admin upload screen was added.
+- A missing school image is hidden; the school name remains visible.
+- The existing red/green student status area is not modified.
+- No changes to pass requests, waiting lists, timers, database, Edge
+  Functions, reports, security, or schedule handling.
+- Three existing page title helpers were reworded from Hall Pass to Hall Pilot.
