@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Hall Pass V1.14.4 — teacher roster/search repair -->
 <!-- Hall Pass build: V1.14.3 teacher student-search fix -->
 <!-- Hall Pass V1.14.3 — teacher student-search + Auto schedule clarity -->
 <html>
@@ -251,8 +252,8 @@
         </div>
 
         <div class="card">
-          <h2>Student Restroom Access</h2>
-          <p>The global restroom limit applies to all students. Turn restroom access off here for individual students. Existing blank roster values count as allowed.</p>
+          <h2>Student Restroom Access — This Room</h2>
+          <p>These student access changes apply only to this room. Turn restroom access off here for an individual student; other rooms keep their own setting. School-wide student records are managed by an administrator.</p>
           <div>
             <label for="restroomStudentSearch">Find Student</label>
             <div class="studentSearchRow">
@@ -673,6 +674,36 @@
         'Buzzer Enabled': document.getElementById('buzzer').checked ? 'Yes' : 'No',
         'Clear Queue at Period End': document.getElementById('clearAtEnd').checked ? 'Yes' : 'No'
       }, button, 'SAVING...', 'Saving pass settings...');
+    }
+
+    function renderStudentOptions(students) {
+      const list = Array.isArray(students) ? students.slice() : [];
+      list.sort(function(a, b) {
+        return studentDisplayName(a).localeCompare(studentDisplayName(b), undefined, { numeric: true, sensitivity: 'base' });
+      });
+
+      ['overrideStudent', 'reportStudent'].forEach(function(selectId) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        const currentValue = select.value;
+        select.innerHTML = '<option value="">Choose Student</option>';
+
+        list.forEach(function(student) {
+          const id = studentDisplayId(student);
+          const name = studentDisplayName(student);
+          if (!id) return;
+
+          const option = document.createElement('option');
+          option.value = id;
+          option.textContent = name ? name + ' (' + id + ')' : id;
+          select.appendChild(option);
+        });
+
+        if (Array.from(select.options).some(function(option) { return option.value === currentValue; })) {
+          select.value = currentValue;
+        }
+      });
     }
 
     function studentDisplayName(student) {
