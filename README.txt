@@ -786,3 +786,23 @@ Replace ONLY teacher.html in the GitHub Pages repository.
 Do not change config.js, api-shim.js, index.html, admin.html, Supabase SQL, or either Edge Function.
 
 After GitHub publishes, hard-refresh the teacher page.
+
+
+WESTFIELD HALL PASS — V1.14.3 TEACHER Student Search Fix Part 2
+
+BASE
+----
+V1.14.2 Canonical Multi-Tenant
+
+FILES TO REPLACE
+- teacher.html only
+
+WHAT CHANGED
+- Student Restroom Access search now tolerates both current and legacy student field names.
+- Search button and Enter key force a fresh school-roster pull from getTeacherDashboardState before filtering.
+- Live typing still filters the already-loaded roster immediately.
+- Search status shows the number of students loaded, so an empty roster is visible instead of looking like a failed search.
+- No database, SQL, Edge Function, Admin, student page, api-shim.js, or config.js changes.
+
+EXPECTED TEST
+- Search for Christian. The current 182-student master roster should return multiple matches.
