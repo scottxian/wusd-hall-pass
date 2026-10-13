@@ -994,3 +994,47 @@ Static JavaScript validation and simulated browser title/UI tests passed.
 Live production verification is pending.
 
 --------------------------------------------------
+Version 1.14.5 - Student Searchable Dropdowns
+Date: October 12, 2026
+Type: Teacher and Admin interface improvement
+Status: Offline browser tests passed; live testing pending
+
+Changes:
+1. Teacher Override Pass: student selection now supports type-ahead suggestions by name or student ID.
+2. Teacher Individual Student Report: the student selection now supports type-ahead suggestions.
+3. Teacher Student Restroom Access: name and ID searches now display clickable student suggestions while typing.
+4. Admin Student Summary Report: the student filter now supports type-ahead suggestions while retaining the All Students option.
+5. Admin Students: the roster search now offers matching student suggestions while typing.
+6. Admin Recent Pass History: the search now offers student suggestions after the school roster loads; destination and room free-text searches remain available.
+7. Dropdown results show both the student name and ID and support mouse/touch selection and arrow-key plus Enter selection.
+8. Suggestions are limited to eight visible results; continue typing to narrow the list.
+9. Student IDs are still passed unchanged to existing pass and report functions.
+
+Files Changed:
+teacher.html
+admin.html
+
+Compatibility:
+No changes to index.html or the student kiosk.
+No changes to Supabase, SQL, configuration, API endpoints, student access rules, pass limits, or reports.
+Preserves V1.14.4 teacher roster/search fixes, Auto schedule clarity, popup cleanup, and compact browser-tab titles.
+
+Offline Verification:
+Teacher Override selection by name and ID: Passed.
+Teacher Individual Student Report selection: Passed.
+Teacher Restroom Access autocomplete: Passed.
+Admin Student Report selection: Passed.
+Admin Student Roster autocomplete: Passed.
+Admin Recent Pass History autocomplete: Passed.
+Arrow Down and Enter keyboard selection: Passed.
+Unmatched typing clears any previously selected student ID: Passed.
+JavaScript syntax checks: Passed.
+Duplicate static HTML ID check: Passed.
+Live Supabase read/write and production end-to-end testing: Not performed.
+
+Deployment:
+Back up current production teacher.html and admin.html.
+Replace only teacher.html and admin.html in GitHub.
+Do not run any SQL migration or redeploy Supabase functions.
+After GitHub Pages publishes, hard-refresh teacher and admin pages and verify all search locations.
+
