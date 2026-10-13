@@ -119,6 +119,57 @@
 .hp-page-student #continueButton {
   flex: 0 0 auto; padding: 10px 18px; font-size: 16px;
 }
+
+/* Later steps match the compact initial Student ID form.
+   Preserve the existing .hidden class; only give the active destination
+   step a grid layout, so other steps never become visible prematurely. */
+.hp-page-student #confirmStep .studentConfirm,
+.hp-page-student #destinationStep .studentConfirm {
+  font-size: 21px; line-height: 1.25; margin: 6px 0 8px;
+}
+.hp-page-student #confirmStep p {
+  font-size: 17px; line-height: 1.35; margin: 0 0 12px;
+}
+.hp-page-student #confirmStep .buttonRow,
+.hp-page-student #destinationStep .buttonRow {
+  align-items: stretch; gap: 10px;
+}
+.hp-page-student #confirmStep .buttonRow button,
+.hp-page-student #destinationStep .buttonRow button {
+  min-height: 48px; padding: 10px 18px; font-size: 16px;
+  border-radius: 8px;
+}
+.hp-page-student #confirmStep .buttonRow button {
+  min-width: 100px;
+}
+.hp-page-student #destinationStep:not(.hidden) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px; align-items: stretch;
+}
+.hp-page-student #destinationStep .studentConfirm {
+  grid-column: 1 / -1; margin-bottom: 0;
+}
+.hp-page-student #destination {
+  width: 100%; min-width: 0; min-height: 48px;
+  margin-bottom: 0; padding: 10px 13px; font-size: 18px;
+  border-radius: 8px;
+}
+.hp-page-student #destinationStep .buttonRow {
+  flex-wrap: nowrap;
+}
+@media(max-width:720px) {
+  .hp-page-student #destinationStep:not(.hidden) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hp-page-student #destinationStep .buttonRow {
+    flex-wrap: wrap;
+  }
+  .hp-page-student #destinationStep .buttonRow button {
+    flex: 1 1 auto;
+  }
+}
+
 .hp-page-student #message {
   min-height: 0; margin-top: 0;
 }
