@@ -3,7 +3,7 @@ V1.14.1 CANONICAL MULTI-TENANT
 CUMULATIVE CHANGES SINCE V1.0
 =============================================
 
-Current release: V1.14.6
+Current release: V1.14.7
 Release target: October 2026
 
 This file summarizes the major architecture, security, administration,
@@ -1096,3 +1096,37 @@ test-data inclusion/exclusion, missing/unknown student validation, school
 scope and unchanged campus summary behavior. Admin JavaScript parses and
 all static HTML IDs are unique. Production browser interaction should still
 be verified after deployment.
+
+------------------------------------------------------------
+Version 1.14.7 — Admin Campus Report Drilldowns
+Date: October 15, 2026
+
+Admin → Campus Reports now supports drilldowns:
+- Campus Overview by Room: click any room to see the student summaries for
+  that room. The current date, destination and test-data filters are retained.
+- Campus Overview by Destination: click any destination (including Nurse,
+  Restroom, Office, etc.) to see student summaries for that destination.
+  Both selected-room and selected-destination constraints can be combined.
+- Student Summary and Frequent Passes: click any student name to see
+  student detail in the current room/destination/date filters.
+- Long Passes and Teacher Overrides: clicking a student also opens their
+  individual detail report for the current filters.
+- Back button and a breadcrumb trail return to prior report levels, restoring
+  the previous report, sort direction and filter values.
+- Active filters now appear in the report heading. Download Report CSV
+  exports the current drilldown view; the existing print action for individual
+  student detail remains available.
+- Historical/renamed destinations displayed in a past report remain drillable.
+- Direct filter changes or switching schools reset the drilldown stack and
+  invalidate in-flight report requests, preventing old school data from
+  resurfacing after a school switch.
+
+Files Changed: admin.html and README.txt.
+No database changes, Edge Function redeploy, teacher/student HTML changes,
+or changes to pass behavior, student roster, authentication, PIN policies
+or reports outside Admin.
+
+Validation: Inline JavaScript parse, unique HTML IDs, synthetic drill-through
+across rooms and destinations, filter retention, individual detail, back
+navigation, special-character escaping, and school-switch invalidation checks
+passed. Production browser click-through remains to be verified.
