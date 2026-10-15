@@ -3,7 +3,7 @@ V1.14.1 CANONICAL MULTI-TENANT
 CUMULATIVE CHANGES SINCE V1.0
 =============================================
 
-Current release: V1.14.1
+Current release: V1.14.6
 Release target: October 2026
 
 This file summarizes the major architecture, security, administration,
@@ -1057,3 +1057,42 @@ Important:
 - No changes to pass requests, waiting lists, timers, database, Edge
   Functions, reports, security, or schedule handling.
 - Three existing page title helpers were reworded from Hall Pass to Hall Pilot.
+
+
+------------------------------------------------------------
+Version 1.14.6 — Admin Student Detail Reports
+Date: October 15, 2026
+
+Admin → Campus Reports now supports Student Detail as well as the existing
+summary, overview, long-pass, frequent-pass and override reports.
+
+Changes:
+- Choose "Student Detail" and an individual student to view a dated pass-by-pass
+  history, across all rooms in the selected school unless a room is filtered.
+- Student names in Student Summary and Frequent Passes open their detail report.
+- Detail columns show date, room, schedule/period, destination, request time,
+  departure, return, completed duration, wait, teacher override and notes.
+- Active passes display "Still out" without inventing an elapsed completion time.
+- Print Student Detail prints the individual report and summary.
+- Download Report CSV exports the detail rows when Student Detail is selected.
+- Date, room, student, destination and test-data filters are honored.
+- Changing report filters or switching schools clears any stale visible report.
+- If the selected student has no passes in range, their name is shown with an
+  empty detail table and zero totals.
+
+Files Changed:
+- admin.html
+- hallpass-staff Supabase Edge Function (server-side report response only)
+- README.txt
+
+No database migration was required for this reporting addition.
+No changes to the student kiosk, teacher page, public Edge Function,
+PIN authentication, schedule calculation, student records, pass history or
+room access rules.
+
+Backend tests passed using synthetic records: multi-room detail, completed
+and still-out passes, teacher override notes, room filtering, zero rows,
+test-data inclusion/exclusion, missing/unknown student validation, school
+scope and unchanged campus summary behavior. Admin JavaScript parses and
+all static HTML IDs are unique. Production browser interaction should still
+be verified after deployment.
