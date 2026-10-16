@@ -3,7 +3,7 @@ V1.14.1 CANONICAL MULTI-TENANT
 CUMULATIVE CHANGES SINCE V1.0
 =============================================
 
-Current release: V1.14.7
+Current release: V1.14.8
 Release target: October 2026
 
 This file summarizes the major architecture, security, administration,
@@ -1130,3 +1130,23 @@ Validation: Inline JavaScript parse, unique HTML IDs, synthetic drill-through
 across rooms and destinations, filter retention, individual detail, back
 navigation, special-character escaping, and school-switch invalidation checks
 passed. Production browser click-through remains to be verified.
+
+------------------------------------------------------------
+Version 1.14.8 — Teacher Report Local Time Formatting
+Date: October 16, 2026
+
+Fixed a Teacher Reports display issue caused by raw Supabase UTC timestamps.
+Teacher student-detail reports and expanded All Students report drilldowns
+now show requested, left, and returned clock times in readable local
+12-hour format with seconds (e.g., 9:25:56 AM) instead of ISO strings
+(e.g., 2026-10-16T16:25:56.747354+00:00).
+
+The same formatter is shared by printed individual student reports and
+individual report CSV exports. Legacy readable timestamps are preserved.
+Report dates and completed pass durations remain unchanged.
+
+Files changed: teacher.html, README.txt.
+No Supabase, Admin page, student kiosk, pass history, PIN, security, or
+schedule changes. Tested JavaScript syntax, six-digit fractional timestamps,
+offset equivalence, legacy format, blank values, and 5:37 duration.
+The final browser display follows the teacher's device timezone.
