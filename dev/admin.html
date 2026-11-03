@@ -406,6 +406,22 @@
     </div>
   </div>
 
+  <div id="scheduleReplaceModal" class="modalBackdrop hidden" aria-hidden="true">
+    <div class="modal" style="width:min(650px,calc(100vw - 24px));max-height:88vh;overflow-y:auto">
+      <h2>Delete Schedule</h2>
+      <p>Schedule: <strong id="scheduleReplaceName"></strong></p>
+      <div id="scheduleReplaceUsage" class="muted"></div>
+      <div id="scheduleReplacementField" style="margin-top:14px">
+        <label for="scheduleReplacementChoice">Move these assignments to</label>
+        <select id="scheduleReplacementChoice"></select>
+        <div class="muted">Existing classrooms, teacher overrides, and calendar entries will be reassigned automatically. Historical pass records will remain unchanged.</div>
+      </div>
+      <div id="scheduleReplaceWarning" class="message" role="status"></div>
+      <div id="scheduleReplaceMessage" class="message" role="alert"></div>
+      <div class="modalActions"><button class="gray" type="button" data-close="scheduleReplaceModal">Cancel</button><button id="confirmScheduleReplace" type="button" class="red">Replace & Delete</button></div>
+    </div>
+  </div>
+
   <div id="teacherModal" class="modalBackdrop hidden" aria-hidden="true"><div class="modal"><h2 id="teacherModalTitle">Add Teacher</h2><input id="teacherEditId" type="hidden"><div class="formGrid"><div><label for="teacherNameInput">Teacher Name</label><input id="teacherNameInput" placeholder="Last name or display name"></div><div><label for="teacherEmailInput">Email <span class="muted">(optional)</span></label><input id="teacherEmailInput" type="email"></div><div><label for="teacherRoleInput">Organization Role</label><select id="teacherRoleInput"><option value="teacher">Teacher</option><option value="admin">Organization Admin</option></select></div><div><label for="teacherSchoolAdminInput">This School</label><select id="teacherSchoolAdminInput"><option value="false">Teacher access</option><option value="true">School Admin</option></select></div><div><label for="teacherActiveInput">Status</label><select id="teacherActiveInput"><option value="true">Active</option><option value="false">Disabled</option></select></div><div><label for="teacherPinInput">PIN</label><input id="teacherPinInput" type="password" inputmode="numeric" placeholder="4–10 digits"><div id="pinHint" class="muted">Required for a new teacher.</div></div></div><div style="margin-top:12px"><label>Assigned Rooms</label><div id="teacherRoomChecks" class="roomChecks"></div></div><div id="teacherModalMessage" class="message"></div><div class="modalActions"><button class="gray" data-close="teacherModal">Cancel</button><button id="saveTeacherButton">Save Teacher</button></div></div></div>
 
   <script src="config.js"></script><script src="api-shim.js"></script><script src="branding.js" defer></script>
@@ -692,17 +708,62 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         setMsg('scheduleMessage',r.message);
       }catch(e){setMsg('scheduleModalMessage',e.message,true)}finally{b.disabled=false}
     }
+    let scheduleRemoval=null;
     async function deleteSchedule(index){
       const group=wholeScheduleGroups[Number(index)];
       if(!group)return;
-      if(!window.confirm('Delete the ENTIRE "'+group.name+'" schedule ('+group.rows.length+' periods)? Assigned schedules cannot be deleted.'))return;
-      setMsg('scheduleMessage','Deleting schedule...');
+      setMsg('scheduleMessage','Checking where '+group.name+' is assigned...');
       try{
-        const r=await hallpassApi.call('adminManageWholeSchedule',[{originalName:group.name,name:group.name,periods:[],delete:true}]);
+        const r=await hallpassApi.call('adminScheduleUsage',[group.name]);
         if(!r.success)throw Error(r.message);
+        scheduleRemoval=r;
+        const rooms=r.defaultRooms||[],overrides=r.overrideRooms||[],dates=r.calendarDates||[],special=r.specialRooms||[];
+        const total=rooms.length+overrides.length+dates.length+special.length;
+        $('scheduleReplaceName').textContent=group.name;
+        $('scheduleReplaceUsage').innerHTML=total
+          ? '<strong>This schedule is still used:</strong><div style="margin-top:8px">'
+              +(rooms.length?'<div><strong>Primary in '+rooms.length+' room(s):</strong> '+rooms.map(esc).join(', ')+'</div>':'')
+              +(overrides.length?'<div><strong>Teacher overrides:</strong> '+overrides.map(esc).join(', ')+'</div>':'')
+              +(dates.length?'<div><strong>Legacy calendar dates:</strong> '+dates.map(esc).join(', ')+'</div>':'')
+              +(special.length?'<div><strong>Special-day room assignments:</strong> '+special.map(x=>esc(x.room)+' ('+esc(x.dayType)+')').join(', ')+'</div>':'')
+            +'</div>'
+          : 'This schedule has no room or calendar assignments.';
+        $('scheduleReplacementField').classList.toggle('hidden',!total);
+        $('scheduleReplacementChoice').innerHTML='<option value="">Choose replacement schedule...</option>'
+          +wholeScheduleGroups.filter(x=>x.name.toLowerCase()!==group.name.toLowerCase())
+            .map(x=>'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>').join('');
+        $('scheduleReplaceWarning').textContent=r.legacyRegularFallback
+          ? 'IMPORTANT: The original calendar mode still uses Regular as its default. After this schedule is deleted, ordinary days will use each room’s assigned Primary schedule instead. This changes the development fallback behavior.'
+          : 'Deleting a master schedule does not remove historical pass records.';
+        $('confirmScheduleReplace').textContent=total?'Replace & Delete':'Delete Schedule';
+        setMsg('scheduleReplaceMessage','');
+        showModal('scheduleReplaceModal');
+        setMsg('scheduleMessage','');
+      }catch(e){setMsg('scheduleMessage',e.message,true)}
+    }
+    async function confirmScheduleReplacement(){
+      if(!scheduleRemoval)return;
+      const usage=scheduleRemoval;
+      const total=(usage.defaultRooms?.length||0)+(usage.overrideRooms?.length||0)
+        +(usage.calendarDates?.length||0)+(usage.specialRooms?.length||0);
+      const replacementName=$('scheduleReplacementChoice').value;
+      if(total&&!replacementName)return setMsg('scheduleReplaceMessage','Choose the schedule that will replace '+usage.name+'.',true);
+      const warning=total
+        ? 'Replace every reference to "'+usage.name+'" with "'+replacementName+'" and delete the ENTIRE old schedule?'
+        : 'Permanently delete the ENTIRE "'+usage.name+'" schedule?';
+      if(!window.confirm(warning))return;
+      const b=$('confirmScheduleReplace');b.disabled=true;
+      setMsg('scheduleReplaceMessage','Updating assignments and deleting schedule...');
+      try{
+        const r=total
+          ? await hallpassApi.call('adminReplaceDeleteSchedule',[{originalName:usage.name,replacementName}])
+          : await hallpassApi.call('adminManageWholeSchedule',[{originalName:usage.name,name:usage.name,periods:[],delete:true}]);
+        if(!r.success)throw Error(r.message);
+        hideModal('scheduleReplaceModal');scheduleRemoval=null;
         await refreshManagement();
         setMsg('scheduleMessage',r.message);
-      }catch(e){setMsg('scheduleMessage',e.message,true)}
+      }catch(e){setMsg('scheduleReplaceMessage',e.message,true)}
+      finally{b.disabled=false}
     }
 
 
@@ -1286,7 +1347,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('rsExceptionsBody').addEventListener('click',e=>{const b=e.target.closest('[data-rs-delete-date]');if(b)rsDeleteSpecialDate(b.dataset.rsDeleteDate)});
     $('refreshCalendar').addEventListener('click',e=>refreshCalendar(e.currentTarget));$('saveCalendarEntry').addEventListener('click',saveCalendarEntry);$('previewWeeklyCalendar').addEventListener('click',()=>previewBulkCalendar(buildWeeklyCalendarDates(),'weekly'));$('previewListedCalendar').addEventListener('click',()=>previewBulkCalendar(buildListedCalendarDates(),'listed'));$('applyBulkCalendar').addEventListener('click',applyBulkCalendar);$('clearBulkCalendar').addEventListener('click',clearBulkCalendarPreview);$('bulkConflictMode').addEventListener('change',()=>{if(bulkCalendarPreview)previewBulkCalendar(bulkCalendarPreview.dates,bulkCalendarPreview.source)});
     $('refreshReportOptions').addEventListener('click',e=>refreshReportOptions(e.currentTarget));$('generateCampusReport').addEventListener('click',generateCampusReport);$('downloadCampusReport').addEventListener('click',downloadCampusReport);$('campusReportBack').addEventListener('click',backCampusReportDrill);$('printCampusStudentDetail').addEventListener('click',printCampusStudentDetail);['campusReportBody','reportSecondaryBody'].forEach(id=>$(id).addEventListener('click',e=>{const btn=e.target.closest('[data-report-drill]');if(btn)drillDownCampusReport(btn.dataset.reportDrill,btn.dataset.reportValue)}));$('reportType').addEventListener('change',clearCampusReportOnChange);['campusReportRoom','campusReportStudent','campusReportDestination','campusReportStart','campusReportEnd','longPassMinutes','frequentPassCount','campusIncludeTestData'].forEach(id=>$(id).addEventListener('change',clearCampusReportOnChange));$('exportStudents').addEventListener('click',e=>exportBackupDataset('students',e.currentTarget));$('exportPasses').addEventListener('click',e=>exportBackupDataset('passes',e.currentTarget));$('exportConfiguration').addEventListener('click',e=>exportBackupDataset('configuration',e.currentTarget));$('exportAudit').addEventListener('click',e=>exportBackupDataset('audit',e.currentTarget));$('downloadFullBackup').addEventListener('click',e=>exportBackupDataset('full',e.currentTarget));
-    $('refreshAudit').addEventListener('click',e=>refreshAudit(e.currentTarget));$('auditRoomFilter').addEventListener('change',()=>refreshAudit());$('auditSearch').addEventListener('keydown',e=>{if(e.key==='Enter')refreshAudit()});$('loginButton').addEventListener('click',login);$('adminPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('refreshLive').addEventListener('click',e=>refreshLive(e.currentTarget));$('roomFilter').addEventListener('change',()=>refreshLive());$('search').addEventListener('keydown',e=>{if(e.key==='Enter')refreshLive()});$('refreshManage').addEventListener('click',e=>refreshManagement(e.currentTarget));$('refreshSchedules').addEventListener('click',e=>refreshManagement(e.currentTarget));$('addScheduleButton').addEventListener('click',()=>openSchedule());$('saveScheduleButton').addEventListener('click',saveSchedule);$('addSchedulePeriodButton').addEventListener('click',()=>addSchedulePeriod());$('schedulePeriodBody').addEventListener('click',e=>{const b=e.target.closest('[data-remove-period]');if(b)b.closest('.scheduleEditorRow').remove()});$('onboardRoomButton').addEventListener('click',openOnboardingWizard);$('addRoomButton').addEventListener('click',()=>openRoom());$('addTeacherButton').addEventListener('click',()=>openTeacher());$('saveRoomButton').addEventListener('click',saveRoom);$('saveTeacherButton').addEventListener('click',saveTeacher);
+    $('refreshAudit').addEventListener('click',e=>refreshAudit(e.currentTarget));$('auditRoomFilter').addEventListener('change',()=>refreshAudit());$('auditSearch').addEventListener('keydown',e=>{if(e.key==='Enter')refreshAudit()});$('loginButton').addEventListener('click',login);$('adminPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('refreshLive').addEventListener('click',e=>refreshLive(e.currentTarget));$('roomFilter').addEventListener('change',()=>refreshLive());$('search').addEventListener('keydown',e=>{if(e.key==='Enter')refreshLive()});$('refreshManage').addEventListener('click',e=>refreshManagement(e.currentTarget));$('refreshSchedules').addEventListener('click',e=>refreshManagement(e.currentTarget));$('addScheduleButton').addEventListener('click',()=>openSchedule());$('saveScheduleButton').addEventListener('click',saveSchedule);$('confirmScheduleReplace').addEventListener('click',confirmScheduleReplacement);$('addSchedulePeriodButton').addEventListener('click',()=>addSchedulePeriod());$('schedulePeriodBody').addEventListener('click',e=>{const b=e.target.closest('[data-remove-period]');if(b)b.closest('.scheduleEditorRow').remove()});$('onboardRoomButton').addEventListener('click',openOnboardingWizard);$('addRoomButton').addEventListener('click',()=>openRoom());$('addTeacherButton').addEventListener('click',()=>openTeacher());$('saveRoomButton').addEventListener('click',saveRoom);$('saveTeacherButton').addEventListener('click',saveTeacher);
     $('onboardBackButton').addEventListener('click',onboardingBack);$('onboardNextButton').addEventListener('click',onboardingNext);$('onboardCreateButton').addEventListener('click',createOnboardedRoom);$('copyStudentLink').addEventListener('click',()=>copyTextValue($('roomStudentLink').value,'Student link copied.'));$('copyTeacherLink').addEventListener('click',()=>copyTextValue($('roomTeacherLink').value,'Teacher link copied.'));$('copySetupMessage').addEventListener('click',()=>{const room=currentLinksRoom();if(room)copyTextValue(setupMessageForRoom(room),'Setup message copied.')});$('openStudentLink').addEventListener('click',()=>window.open($('roomStudentLink').value,'_blank','noopener'));$('openTeacherLink').addEventListener('click',()=>window.open($('roomTeacherLink').value,'_blank','noopener'));document.querySelectorAll('input[name="onboardTeacherMode"]').forEach(x=>x.addEventListener('change',toggleOnboardingTeacherMode));$('onboardCloneRoom').addEventListener('change',()=>loadOnboardingDestinations($('onboardCloneRoom').value));$('onboardRoomName').addEventListener('blur',()=>{if(!$('onboardRoomKey').value.trim())$('onboardRoomKey').value=$('onboardRoomName').value.trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')});
     $('schoolSelector').addEventListener('change',switchSchool);$('addSchoolButton').addEventListener('click',()=>openSchool());$('refreshOrganization').addEventListener('click',e=>refreshOrganization(e.currentTarget));$('saveSchoolButton').addEventListener('click',saveSchool);
     document.addEventListener('click',e=>{const tab=e.target.closest('[data-panel]');if(tab){document.querySelectorAll('.tabButton').forEach(x=>x.classList.toggle('active',x===tab));document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('active',x.id===tab.dataset.panel));if(tab.dataset.panel==='managePanel'||tab.dataset.panel==='schedulePanel')refreshManagement();if(tab.dataset.panel==='studentsPanel')refreshStudents();if(tab.dataset.panel==='destinationsPanel')refreshDestinations();if(tab.dataset.panel==='securityPanel')refreshSecurity();if(tab.dataset.panel==='calendarPanel')refreshCalendar();if(tab.dataset.panel==='roomSchedulePanel')refreshRoomScheduling();if(tab.dataset.panel==='reportsPanel')refreshReportOptions();if(tab.dataset.panel==='auditPanel'){refreshManagement().then(()=>refreshAudit())}if(tab.dataset.panel==='orgPanel')refreshOrganization();return}const sch=e.target.closest('[data-edit-school]');if(sch){openSchool(sch.dataset.editSchool);return}const es=e.target.closest('[data-edit-schedule]');if(es){openSchedule(es.dataset.editSchedule);return}const cp=e.target.closest('[data-copy-schedule]');if(cp){openSchedule(cp.dataset.copySchedule,true);return}const ds=e.target.closest('[data-delete-schedule]');if(ds){deleteSchedule(ds.dataset.deleteSchedule);return}const rl=e.target.closest('[data-room-links]');if(rl){openRoomLinks(rl.dataset.roomLinks);return}const er=e.target.closest('[data-edit-room]');if(er){openRoom(er.dataset.editRoom);return}const ert=e.target.closest('[data-email-room-teacher]');if(ert){emailRoomTeacher(ert.dataset.emailRoomTeacher);return}const aet=e.target.closest('[data-edit-teacher-from-links]');if(aet){hideModal('roomLinksModal');openTeacher(aet.dataset.editTeacherFromLinks);return}const dr=e.target.closest('[data-delete-room]');if(dr){deleteRoom(dr.dataset.deleteRoom);return}const et=e.target.closest('[data-edit-teacher]');if(et){openTeacher(et.dataset.editTeacher);return}const est=e.target.closest('[data-edit-student]');if(est){openStudent(est.dataset.editStudent);return}const edest=e.target.closest('[data-edit-destination]');if(edest){openDestination(edest.dataset.editDestination);return}const clr=e.target.closest('[data-clear-lockout]');if(clr){clearLockout(clr.dataset.scope,clr.dataset.hash);return}const ecal=e.target.closest('[data-edit-calendar]');if(ecal){editCalendar(ecal.dataset.editCalendar);return}const dcal=e.target.closest('[data-delete-calendar]');if(dcal){deleteCalendar(dcal.dataset.deleteCalendar);return}const dbatch=e.target.closest('[data-delete-calendar-batch]');if(dbatch){deleteCalendarBatch(dbatch.dataset.deleteCalendarBatch);return}const cl=e.target.closest('[data-close]');if(cl)hideModal(cl.dataset.close)});
