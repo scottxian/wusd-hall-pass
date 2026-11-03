@@ -2095,7 +2095,7 @@ async function adminRoomSchedulingState(admin, school) {
     admin.from('rooms').select('id,room_key,room_name,active').eq('school_id', school.id).order('room_name'),
     admin.from('master_schedules').select('schedule_name').eq('school_id', school.id).order('schedule_name'),
     admin.from('school_day_exceptions').select('calendar_date,day_type,note,active').eq('school_id', school.id).order('calendar_date', { ascending: true }).limit(1000),
-    admin.from('school_calendar').select('calendar_date,schedule_name,active').eq('school_id', school.id).eq('active', true).limit(1000),
+    admin.from('school_calendar').select('calendar_date,schedule_name,note,active').eq('school_id', school.id).eq('active', true).limit(1000),
     getSchoolSettings(admin, school.id)
   ])
   for (const q of [roomsQ, masterQ, exceptionQ, legacyQ]) if (q.error) throw q.error
@@ -2117,7 +2117,8 @@ async function adminRoomSchedulingState(admin, school) {
     schedules: [...new Set((masterQ.data || []).map(x => x.schedule_name))].sort((a, b) => a.localeCompare(b)),
     assignments: (assignmentsQ.data || []).map(x => ({ roomId: x.room_id, dayType: x.day_type, schedule: x.schedule_name })),
     exceptions: (exceptionQ.data || []).map(x => ({ date: x.calendar_date, dayType: x.day_type, note: x.note || '', active: x.active !== false })),
-    legacyFutureCount: (legacyQ.data || []).filter(x => x.calendar_date >= today).length
+    legacyFutureCount: (legacyQ.data || []).filter(x => x.calendar_date >= today).length,
+    legacyDates: (legacyQ.data || []).filter(x => x.calendar_date >= today).map(x => ({ date: x.calendar_date, schedule: x.schedule_name, note: x.note || '' }))
   }
 }
 
@@ -2240,6 +2241,7 @@ async function adminCalendarState(admin, school) {
   return {
     success: true,
     autoSchedulingEnabled: settings.auto_scheduling_enabled !== false,
+    roomSchedulingEnabled: settings.room_scheduling_enabled === true,
     rows: (calendarQ.data || []).map(x => ({ date: x.calendar_date, schedule: x.schedule_name, note: x.note || '', active: x.active !== false, batchId: x.batch_id || '', batchLabel: x.batch_label || '' }))
   }
 }
@@ -2261,6 +2263,8 @@ async function masterScheduleName(admin, school, schedule) {
 }
 
 async function adminSaveCalendarEntry(admin, authTeacher, school, data = {}) {
+  if ((await getSchoolSettings(admin, school.id)).room_scheduling_enabled === true)
+    return fail('Original calendar edits are disabled while Room Scheduling is on. Use Special-Day Calendar instead.')
   const date = String(data.date || '').trim(); const schedule = String(data.schedule || '').trim()
   const note = String(data.note || '').replace(/\s+/g, ' ').trim().slice(0, 250)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return fail('Choose a valid calendar date.')
@@ -2274,6 +2278,8 @@ async function adminSaveCalendarEntry(admin, authTeacher, school, data = {}) {
 }
 
 async function adminDeleteCalendarEntry(admin, authTeacher, school, date) {
+  if ((await getSchoolSettings(admin, school.id)).room_scheduling_enabled === true)
+    return fail('Original calendar edits are disabled while Room Scheduling is on. Use Special-Day Calendar instead.')
   date = String(date || '').trim()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return fail('Calendar date not found.')
   const q = await admin.from('school_calendar').delete().eq('school_id', school.id).eq('calendar_date', date)
@@ -2283,6 +2289,8 @@ async function adminDeleteCalendarEntry(admin, authTeacher, school, date) {
 }
 
 async function adminSaveCalendarBatch(admin, authTeacher, school, data = {}) {
+  if ((await getSchoolSettings(admin, school.id)).room_scheduling_enabled === true)
+    return fail('Original calendar edits are disabled while Room Scheduling is on. Use Special-Day Calendar instead.')
   const schedule = String(data.schedule || '').trim()
   const note = String(data.note || '').replace(/\s+/g, ' ').trim().slice(0, 250)
   const conflictMode = String(data.conflictMode || 'skip').toLowerCase() === 'replace' ? 'replace' : 'skip'
@@ -2313,6 +2321,8 @@ async function adminSaveCalendarBatch(admin, authTeacher, school, data = {}) {
 }
 
 async function adminDeleteCalendarBatch(admin, authTeacher, school, batchId) {
+  if ((await getSchoolSettings(admin, school.id)).room_scheduling_enabled === true)
+    return fail('Original calendar edits are disabled while Room Scheduling is on. Use Special-Day Calendar instead.')
   batchId = String(batchId || '').trim()
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(batchId)) return fail('Calendar batch not found.')
   const existing = await admin.from('school_calendar').select('calendar_date,batch_label').eq('school_id', school.id).eq('batch_id', batchId)
