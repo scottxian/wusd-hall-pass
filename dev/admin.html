@@ -103,7 +103,7 @@
           </div>
           <div class="checkRow" id="rsRoomChecks" style="margin:8px 0 12px"></div>
           <div class="formGrid">
-            <div><label for="rsAssignDayType">Day Type</label><select id="rsAssignDayType"><option value="Regular">Primary</option><option value="Minimum">Minimum</option><option value="Rally">Rally</option><option value="Testing">Testing</option><option value="Assembly">Assembly</option><option value="">Add custom day type…</option></select><div id="rsCustomDayTypeField" class="hidden" style="margin-top:8px"><label for="rsCustomDayType">Custom Day Type</label><input id="rsCustomDayType" maxlength="80" placeholder="Enter a name"></div></div>
+            <div><label for="rsAssignDayType">Day Type</label><select id="rsAssignDayType"><option value="Primary">Primary</option><option value="Minimum">Minimum</option><option value="Rally">Rally</option><option value="Testing">Testing</option><option value="Assembly">Assembly</option><option value="">Add custom day type…</option></select><div id="rsCustomDayTypeField" class="hidden" style="margin-top:8px"><label for="rsCustomDayType">Custom Day Type</label><input id="rsCustomDayType" maxlength="80" placeholder="Enter a name"></div></div>
             <div><label for="rsMasterSchedule">Master Bell Schedule</label><select id="rsMasterSchedule"></select><button id="rsViewSchedule" type="button" class="gray" style="margin-top:8px" aria-haspopup="dialog">View Schedule</button></div>
             <div><button id="rsAssignSchedule" class="green" type="button">Assign to Selected Rooms</button></div>
           </div>
@@ -697,7 +697,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const unique = new Map();
       for (const x of (rsState?.assignments || [])) {
         const type = String(x.dayType || '').trim();
-        if (type && type.toLowerCase() !== 'regular') unique.set(type.toLowerCase(), type);
+        if (type && !['regular','primary'].includes(type.toLowerCase())) unique.set(type.toLowerCase(), type);
       }
       return [...unique.values()].sort((a,b)=>a.localeCompare(b));
     }
@@ -706,11 +706,11 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function renderAssignmentDayTypes() {
       const select = $('rsAssignDayType');
       const previous = select.value;
-      const types = new Map(['Regular', 'Minimum', 'Rally', 'Testing', 'Assembly'].map(name => [name.toLowerCase(), name]));
+      const types = new Map(['Primary', 'Minimum', 'Rally', 'Testing', 'Assembly'].map(name => [name.toLowerCase(), name]));
       for (const name of rsDayTypes()) types.set(name.toLowerCase(), name);
-      select.innerHTML = [...types.values()].map(name => '<option value="' + esc(name) + '">' + esc(name.toLowerCase() === 'regular' ? 'Primary' : name) + '</option>').join('')
+      select.innerHTML = [...types.values()].map(name => '<option value="' + esc(name) + '">' + esc(name) + '</option>').join('')
         + '<option value="">Add custom day type…</option>';
-      select.value = types.get(previous.toLowerCase()) || '';
+      select.value = types.get(previous.toLowerCase()) || (previous.toLowerCase() === 'regular' ? 'Primary' : '');
       $('rsCustomDayTypeField').classList.toggle('hidden', select.value !== '');
     }
 
@@ -794,7 +794,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     async function rsAssign() {
       const ids=rsSelectedRoomIds(), type=($('rsAssignDayType').value || $('rsCustomDayType').value).trim(), schedule=$('rsMasterSchedule').value;
       if (!ids.length) return setMsg('rsAssignMessage','Select one or more active rooms.',true);
-      if (!type || !schedule) return setMsg('rsAssignMessage','Choose both a day type and a master schedule.',true);
+      if (!type || !schedule) return setMsg('rsAssignMessage','Choose Primary or a special day type, and a master bell schedule.',true);
       const button=$('rsAssignSchedule');button.disabled=true;
       try {
         const r=await hallpassApi.call('adminAssignRoomSchedules',[{roomIds:ids,dayType:type,schedule}]);
