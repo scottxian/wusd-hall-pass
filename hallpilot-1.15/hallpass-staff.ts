@@ -2079,7 +2079,7 @@ async function adminSetCampusLock(admin, authTeacher, school, turnOn) {
 /* ===== Hall Pilot 1.15: admin-only room scheduling ===== */
 function canonicalDayType(value) {
   const clean = String(value || '').replace(/\s+/g, ' ').trim().slice(0, 80)
-  if (!clean || normalize(clean) === 'regular') return ''
+  if (!clean || ['regular', 'primary'].includes(normalize(clean))) return ''
   return clean
 }
 
@@ -2125,7 +2125,7 @@ async function adminRoomSchedulingState(admin, school) {
 async function adminAssignRoomSchedules(admin, authTeacher, school, data = {}) {
   const roomIds = [...new Set((Array.isArray(data.roomIds) ? data.roomIds : []).map(x => String(x || '').trim()).filter(Boolean))]
   const rawType = String(data.dayType || '').trim()
-  const isPrimary = normalize(rawType) === 'regular'
+  const isPrimary = ['regular', 'primary'].includes(normalize(rawType))
   const dayType = isPrimary ? 'Regular' : canonicalDayType(rawType)
   if (!dayType) return fail('Choose a valid day type.')
   if (!roomIds.length || roomIds.length > 250) return fail('Select between 1 and 250 classrooms.')
@@ -2149,7 +2149,7 @@ async function adminAssignRoomSchedules(admin, authTeacher, school, data = {}) {
     if (q.error) throw q.error
   }
   await writeAudit(admin, authTeacher.id, 'ADMIN_ASSIGN_ROOM_SCHEDULES', null, { rooms: roomIds, dayType, schedule: canonical }, school.id)
-  return { success: true, message: canonical + ' assigned to ' + roomIds.length + ' room(s) for ' + dayType + '.' }
+  return { success: true, message: canonical + ' assigned to ' + roomIds.length + ' room(s) for ' + (isPrimary ? 'Primary' : dayType) + '.' }
 }
 
 async function hasSchoolTraffic(admin, roomIds) {
@@ -2191,7 +2191,7 @@ async function adminSetRoomSchedulingEnabled(admin, authTeacher, school, data = 
 
 async function adminSaveDayExceptions(admin, authTeacher, school, data = {}) {
   const dayType = canonicalDayType(data.dayType)
-  if (!dayType) return fail('Choose a special day type (not Regular).')
+  if (!dayType) return fail('Choose a special day type (not Primary).')
   const dates = [...new Set((Array.isArray(data.dates) ? data.dates : [data.date]).map(validDayDate))].sort()
   if (!dates.length || dates.includes('') || dates.length > 250) return fail('Enter 1–250 valid calendar dates.')
   const status = await adminRoomSchedulingState(admin, school)
