@@ -133,6 +133,16 @@
           <div id="rsExceptionMessage" class="message"></div>
           <div id="rsPreviewWrap" class="hidden"><div class="tableWrap" style="margin-top:10px"><table><thead><tr><th>Date</th><th>Existing</th><th>Requested</th><th>Result</th></tr></thead><tbody id="rsPreviewBody"></tbody></table></div></div>
         </div>
+
+        <div class="card">
+          <h2>Bring Existing Special Dates Forward</h2>
+          <div class="muted">The original calendar is retained. Choose an existing special schedule to copy its future dates into the new calendar preview. Regular dates need no copying.</div>
+          <div class="formGrid" style="margin-top:12px">
+            <div><label for="rsLegacySelect">Original Calendar Schedule</label><select id="rsLegacySelect"></select></div>
+            <div><button id="rsLegacyPrepare" class="purple" type="button">Prepare Those Dates</button></div>
+          </div>
+          <div id="rsLegacyImportMessage" class="message"></div>
+        </div>
         <div class="card">
           <h2>Configured Special Days</h2>
           <div class="muted">These dates are used only when Room Scheduling is enabled and Automatic Scheduling is on.</div>
@@ -670,10 +680,41 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const types = rsDayTypes();
       $('rsExceptionDayType').innerHTML = '<option value="">Choose special day</option>' + types.map(x=>'<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
       if (types.includes(prior)) $('rsExceptionDayType').value = prior;
+      const legacyGroups = new Map();
+      (rsState.legacyDates || []).forEach(row=>{
+        if (String(row.schedule||'').toLowerCase()==='regular') return;
+        const name=String(row.schedule||'');
+        legacyGroups.set(name, (legacyGroups.get(name)||0)+1);
+      });
+      const prevLegacy=$('rsLegacySelect').value;
+      $('rsLegacySelect').innerHTML='<option value="">Choose original special schedule</option>'+
+        [...legacyGroups].map(([name,count])=>'<option value="'+esc(name)+'">'+esc(name)+' ('+count+' future dates)</option>').join('');
+      if(legacyGroups.has(prevLegacy))$('rsLegacySelect').value=prevLegacy;
       $('rsExceptionsBody').innerHTML = rsState.exceptions.length ? rsState.exceptions.map(x=>
         '<tr><td>' + esc(x.date) + '</td><td>' + esc(x.dayType) + '</td><td>' + esc(x.note || '—') + '</td><td><button class="small red" data-rs-delete-date="' + esc(x.date) + '">Remove</button></td></tr>'
       ).join('') : '<tr><td colspan="4">No special days. Every day uses each room’s Primary schedule.</td></tr>';
       rsResetPreview();
+    }
+
+
+    function rsPrepareLegacyDates(){
+      if(!rsState)return;
+      const legacyName=$('rsLegacySelect').value;
+      if(!legacyName)return setMsg('rsLegacyImportMessage','Choose an original special schedule.',true);
+      const types=rsDayTypes();
+      const mappedType=types.find(x=>x.toLowerCase()===legacyName.toLowerCase());
+      if(!mappedType)return setMsg('rsLegacyImportMessage','First assign the matching special-day type to rooms (for example Minimum), then prepare its dates.',true);
+      const dates=(rsState.legacyDates||[]).filter(x=>x.schedule===legacyName).map(x=>x.date);
+      if(!dates.length)return setMsg('rsLegacyImportMessage','No future dates found.',true);
+      if(dates.length>250)return setMsg('rsLegacyImportMessage','More than 250 dates. Import smaller batches.',true);
+      $('rsExceptionDayType').value=mappedType;
+      $('rsOneDate').value='';
+      $('rsDateList').value=dates.join('\n');
+      $('rsRepeatStart').value='';$('rsRepeatEnd').value='';
+      document.querySelectorAll('#rsWeekdays input').forEach(x=>x.checked=false);
+      $('rsNote').value='';
+      rsPreviewSpecialDates();
+      setMsg('rsLegacyImportMessage',dates.length+' original '+legacyName+' dates prepared for preview. Nothing has been saved yet; original calendar remains unchanged.');
     }
 
     function rsResetPreview() {
@@ -799,7 +840,9 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       el.disabled=!supported;
       el.checked=supported?state.autoSchedulingEnabled:false;
       label.textContent=supported?(el.checked?'On':'Off'):'Unavailable';
-      status.textContent=supported
+      const roomMode=state?.roomSchedulingEnabled===true;
+      ['saveCalendarEntry','previewWeeklyCalendar','previewListedCalendar','applyBulkCalendar'].forEach(id=>$(id).disabled=roomMode);
+      status.textContent=roomMode?'Original calendar is read-only while Room Scheduling is enabled. Use the Room Scheduling tab for special dates.':supported
         ? (el.checked?'Automatic calendar scheduling is On for the entire school.':'Automatic calendar scheduling is Off; rooms use Regular unless teachers override.')
         : 'School-wide switch unavailable until the scheduling server is upgraded. Existing scheduling is unchanged.';
     }
@@ -1051,6 +1094,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     });
 
     $('campusLockButton').addEventListener('click',setCampusLock);$('refreshStudents').addEventListener('click',e=>refreshStudents(e.currentTarget));$('refreshDestinations').addEventListener('click',e=>refreshDestinations(e.currentTarget));$('addDestinationButton').addEventListener('click',()=>openDestination());$('saveDestinationButton').addEventListener('click',saveMasterDestination);$('addStudentButton').addEventListener('click',()=>openStudent());$('importStudentsButton').addEventListener('click',openStudentImport);$('saveStudentButton').addEventListener('click',saveStudent);$('previewStudentImport').addEventListener('click',previewStudentImport);$('confirmStudentImport').addEventListener('click',confirmStudentImport);$('studentSearch').addEventListener('input',renderStudents);$('studentStatusFilter').addEventListener('change',renderStudents);$('refreshSecurity').addEventListener('click',e=>refreshSecurity(e.currentTarget));$('saveSecurity').addEventListener('click',saveSecurity);$('clearAllLockouts').addEventListener('click',()=>clearLockout('',''));$('calendarAutoEnabled').addEventListener('change',changeCalendarAutoSetting);
+    $('rsLegacyPrepare').addEventListener('click',rsPrepareLegacyDates);
     $('rsRefresh').addEventListener('click',e=>refreshRoomScheduling(e.currentTarget));
     $('rsToggleMode').addEventListener('click',rsToggleMode);
     $('rsSelectAll').addEventListener('click',()=>rsSelectAll(true));
