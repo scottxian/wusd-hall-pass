@@ -103,7 +103,7 @@
           </div>
           <div class="checkRow" id="rsRoomChecks" style="margin:8px 0 12px"></div>
           <div class="formGrid">
-            <div><label for="rsAssignDayType">Day Type</label><input id="rsAssignDayType" list="rsDayTypes" value="Regular" placeholder="Regular or Minimum"><datalist id="rsDayTypes"><option value="Regular"><option value="Minimum"><option value="Rally"><option value="Testing"><option value="Assembly"></datalist></div>
+            <div><label for="rsAssignDayType">Day Type</label><select id="rsAssignDayType"><option value="Regular">Regular (Primary)</option><option value="Minimum">Minimum</option><option value="Rally">Rally</option><option value="Testing">Testing</option><option value="Assembly">Assembly</option><option value="">Add custom day type…</option></select><div id="rsCustomDayTypeField" class="hidden" style="margin-top:8px"><label for="rsCustomDayType">Custom Day Type</label><input id="rsCustomDayType" maxlength="80" placeholder="Enter a name"></div></div>
             <div><label for="rsMasterSchedule">Master Bell Schedule</label><select id="rsMasterSchedule"></select><button id="rsViewSchedule" type="button" class="gray" style="margin-top:8px" aria-haspopup="dialog">View Schedule</button></div>
             <div><button id="rsAssignSchedule" class="green" type="button">Assign to Selected Rooms</button></div>
           </div>
@@ -702,8 +702,21 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       return [...unique.values()].sort((a,b)=>a.localeCompare(b));
     }
 
+
+    function renderAssignmentDayTypes() {
+      const select = $('rsAssignDayType');
+      const previous = select.value;
+      const types = new Map(['Regular', 'Minimum', 'Rally', 'Testing', 'Assembly'].map(name => [name.toLowerCase(), name]));
+      for (const name of rsDayTypes()) types.set(name.toLowerCase(), name);
+      select.innerHTML = [...types.values()].map(name => '<option value="' + esc(name) + '">' + esc(name.toLowerCase() === 'regular' ? 'Regular (Primary)' : name) + '</option>').join('')
+        + '<option value="">Add custom day type…</option>';
+      select.value = types.get(previous.toLowerCase()) || '';
+      $('rsCustomDayTypeField').classList.toggle('hidden', select.value !== '');
+    }
+
     function renderRoomScheduling() {
       if (!rsState) return;
+      renderAssignmentDayTypes();
       const selected = new Set([...document.querySelectorAll('#rsRoomChecks [data-rs-room]:checked')].map(x => x.value));
       $('rsModeStatus').textContent = rsState.enabled
         ? 'Room Scheduling is ON. Ordinary days use each room’s Primary schedule.'
@@ -779,7 +792,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function rsSelectedRoomIds(){return [...document.querySelectorAll('#rsRoomChecks [data-rs-room]:checked')].map(x=>x.value)}
     function rsSelectAll(yes){document.querySelectorAll('#rsRoomChecks [data-rs-room]').forEach(x=>x.checked=Boolean(yes))}
     async function rsAssign() {
-      const ids=rsSelectedRoomIds(), type=$('rsAssignDayType').value.trim(), schedule=$('rsMasterSchedule').value;
+      const ids=rsSelectedRoomIds(), type=($('rsAssignDayType').value || $('rsCustomDayType').value).trim(), schedule=$('rsMasterSchedule').value;
       if (!ids.length) return setMsg('rsAssignMessage','Select one or more active rooms.',true);
       if (!type || !schedule) return setMsg('rsAssignMessage','Choose both a day type and a master schedule.',true);
       const button=$('rsAssignSchedule');button.disabled=true;
@@ -1153,6 +1166,11 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('rsSelectAll').addEventListener('click',()=>rsSelectAll(true));
     $('rsSelectNone').addEventListener('click',()=>rsSelectAll(false));
     $('rsAssignSchedule').addEventListener('click',rsAssign);
+    $('rsAssignDayType').addEventListener('change', () => {
+      const custom = $('rsAssignDayType').value === '';
+      $('rsCustomDayTypeField').classList.toggle('hidden', !custom);
+      if (custom) $('rsCustomDayType').focus();
+    });
     $('rsViewSchedule').addEventListener('click',previewSelectedSchedule);
     $('rsPreview').addEventListener('click',rsPreviewSpecialDates);
     $('rsApply').addEventListener('click',rsApplySpecialDates);
