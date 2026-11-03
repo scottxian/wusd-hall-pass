@@ -184,6 +184,19 @@ async function resolveRoomSchedule(admin, room, settings, system, legacyCalendar
     effectiveSchedule = legacyCalendar.schedule_name
     source = 'School Calendar'
   }
+  // The old calendar assumes a master schedule named Regular. If an Admin
+  // deliberately replaces/deletes that legacy schedule, fall back to the
+  // room's assigned Primary rather than closing all normal-day passes.
+  if (system.room_scheduling_enabled !== true && source === 'School Default'
+      && normalize(settings.schedule_mode) !== 'regular') {
+    const {data: regular, error: regularError} = await admin.from('master_schedules')
+      .select('id').eq('school_id',room.school_id).ilike('schedule_name','Regular').limit(1)
+    if (regularError) throw regularError
+    if (!regular?.length) {
+      effectiveSchedule = String(settings.schedule_mode)
+      source = 'Room Primary (Legacy Fallback)'
+    }
+  }
   if (settings.schedule_override_date === today && settings.schedule_override_name) {
     effectiveSchedule = settings.schedule_override_name
     source = 'Teacher Override'
@@ -1743,6 +1756,51 @@ async function schoolRoomIds(admin, schoolId) {
 
 // Whole-schedule editing is atomic in PostgreSQL. The RPC is service-role only;
 // this action is reachable only after verified Admin login and school authorization.
+// Preview references before removing a master schedule, without changing anything.
+async function adminScheduleUsage(admin, school, scheduleName) {
+  const name = String(scheduleName || '').trim()
+  if (!name || name.length > 80) return fail('Choose a schedule.')
+  const [roomsQ, calendarQ, settings] = await Promise.all([
+    admin.from('rooms').select('id,room_name,room_key').eq('school_id', school.id),
+    admin.from('school_calendar').select('calendar_date,schedule_name').eq('school_id', school.id).limit(1000),
+    getSchoolSettings(admin, school.id)
+  ])
+  if (roomsQ.error) throw roomsQ.error
+  if (calendarQ.error) throw calendarQ.error
+  const rooms = roomsQ.data || []
+  const ids = rooms.map(r => r.id)
+  const [defaultsQ, specialsQ] = await Promise.all([
+    ids.length ? admin.from('room_settings').select('room_id,schedule_mode,schedule_override_name').in('room_id',ids) : Promise.resolve({data:[],error:null}),
+    ids.length ? admin.from('room_schedule_assignments').select('room_id,day_type,schedule_name').in('room_id',ids) : Promise.resolve({data:[],error:null})
+  ])
+  if (defaultsQ.error) throw defaultsQ.error
+  if (specialsQ.error) throw specialsQ.error
+  const same = value => normalize(value) === normalize(name)
+  const lookup = new Map(rooms.map(r=>[String(r.id),r.room_name || r.room_key]))
+  const defaultRooms = (defaultsQ.data || []).filter(x=>same(x.schedule_mode)).map(x=>lookup.get(String(x.room_id))).filter(Boolean)
+  const overrideRooms = (defaultsQ.data || []).filter(x=>same(x.schedule_override_name)).map(x=>lookup.get(String(x.room_id))).filter(Boolean)
+  const calendarDates = (calendarQ.data || []).filter(x=>same(x.schedule_name)).map(x=>x.calendar_date)
+  const specialRooms = (specialsQ.data || []).filter(x=>same(x.schedule_name)).map(x=>({room:lookup.get(String(x.room_id)) || 'Room',dayType:x.day_type}))
+  return {success:true, name, defaultRooms, overrideRooms, calendarDates, specialRooms,
+    legacyRegularFallback: normalize(name)==='regular' && settings.room_scheduling_enabled !== true}
+}
+
+// The SQL RPC updates EVERY reference and deletes the old definition atomically.
+async function adminReplaceDeleteSchedule(admin, authTeacher, school, data = {}) {
+  const oldName = String(data.originalName || '').trim()
+  const replacement = String(data.replacementName || '').trim()
+  if (!oldName || !replacement || normalize(oldName)===normalize(replacement))
+    return fail('Choose a different existing replacement schedule.')
+  const {data: result,error} = await admin.rpc('hp_replace_delete_master_schedule',{
+    p_school_id:school.id,p_old_name:oldName,p_replacement_name:replacement
+  })
+  if (error) return fail(error.message || 'Unable to replace and delete the schedule.')
+  if (!result?.success) return fail(result?.message || 'Unable to replace and delete the schedule.')
+  await writeAudit(admin,authTeacher.id,'ADMIN_REPLACE_DELETE_MASTER_SCHEDULE',null,
+    {oldName,replacement,...result},school.id)
+  return result
+}
+
 async function adminManageWholeSchedule(admin, authTeacher, school, data = {}) {
   const oldName = String(data.originalName || '').trim()
   const newName = String(data.name || '').trim()
@@ -2738,6 +2796,8 @@ async function adminDashboard(admin, body, fingerprintHash) {
   if (body.action === 'adminDeleteCalendarEntry') return adminDeleteCalendarEntry(admin, auth.teacher, school, args[0])
   if (body.action === 'adminSaveCalendarBatch') return adminSaveCalendarBatch(admin, auth.teacher, school, args[0] || {})
   if (body.action === 'adminDeleteCalendarBatch') return adminDeleteCalendarBatch(admin, auth.teacher, school, args[0])
+  if (body.action === 'adminScheduleUsage') return adminScheduleUsage(admin, school, args[0])
+  if (body.action === 'adminReplaceDeleteSchedule') return adminReplaceDeleteSchedule(admin, auth.teacher, school, args[0] || {})
   if (body.action === 'adminManageWholeSchedule') return adminManageWholeSchedule(admin, auth.teacher, school, args[0] || {})
   if (body.action === 'adminSaveMasterSchedule') return adminSaveMasterSchedule(admin, auth.teacher, school, args[0] || {})
   if (body.action === 'adminDeleteMasterSchedule') return adminDeleteMasterSchedule(admin, auth.teacher, school, args[0])
