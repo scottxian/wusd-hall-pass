@@ -2060,6 +2060,150 @@ async function adminSetCampusLock(admin, authTeacher, school, turnOn) {
   return { success: true, message: turnOn ? `${school.name} Emergency Lock enabled. ${cleared} waiting request${cleared === 1 ? '' : 's'} cleared.` : `${school.name} Emergency Lock disabled.` }
 }
 
+
+/* ===== Hall Pilot 1.15: admin-only room scheduling ===== */
+function canonicalDayType(value) {
+  const clean = String(value || '').replace(/\s+/g, ' ').trim().slice(0, 80)
+  if (!clean || normalize(clean) === 'regular') return ''
+  return clean
+}
+
+function validDayDate(value) {
+  const text = String(value || '').trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return ''
+  const parsed = new Date(text + 'T12:00:00Z')
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === text ? text : ''
+}
+
+async function adminRoomSchedulingState(admin, school) {
+  const [roomsQ, masterQ, exceptionQ, legacyQ, settings] = await Promise.all([
+    admin.from('rooms').select('id,room_key,room_name,active').eq('school_id', school.id).order('room_name'),
+    admin.from('master_schedules').select('schedule_name').eq('school_id', school.id).order('schedule_name'),
+    admin.from('school_day_exceptions').select('calendar_date,day_type,note,active').eq('school_id', school.id).order('calendar_date', { ascending: true }).limit(1000),
+    admin.from('school_calendar').select('calendar_date,schedule_name,active').eq('school_id', school.id).eq('active', true).limit(1000),
+    getSchoolSettings(admin, school.id)
+  ])
+  for (const q of [roomsQ, masterQ, exceptionQ, legacyQ]) if (q.error) throw q.error
+  const roomRows = roomsQ.data || []
+  const roomIds = roomRows.map(x => x.id)
+  const [settingsQ, assignmentsQ] = await Promise.all([
+    roomIds.length ? admin.from('room_settings').select('room_id,schedule_mode').in('room_id', roomIds) : Promise.resolve({ data: [], error: null }),
+    roomIds.length ? admin.from('room_schedule_assignments').select('room_id,day_type,schedule_name').in('room_id', roomIds) : Promise.resolve({ data: [], error: null })
+  ])
+  if (settingsQ.error) throw settingsQ.error
+  if (assignmentsQ.error) throw assignmentsQ.error
+  const roomDefaults = new Map((settingsQ.data || []).map(x => [String(x.room_id), x.schedule_mode || 'Regular']))
+  const today = localDateKey(new Date(), school.timezone || 'America/Los_Angeles')
+  return {
+    success: true,
+    enabled: settings.room_scheduling_enabled === true,
+    autoEnabled: settings.auto_scheduling_enabled !== false,
+    rooms: roomRows.map(x => ({ id: x.id, key: x.room_key, name: x.room_name, active: x.active !== false, defaultSchedule: roomDefaults.get(String(x.id)) || 'Regular' })),
+    schedules: [...new Set((masterQ.data || []).map(x => x.schedule_name))].sort((a, b) => a.localeCompare(b)),
+    assignments: (assignmentsQ.data || []).map(x => ({ roomId: x.room_id, dayType: x.day_type, schedule: x.schedule_name })),
+    exceptions: (exceptionQ.data || []).map(x => ({ date: x.calendar_date, dayType: x.day_type, note: x.note || '', active: x.active !== false })),
+    legacyFutureCount: (legacyQ.data || []).filter(x => x.calendar_date >= today).length
+  }
+}
+
+async function adminAssignRoomSchedules(admin, authTeacher, school, data = {}) {
+  const roomIds = [...new Set((Array.isArray(data.roomIds) ? data.roomIds : []).map(x => String(x || '').trim()).filter(Boolean))]
+  const rawType = String(data.dayType || '').trim()
+  const isPrimary = normalize(rawType) === 'regular'
+  const dayType = isPrimary ? 'Regular' : canonicalDayType(rawType)
+  if (!dayType) return fail('Choose a valid day type.')
+  if (!roomIds.length || roomIds.length > 250) return fail('Select between 1 and 250 classrooms.')
+  const canonical = await masterScheduleName(admin, school, String(data.schedule || '').trim())
+  if (!canonical) return fail('Choose an existing master bell schedule.')
+  const rq = await admin.from('rooms').select('id').eq('school_id', school.id).eq('active', true).in('id', roomIds)
+  if (rq.error) throw rq.error
+  if ((rq.data || []).length !== roomIds.length) return fail('One or more selected classrooms are not active in this school.')
+  const now = new Date().toISOString()
+  if (isPrimary) {
+    const q = await admin.from('room_settings').update({ schedule_mode: canonical, updated_at: now }).in('room_id', roomIds)
+    if (q.error) throw q.error
+  } else {
+    const q = await admin.from('room_schedule_assignments').upsert(
+      roomIds.map(room_id => ({ room_id, day_type: dayType, schedule_name: canonical, updated_at: now })),
+      { onConflict: 'room_id,day_type' }
+    )
+    if (q.error) throw q.error
+  }
+  await writeAudit(admin, authTeacher.id, 'ADMIN_ASSIGN_ROOM_SCHEDULES', null, { rooms: roomIds, dayType, schedule: canonical }, school.id)
+  return { success: true, message: canonical + ' assigned to ' + roomIds.length + ' room(s) for ' + dayType + '.' }
+}
+
+async function hasSchoolTraffic(admin, roomIds) {
+  if (!roomIds.length) return false
+  const [out, waiting] = await Promise.all([
+    admin.from('passes').select('id').in('room_id', roomIds).is('return_at', null).limit(1),
+    admin.from('waiting_requests').select('id').in('room_id', roomIds).eq('status', 'WAITING').limit(1)
+  ])
+  if (out.error) throw out.error
+  if (waiting.error) throw waiting.error
+  return Boolean(out.data?.length || waiting.data?.length)
+}
+
+async function adminSetRoomSchedulingEnabled(admin, authTeacher, school, data = {}) {
+  if (typeof data.enabled !== 'boolean') return fail('Choose On or Off.')
+  const status = await adminRoomSchedulingState(admin, school)
+  if (status.enabled === data.enabled) return { success: true, enabled: data.enabled, message: 'Room scheduling is already ' + (data.enabled ? 'on.' : 'off.') }
+  const activeRooms = status.rooms.filter(x => x.active)
+  if (!activeRooms.length) return fail('Create an active classroom first.')
+  if (await hasSchoolTraffic(admin, activeRooms.map(x => x.id))) return fail('Wait until all students are back and waiting lists are empty before changing the scheduling mode.')
+  if (data.enabled) {
+    const available = new Set(status.schedules.map(x => normalize(x)))
+    const invalidDefaults = activeRooms.filter(x => !available.has(normalize(x.defaultSchedule)))
+    if (invalidDefaults.length) return fail('Default schedule missing for: ' + invalidDefaults.map(x => x.name).join(', '))
+    const today = localDateKey(new Date(), school.timezone || 'America/Los_Angeles')
+    const exceptions = status.exceptions.filter(x => x.active && x.date >= today)
+    for (const exception of exceptions) {
+      const missing = activeRooms.filter(room => !status.assignments.some(x => String(x.roomId) === String(room.id) && normalize(x.dayType) === normalize(exception.dayType) && available.has(normalize(x.schedule))))
+      if (missing.length) return fail(exception.date + ' (' + exception.dayType + ') is not configured in: ' + missing.map(x => x.name).join(', '))
+    }
+    if (status.legacyFutureCount && data.acknowledgeLegacyCalendar !== true)
+      return fail('There are ' + status.legacyFutureCount + ' future dates in the old calendar. Review them, then explicitly acknowledge that room scheduling uses only the new special-day calendar.')
+  }
+  const q = await admin.from('school_settings').upsert({ school_id: school.id, room_scheduling_enabled: data.enabled, updated_at: new Date().toISOString() }, { onConflict: 'school_id' })
+  if (q.error) throw q.error
+  await writeAudit(admin, authTeacher.id, 'ADMIN_ROOM_SCHEDULING_MODE', null, { enabled: data.enabled, legacyFutureCount: status.legacyFutureCount }, school.id)
+  return { success: true, enabled: data.enabled, message: 'Room scheduling ' + (data.enabled ? 'enabled.' : 'disabled; original calendar restored.') }
+}
+
+async function adminSaveDayExceptions(admin, authTeacher, school, data = {}) {
+  const dayType = canonicalDayType(data.dayType)
+  if (!dayType) return fail('Choose a special day type (not Regular).')
+  const dates = [...new Set((Array.isArray(data.dates) ? data.dates : [data.date]).map(validDayDate))].sort()
+  if (!dates.length || dates.includes('') || dates.length > 250) return fail('Enter 1–250 valid calendar dates.')
+  const status = await adminRoomSchedulingState(admin, school)
+  const rooms = status.rooms.filter(x => x.active)
+  const missing = rooms.filter(room => !status.assignments.some(x => String(x.roomId) === String(room.id) && normalize(x.dayType) === normalize(dayType) && status.schedules.some(s => normalize(s) === normalize(x.schedule))))
+  if (missing.length) return fail('Assign ' + dayType + ' to all active rooms first. Missing: ' + missing.map(x => x.name).join(', '))
+  const note = String(data.note || '').replace(/\s+/g, ' ').trim().slice(0, 250)
+  const replace = normalize(data.conflictMode) === 'replace'
+  const old = await admin.from('school_day_exceptions').select('calendar_date').eq('school_id', school.id).in('calendar_date', dates)
+  if (old.error) throw old.error
+  const already = new Set((old.data || []).map(x => x.calendar_date))
+  const targetDates = replace ? dates : dates.filter(x => !already.has(x))
+  if (targetDates.length) {
+    const rows = targetDates.map(calendar_date => ({ school_id: school.id, calendar_date, day_type: dayType, note, active: true, updated_at: new Date().toISOString() }))
+    const q = await admin.from('school_day_exceptions').upsert(rows, { onConflict: 'school_id,calendar_date' })
+    if (q.error) throw q.error
+  }
+  const skipped = dates.length - targetDates.length
+  await writeAudit(admin, authTeacher.id, 'ADMIN_SAVE_SPECIAL_DAYS', null, { dates: targetDates, dayType, replaced: replace }, school.id)
+  return { success: true, added: targetDates.length, skipped, message: targetDates.length + ' special day(s) saved' + (skipped ? '; ' + skipped + ' existing dates skipped.' : '.') }
+}
+
+async function adminDeleteDayException(admin, authTeacher, school, date) {
+  const valid = validDayDate(date)
+  if (!valid) return fail('Choose a valid date.')
+  const q = await admin.from('school_day_exceptions').delete().eq('school_id', school.id).eq('calendar_date', valid)
+  if (q.error) throw q.error
+  await writeAudit(admin, authTeacher.id, 'ADMIN_DELETE_SPECIAL_DAY', null, { date: valid }, school.id)
+  return { success: true, message: 'Special-day exception removed for ' + valid + '.' }
+}
+
 async function adminCalendarState(admin, school) {
   const [calendarQ, settings] = await Promise.all([
     admin.from('school_calendar').select('calendar_date,schedule_name,note,active,batch_id,batch_label,created_at,updated_at').eq('school_id', school.id).order('calendar_date', { ascending: true }).limit(1000),
@@ -2516,6 +2660,11 @@ async function adminDashboard(admin, body, fingerprintHash) {
   if (body.action === 'adminUpdateSecurity') return adminUpdateSecurity(admin, auth.teacher, school, auth.access, args[0] || {})
   if (body.action === 'adminClearLockout') return adminClearLockout(admin, auth.teacher, school, auth.access, args[0], args[1])
   if (body.action === 'adminSetCampusLock') return adminSetCampusLock(admin, auth.teacher, school, args[0] === true)
+  if (body.action === 'adminRoomSchedulingState') return adminRoomSchedulingState(admin, school)
+  if (body.action === 'adminAssignRoomSchedules') return adminAssignRoomSchedules(admin, auth.teacher, school, args[0] || {})
+  if (body.action === 'adminSetRoomSchedulingEnabled') return adminSetRoomSchedulingEnabled(admin, auth.teacher, school, args[0] || {})
+  if (body.action === 'adminSaveDayExceptions') return adminSaveDayExceptions(admin, auth.teacher, school, args[0] || {})
+  if (body.action === 'adminDeleteDayException') return adminDeleteDayException(admin, auth.teacher, school, args[0])
   if (body.action === 'adminCalendarState') return adminCalendarState(admin, school)
   if (body.action === 'adminSetCalendarAutoScheduling') return adminSetCalendarAutoScheduling(admin, auth.teacher, school, args[0] || {})
   if (body.action === 'adminSaveCalendarEntry') return adminSaveCalendarEntry(admin, auth.teacher, school, args[0] || {})
