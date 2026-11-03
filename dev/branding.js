@@ -8,7 +8,7 @@
   const schools = Object.freeze({
     'wusd/westfield': {
       name: 'Westfield Village Elementary School',
-      logo: 'assets/schools/wusd--westfield.webp'
+      logo: '../assets/schools/wusd--westfield.webp'
     }
   });
 
@@ -40,7 +40,7 @@
     const middle = el('div', 'hp-brand-middle');
     const product = el('div', 'hp-brand-product');
     const mark = el('img', 'hp-brand-mark');
-    mark.src = 'assets/hall-pilot-mark.svg';
+    mark.src = '../assets/hall-pilot-mark.svg';
     mark.alt = '';
     mark.width = 48;
     mark.height = 48;
