@@ -56,14 +56,18 @@ async function testScheduling(staffSource, publicSource) {
   }
   let res=await staff.adminRoomSchedulingState(admin,school);
   verify(res.rooms.length===2&&res.legacyFutureCount===1,'school scoped admin state');
-  res=await staff.adminAssignRoomSchedules(admin,teacher,school,{roomIds:['r1','other'],dayType:'Regular',schedule:'K Regular'});
+  res=await staff.adminAssignRoomSchedules(admin,teacher,school,{roomIds:['r1','other'],dayType:'Primary',schedule:'K Regular'});
   verify(!res.success,'cross-school assignment blocked');
   for(const [id,normal,special] of [['r1','K Regular','K Minimum'],['r2','2 Regular','2 Minimum']]){
-    res=await staff.adminAssignRoomSchedules(admin,teacher,school,{roomIds:[id],dayType:'Regular',schedule:normal});
+    res=await staff.adminAssignRoomSchedules(admin,teacher,school,{roomIds:[id],dayType:'Primary',schedule:normal});
     verify(res.success,id+' primary assigned');
     res=await staff.adminAssignRoomSchedules(admin,teacher,school,{roomIds:[id],dayType:'Minimum',schedule:special});
     verify(res.success,id+' special assigned');
   }
+  res=await staff.adminAssignRoomSchedules(admin,teacher,school,{roomIds:['r1'],dayType:'Regular',schedule:'K Regular'});
+  verify(res.success,'legacy Regular assignment alias still works');
+  res=await staff.adminSaveDayExceptions(admin,teacher,school,{dates:['2099-11-04'],dayType:'Primary'});
+  verify(!res.success,'Primary cannot be saved as special-day exception');
   res=await staff.adminSaveDayExceptions(admin,teacher,school,{dates:['2099-11-03'],dayType:'Minimum'});
   verify(res.success&&res.added===1,'exception-only date saved');
   const special=await pub.resolveRoomSchedule(admin,room,settings,{room_scheduling_enabled:true,auto_scheduling_enabled:true},null,'2099-11-03');
