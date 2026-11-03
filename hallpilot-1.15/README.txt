@@ -61,7 +61,7 @@ HOW TO CONFIGURE (AFTER DEVELOPMENT VERIFICATION)
 1. Create the school's Master Schedules: Regular, K–1 Regular,
    2–3 Regular, 4–5 Regular; K–1 Minimum, 2–3 Minimum, 4–5 Minimum.
    The names are examples and do NOT assign grade-based access.
-2. In Admin > Room Scheduling, select multiple rooms, enter 'Regular'
+2. In Admin > Room Scheduling, select multiple rooms, choose 'Primary'
    as Day Type, select their Primary schedule, and Assign.
 3. For the same rooms, enter 'Minimum' and assign their Minimum schedule.
    Repeat for Rally, Testing, or any special day types needed.
@@ -96,6 +96,9 @@ BACKEND DESIGN
 --------------
 - school_settings.room_scheduling_enabled: false by default.
 - room_settings.schedule_mode: existing per-room Primary schedule column.
+- The Admin Day Type label is Primary. The internal legacy identifier
+  'Regular' remains accepted for backwards compatibility; neither
+  Primary nor Regular is a special day type.
 - room_schedule_assignments: (room_id, day_type) -> master schedule name.
 - school_day_exceptions: special date -> special day type by school.
 - Both Edge Function resolvers are IDENTICAL and use the same precedence.
