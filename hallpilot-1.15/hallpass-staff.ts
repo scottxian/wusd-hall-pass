@@ -1741,6 +1741,36 @@ async function schoolRoomIds(admin, schoolId) {
   return (data || []).map(x => x.id)
 }
 
+// Whole-schedule editing is atomic in PostgreSQL. The RPC is service-role only;
+// this action is reachable only after verified Admin login and school authorization.
+async function adminManageWholeSchedule(admin, authTeacher, school, data = {}) {
+  const oldName = String(data.originalName || '').trim()
+  const newName = String(data.name || '').trim()
+  const removing = data.delete === true
+  const periods = Array.isArray(data.periods) ? data.periods : []
+  if (!removing && (!newName || newName.length > 80 || !periods.length || periods.length > 50))
+    return fail('Enter a schedule name and 1–50 complete periods.')
+  if (oldName.length > 80 || (removing && !oldName)) return fail('Choose an existing schedule.')
+  const clean = removing ? [] : periods.map(p => ({
+    period: String(p.period || '').trim(),
+    startTime: String(p.startTime || ''),
+    endTime: String(p.endTime || '')
+  }))
+  const { data: result, error } = await admin.rpc('hp_manage_master_schedule', {
+    p_school_id: school.id,
+    p_original_name: oldName,
+    p_name: newName,
+    p_periods: clean,
+    p_delete: removing
+  })
+  if (error) return fail(error.message || 'Could not save the schedule.')
+  if (!result?.success) return fail(result?.message || 'Could not save the schedule.')
+  await writeAudit(admin, authTeacher.id,
+    removing ? 'ADMIN_DELETE_WHOLE_SCHEDULE' : 'ADMIN_SAVE_WHOLE_SCHEDULE',
+    null, { oldName, newName, periodCount: clean.length }, school.id)
+  return result
+}
+
 async function adminSaveMasterSchedule(admin, authTeacher, school, data) {
   data = data || {}
   const id = Number(data.id)
@@ -2708,6 +2738,7 @@ async function adminDashboard(admin, body, fingerprintHash) {
   if (body.action === 'adminDeleteCalendarEntry') return adminDeleteCalendarEntry(admin, auth.teacher, school, args[0])
   if (body.action === 'adminSaveCalendarBatch') return adminSaveCalendarBatch(admin, auth.teacher, school, args[0] || {})
   if (body.action === 'adminDeleteCalendarBatch') return adminDeleteCalendarBatch(admin, auth.teacher, school, args[0])
+  if (body.action === 'adminManageWholeSchedule') return adminManageWholeSchedule(admin, auth.teacher, school, args[0] || {})
   if (body.action === 'adminSaveMasterSchedule') return adminSaveMasterSchedule(admin, auth.teacher, school, args[0] || {})
   if (body.action === 'adminDeleteMasterSchedule') return adminDeleteMasterSchedule(admin, auth.teacher, school, args[0])
   if (body.action === 'adminOnboardingDestinationDefaults') return adminOnboardingDestinationDefaults(admin, school, args[0])
