@@ -103,7 +103,7 @@
           </div>
           <div class="checkRow" id="rsRoomChecks" style="margin:8px 0 12px"></div>
           <div class="formGrid">
-            <div><label for="rsAssignDayType">Day Type</label><select id="rsAssignDayType"><option value="Regular">Regular (Primary)</option><option value="Minimum">Minimum</option><option value="Rally">Rally</option><option value="Testing">Testing</option><option value="Assembly">Assembly</option><option value="">Add custom day type…</option></select><div id="rsCustomDayTypeField" class="hidden" style="margin-top:8px"><label for="rsCustomDayType">Custom Day Type</label><input id="rsCustomDayType" maxlength="80" placeholder="Enter a name"></div></div>
+            <div><label for="rsAssignDayType">Day Type</label><select id="rsAssignDayType"><option value="Regular">Primary</option><option value="Minimum">Minimum</option><option value="Rally">Rally</option><option value="Testing">Testing</option><option value="Assembly">Assembly</option><option value="">Add custom day type…</option></select><div id="rsCustomDayTypeField" class="hidden" style="margin-top:8px"><label for="rsCustomDayType">Custom Day Type</label><input id="rsCustomDayType" maxlength="80" placeholder="Enter a name"></div></div>
             <div><label for="rsMasterSchedule">Master Bell Schedule</label><select id="rsMasterSchedule"></select><button id="rsViewSchedule" type="button" class="gray" style="margin-top:8px" aria-haspopup="dialog">View Schedule</button></div>
             <div><button id="rsAssignSchedule" class="green" type="button">Assign to Selected Rooms</button></div>
           </div>
@@ -137,7 +137,7 @@
 
         <div class="card">
           <h2>Bring Existing Special Dates Forward</h2>
-          <div class="muted">The original calendar is retained. Choose an existing special schedule to copy its future dates into the new calendar preview. Regular dates need no copying.</div>
+          <div class="muted">The original calendar is retained. Choose an existing special schedule to copy its future dates into the new calendar preview. Normal-day dates need no copying.</div>
           <div class="formGrid" style="margin-top:12px">
             <div><label for="rsLegacySelect">Original Calendar Schedule</label><select id="rsLegacySelect"></select></div>
             <div><button id="rsLegacyPrepare" class="purple" type="button">Prepare Those Dates</button></div>
@@ -708,7 +708,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const previous = select.value;
       const types = new Map(['Regular', 'Minimum', 'Rally', 'Testing', 'Assembly'].map(name => [name.toLowerCase(), name]));
       for (const name of rsDayTypes()) types.set(name.toLowerCase(), name);
-      select.innerHTML = [...types.values()].map(name => '<option value="' + esc(name) + '">' + esc(name.toLowerCase() === 'regular' ? 'Regular (Primary)' : name) + '</option>').join('')
+      select.innerHTML = [...types.values()].map(name => '<option value="' + esc(name) + '">' + esc(name.toLowerCase() === 'regular' ? 'Primary' : name) + '</option>').join('')
         + '<option value="">Add custom day type…</option>';
       select.value = types.get(previous.toLowerCase()) || '';
       $('rsCustomDayTypeField').classList.toggle('hidden', select.value !== '');
