@@ -129,3 +129,30 @@ Only if needed, roll back the Admin page to the prior release.
 
 No live deploy or production database changes have been performed by
 the development work represented by this branch.
+
+WHOLE-SCHEDULE EDITOR (NEW)
+---------------------------
+In Admin > Master Schedules, each entire bell schedule is now one row.
+Click Edit Schedule to view and edit every period at once, rename the
+schedule, add/remove periods, adjust bell times and Save Entire Schedule.
+You can also click Duplicate to make a new schedule based on an existing
+one. No period-by-period saving or repeating the schedule name.
+
+- New Admin action: adminManageWholeSchedule (school-admin authenticated).
+- SQL migration: 002-whole-schedule-editor.sql (apply to DEVELOPMENT only).
+- The database RPC hp_manage_master_schedule is service-role-only and
+  atomically saves all periods and updates live room assignments, daily
+  overrides, old-calendar dates and special-day room mappings on rename.
+- Duplicate names and overlapping periods are rejected. Period gaps allowed.
+- Saving a used schedule during live pass/queue traffic is blocked.
+- Delete Schedule removes the entire schedule only if it is unassigned.
+- Historical passes keep their recorded schedule names.
+- Live production has not been changed. Development function is staff v3.
+
+TESTS
+-----
+- Existing 20 synthetic 1.15 scheduling regression tests pass.
+- Atomic SQL smoke tests: new schedule, multi-period replacement and
+  rename with room assignment, overlapping times, duplicate names, delete.
+- Temporary test schedule was removed; original test-room settings restored.
+- Development Admin JavaScript syntax and unique element IDs checked.
