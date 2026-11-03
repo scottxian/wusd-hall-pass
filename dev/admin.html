@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<!-- Hall Pilot 1.15.0 DEVELOPMENT — room scheduling (not deployed) -->
+<html>
+<head>
+  <meta name="hallpass-version" content="1.15.0-dev">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hall Pilot Admin</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <style>
+    *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#222}
+    .header{background:#263238;color:#fff;padding:18px 20px}.header h1{margin:0 0 5px;font-size:27px}.header div{opacity:.9}
+    .container{max-width:1450px;margin:auto;padding:18px}.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+    .hidden{display:none!important}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}.stat{background:#eef2f5;border-radius:10px;padding:14px}.label{font-size:13px;color:#555}.value{font-size:27px;font-weight:bold;margin-top:4px}
+    .controls,.formGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end} label{display:block;font-weight:bold;margin-bottom:5px} input,select,textarea{width:100%;padding:10px;border:2px solid #bbb;border-radius:7px;font-size:16px}textarea{min-height:92px;resize:vertical;font-family:inherit}button{border:0;border-radius:8px;padding:11px 16px;font-weight:bold;font-size:16px;cursor:pointer;background:#1f5ea8;color:#fff}button:disabled{opacity:.55;cursor:not-allowed}.gray{background:#5f6368}.red{background:#b3261e}.green{background:#19733c}.purple{background:#6a3fb5}
+    .message{min-height:24px;margin-top:8px;font-weight:bold}.error{color:#b3261e}.success{color:#19733c}.tableWrap{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:9px 10px;border-bottom:1px solid #ddd;text-align:left;white-space:nowrap;vertical-align:middle}th{background:#e8eef5}.roomTag{display:inline-block;padding:3px 7px;border-radius:999px;background:#e3ebf4;font-weight:bold}.lock{color:#b3261e}.muted{color:#666;font-size:13px}.inactive td:not(:last-child){opacity:.58}.destinationMuted{opacity:.58}.destinationAction{opacity:1!important;filter:none!important}.destinationEditButton{opacity:1!important;filter:none!important;background:#1f5ea8!important;color:#fff!important;cursor:pointer!important}.destinationEditButton:hover{background:#184b86!important}.checkRow{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.checkRow label{font-weight:normal;margin:0;display:flex;align-items:center;gap:5px}.checkRow input{width:auto}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.tabButton{background:#dfe6ec;color:#222}.tabButton.active{background:#1f5ea8;color:#fff}.panel{display:none}.panel.active{display:block}.actions{display:flex;gap:6px;flex-wrap:wrap}.small{padding:7px 10px;font-size:13px}.sectionHead{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:40px 14px;overflow:auto;z-index:10}.modal{background:white;width:min(760px,100%);border-radius:12px;padding:20px;box-shadow:0 6px 30px rgba(0,0,0,.25)}.modal h2{margin-top:0}.modalActions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px}.roomChecks{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:7px;background:#f5f7f8;padding:10px;border-radius:8px}.roomChecks label{font-weight:normal;margin:0;display:flex;gap:6px;align-items:center}.roomChecks input{width:auto}
+    .wizardModal{width:min(920px,100%)}.wizardProgress{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:4px 0 18px}.wizardProgress div{padding:8px 6px;border-radius:7px;background:#e8edf2;text-align:center;font-size:13px;font-weight:bold;color:#555}.wizardProgress div.active{background:#1f5ea8;color:#fff}.wizardProgress div.done{background:#dcefe3;color:#175d31}.wizardStep{display:none}.wizardStep.active{display:block}.wizardChoice{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0 14px}.wizardChoice label{font-weight:normal;display:flex;align-items:center;gap:6px;margin:0}.wizardChoice input{width:auto}.wizardReview{background:#f5f7f8;border-radius:9px;padding:14px}.wizardReviewGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.wizardReviewItem{background:#fff;border:1px solid #d9dfe4;border-radius:8px;padding:10px}.wizardReviewItem strong{display:block;margin-bottom:3px}.wizardDestinationTable input[type=checkbox]{width:auto}.wizardDestinationTable input[type=number]{min-width:110px}.wizardSchoolDisabled{color:#8a3a32;font-weight:bold}.wizardHint{background:#eef4fb;border-left:4px solid #1f5ea8;padding:10px 12px;border-radius:5px;margin:10px 0}.wizardUrl{word-break:break-all;font-family:monospace;font-size:12px}.roomLinkGrid{display:grid;gap:12px;margin-top:12px}.roomLinkCard{background:#f5f7f8;border:1px solid #d9dfe4;border-radius:9px;padding:12px}.roomLinkCard label{margin-bottom:6px}.roomLinkRow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:7px;align-items:center}.roomLinkRow input{font-family:monospace;font-size:13px;background:#fff}.setupMessagePreview{white-space:pre-wrap;background:#f5f7f8;border:1px solid #d9dfe4;border-radius:9px;padding:12px;font-size:13px;line-height:1.45;margin-top:8px}.teacherEmailRow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #e1e5e8;flex-wrap:wrap}.teacherEmailRow:last-child{border-bottom:0}.teacherEmailIdentity strong{display:block}.teacherEmailIdentity span{font-size:13px;color:#666}.sortableReportHeader{cursor:pointer;user-select:none}.sortableReportHeader:hover{background:#d8e3ee}.sortableReportHeader:focus{outline:3px solid #7aa7d8;outline-offset:-3px}.sortArrow{display:inline-block;min-width:14px;margin-left:4px;font-size:12px;color:#1f5ea8}.studentReportLink{background:none;border:0;border-radius:3px;padding:2px;color:#175c9c;font:inherit;font-weight:bold;text-decoration:underline;cursor:pointer;text-align:left}.studentReportLink:hover{color:#0b3f75}.studentReportLink:focus-visible{outline:3px solid #7aa7d8}.reportDrillTrail{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#edf3fa;border:1px solid #d5e1f0;border-radius:8px;padding:10px 12px;margin-bottom:12px}.reportDrillTrail .muted{overflow-wrap:anywhere}.reportDrillTrail button{font-size:14px;padding:7px 12px}
+    @media print { body.printCampusStudentDetail * {visibility:hidden!important} body.printCampusStudentDetail #campusReportResults, body.printCampusStudentDetail #campusReportResults * {visibility:visible!important} body.printCampusStudentDetail #campusReportResults{display:block!important;position:absolute;top:0;left:0;width:100%;padding:0;margin:0} body.printCampusStudentDetail #campusReportDrillNav{display:none!important} body.printCampusStudentDetail #campusReportResults .card{box-shadow:none;border:0;margin:0;padding:4px} body.printCampusStudentDetail #campusReportStats .stat{padding:6px;font-size:10px} body.printCampusStudentDetail #campusReportStats .value{font-size:14px} body.printCampusStudentDetail #campusReportHead th, body.printCampusStudentDetail #campusReportBody td {font-size:9px;white-space:normal;overflow-wrap:anywhere;padding:4px;vertical-align:top} body.printCampusStudentDetail #campusReportBody tr{break-inside:avoid} }
+    @media(max-width:700px){.container{padding:10px}.card{padding:13px}th,td{font-size:13px;padding:7px}.header h1{font-size:22px}.modalBackdrop{padding:15px 8px}}
+  
+    /* Shared student type-ahead controls. Native selects remain the source of student IDs. */
+    .hpStudentPicker, .hpStudentHints { position:relative; min-width:0; }
+    .hpStudentPicker select.hpStudentPickerNative { display:none; }
+    .hpStudentPicker input, .hpStudentHints input { width:100%; }
+    .hpStudentOptions { position:absolute; left:0; right:0; top:100%; z-index:35; background:white; border:1px solid #a7b2bf; border-radius:0 0 8px 8px; box-shadow:0 6px 18px rgba(0,0,0,.16); max-height:264px; overflow-y:auto; }
+    .hpStudentOptions[hidden] { display:none!important; }
+    .hpStudentOption { display:block; width:100%; padding:10px 12px; font:inherit; text-align:left; cursor:pointer; background:#fff; color:#222; border:0; border-bottom:1px solid #edf0f4; border-radius:0; white-space:normal; }
+    .hpStudentOption:hover, .hpStudentOption.hpFocused { background:#e6f0fc; color:#173d6b; }
+    .hpStudentOption:last-child { border-bottom:0; }
+    .hpStudentNote { color:#555; padding:9px 12px; font-size:13px; }
+    .hpStudentPicker input:focus, .hpStudentHints input:focus { outline:3px solid #8db5e7; outline-offset:0; }
+
+    /* School calendar switch, scoped to the selected school. */
+    .calendarAutoBar {display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:14px 16px;border:1px solid #cfdae7;border-radius:10px;background:#f3f7fc}
+    .calendarAutoBar h3 {margin:0 0 5px;font-size:18px}
+    .calendarAutoBar .muted {margin-top:4px}
+    .calendarAutoToggle {display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:bold;white-space:nowrap}
+    .calendarAutoToggle input {appearance:none;-webkit-appearance:none;width:52px;height:29px;min-height:29px;margin:0;padding:0;flex:0 0 auto;border:2px solid #6b7280;border-radius:18px;background:#6b7280;position:relative;cursor:pointer;transition:background .15s}
+    .calendarAutoToggle input::before {content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:transform .15s}
+    .calendarAutoToggle input:checked {background:#16803a;border-color:#16803a}
+    .calendarAutoToggle input:checked::before {transform:translateX(23px)}
+    .calendarAutoToggle input:focus-visible {outline:3px solid #1765cb;outline-offset:3px}
+    .calendarAutoToggle input:disabled {opacity:.55;cursor:not-allowed}
+</style>
+<link rel="stylesheet" href="branding.css">
+</head>
+<body>
+  <!-- Hall Pass Admin v1.14.1 — canonical organization / school aware -->
+  <div class="header"><h1>Hall Pilot — Admin</h1><div id="adminName">Locked</div></div>
+  <div class="container">
+    <div id="loginCard" class="card">
+      <h2>Admin Login</h2><label for="adminPin">Admin PIN</label>
+      <input id="adminPin" type="password" inputmode="numeric" autocomplete="off" style="max-width:360px">
+      <div style="margin-top:10px"><button id="loginButton">Unlock Campus Dashboard</button></div><div id="loginMessage" class="message"></div>
+    </div>
+
+    <div id="dashboard" class="hidden">
+      <div class="card" style="margin-bottom:14px"><div class="sectionHead"><div><div class="muted">Organization</div><strong id="organizationLabel">—</strong></div><div style="min-width:280px"><label for="schoolSelector">School</label><select id="schoolSelector"></select></div></div></div>
+      <div class="tabs"><button class="tabButton active" data-panel="livePanel">Live Campus</button><button class="tabButton" data-panel="managePanel">Rooms & Teachers</button><button class="tabButton" data-panel="studentsPanel">Students</button><button class="tabButton" data-panel="destinationsPanel">Destinations</button><button class="tabButton" data-panel="schedulePanel">Master Schedules</button><button class="tabButton" data-panel="roomSchedulePanel">Room Scheduling</button><button class="tabButton" data-panel="calendarPanel">Legacy Calendar</button><button class="tabButton" data-panel="securityPanel">Security</button><button class="tabButton" data-panel="reportsPanel">Reports & Backup</button><button class="tabButton" data-panel="auditPanel">Audit Log</button><button class="tabButton" data-panel="orgPanel">Organization & Schools</button></div>
+
+      <section id="livePanel" class="panel active">
+        <div class="grid" style="margin-bottom:16px"><div class="stat"><div class="label">Active Rooms</div><div id="statRooms" class="value">0</div></div><div class="stat"><div class="label">Students Out</div><div id="statOut" class="value">0</div></div><div class="stat"><div class="label">Waiting</div><div id="statWaiting" class="value">0</div></div></div>
+        <div class="card"><div class="sectionHead"><div><h2 style="margin-bottom:4px">Campus Emergency Lock</h2><div class="muted">Blocks all new passes campus-wide and clears waiting requests. Students already out remain visible until returned.</div></div><button id="campusLockButton" class="red">Campus Lock: OFF</button></div><div id="campusLockMessage" class="message"></div></div>
+        <div class="card"><div class="controls"><div><label for="roomFilter">Room</label><select id="roomFilter"><option value="">All Rooms</option></select></div><div><label for="search">History Search</label><input id="search" placeholder="Student, ID, destination, room..."></div><button id="refreshLive" class="gray">Refresh</button></div><div id="message" class="message"></div></div>
+        <div class="card"><h2>Students Out Right Now</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Left</th><th>Time Gone</th></tr></thead><tbody id="outBody"></tbody></table></div></div>
+        <div class="card"><h2>Waiting</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Requested</th></tr></thead><tbody id="waitingBody"></tbody></table></div></div>
+        <div class="card"><h2>Recent Pass History</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Left</th><th>Returned</th><th>Status</th></tr></thead><tbody id="historyBody"></tbody></table></div></div>
+      </section>
+
+      <section id="managePanel" class="panel">
+        <div class="card"><div class="sectionHead"><div><h2 style="margin-bottom:4px">Rooms</h2><div class="muted">Create rooms, assign teachers, copy/send room links, edit URLs/keys, disable rooms, or copy a working room's configuration.</div></div><div class="actions"><button id="onboardRoomButton" class="purple">Onboard Room</button><button id="addRoomButton" class="green">Add Room</button><button id="refreshManage" class="gray">Refresh</button></div></div><div id="manageMessage" class="message"></div><div class="tableWrap"><table><thead><tr><th>Room</th><th>Key</th><th>Teachers</th><th>Status</th><th>Student URL</th><th>Teacher URL</th><th>Actions</th></tr></thead><tbody id="roomsBody"></tbody></table></div></div>
+        <div class="card"><div class="sectionHead"><div><h2 style="margin-bottom:4px">Teachers</h2><div class="muted">Create/edit teachers, reset PINs, assign rooms, and control admin access.</div></div><button id="addTeacherButton" class="green">Add Teacher</button></div><div class="tableWrap"><table><thead><tr><th>Teacher</th><th>Email</th><th>Role</th><th>Assigned Rooms</th><th>Status</th><th>Actions</th></tr></thead><tbody id="teachersBody"></tbody></table></div></div>
+      </section>
+
+      <section id="schedulePanel" class="panel">
+        <div class="card">
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Master Bell Schedules</h2><div class="muted">These bell times are shared by every room. Teachers only choose which schedule their room uses today.</div></div><div class="actions"><button id="addScheduleButton" class="green">Add Schedule Row</button><button id="refreshSchedules" class="gray">Refresh</button></div></div>
+          <div id="scheduleMessage" class="message"></div>
+          <div class="tableWrap"><table><thead><tr><th>Schedule</th><th>Period</th><th>Start</th><th>End</th><th>Actions</th></tr></thead><tbody id="masterScheduleBody"></tbody></table></div>
+        </div>
+      </section>
+
+
+      <!-- 1.15 DEVELOPMENT: additive, isolated from the existing legacy calendar. -->
+      <section id="roomSchedulePanel" class="panel">
+        <div class="card">
+          <div class="sectionHead">
+            <div><h2>Room Scheduling</h2><div class="muted">Normal days automatically use each room's Primary schedule. Add calendar entries only for Minimum, Rally, Testing, or other special days.</div></div>
+            <button class="gray" id="rsRefresh">Refresh</button>
+          </div>
+          <div id="rsModeStatus" class="muted">Loading room scheduling…</div>
+          <div id="rsLegacyWarning" class="muted" style="margin-top:8px"></div>
+          <div class="actions" style="margin-top:12px"><button id="rsToggleMode" class="purple" disabled>Enable Room Scheduling</button></div>
+          <div id="rsModeMessage" class="message"></div>
+        </div>
+        <div class="card">
+          <h2>Assign Primary & Special Schedules</h2>
+          <div class="muted">A master schedule can be assigned to any number of rooms. Select rooms below; Grade level is not required.</div>
+          <div class="actions" style="margin:12px 0">
+            <button id="rsSelectAll" class="gray" type="button">Select All Active Rooms</button>
+            <button id="rsSelectNone" class="gray" type="button">Clear Selection</button>
+          </div>
+          <div class="checkRow" id="rsRoomChecks" style="margin:8px 0 12px"></div>
+          <div class="formGrid">
+            <div><label for="rsAssignDayType">Day Type</label><input id="rsAssignDayType" list="rsDayTypes" value="Regular" placeholder="Regular or Minimum"><datalist id="rsDayTypes"><option value="Regular"><option value="Minimum"><option value="Rally"><option value="Testing"><option value="Assembly"></datalist></div>
+            <div><label for="rsMasterSchedule">Master Bell Schedule</label><select id="rsMasterSchedule"></select></div>
+            <div><button id="rsAssignSchedule" class="green" type="button">Assign to Selected Rooms</button></div>
+          </div>
+          <div id="rsAssignMessage" class="message"></div>
+          <div class="tableWrap" style="margin-top:12px"><table><thead><tr><th>Room</th><th>Primary</th><th>Minimum</th><th>Rally</th><th>Other Assigned Days</th></tr></thead><tbody id="rsRoomTable"></tbody></table></div>
+        </div>
+        <div class="card">
+          <h2>Special-Day Calendar</h2>
+          <div class="muted">No entries are needed for ordinary days. Assign special-day schedules to every active room before using a day type for the entire school.</div>
+          <div class="formGrid" style="margin-top:12px">
+            <div><label for="rsExceptionDayType">Special Day Type</label><select id="rsExceptionDayType"></select></div>
+            <div><label for="rsOneDate">One Date</label><input id="rsOneDate" type="date"></div>
+            <div><label for="rsConflictMode">If Date Already Exists</label><select id="rsConflictMode"><option value="skip">Skip</option><option value="replace">Replace</option></select></div>
+            <div><label for="rsNote">Note (optional)</label><input id="rsNote" maxlength="250" placeholder="Minimum Day, assembly…"></div>
+          </div>
+          <div class="formGrid" style="margin-top:12px">
+            <div><label for="rsRepeatStart">Or Repeat — Start</label><input id="rsRepeatStart" type="date"></div>
+            <div><label for="rsRepeatEnd">Repeat — End</label><input id="rsRepeatEnd" type="date"></div>
+          </div>
+          <div style="margin-top:8px"><label>Repeat on weekdays</label><div class="checkRow" id="rsWeekdays">
+            <label><input type="checkbox" value="1">Monday</label><label><input type="checkbox" value="2">Tuesday</label><label><input type="checkbox" value="3">Wednesday</label><label><input type="checkbox" value="4">Thursday</label><label><input type="checkbox" value="5">Friday</label>
+          </div></div>
+          <div style="margin-top:12px"><label for="rsDateList">Or Paste Specific Dates (one per line)</label><textarea id="rsDateList" rows="3" placeholder="11/18/2026&#10;12/2/2026"></textarea></div>
+          <div class="actions" style="margin-top:12px">
+            <button id="rsPreview" class="purple" type="button">Preview Special Days</button>
+            <button id="rsApply" class="green" type="button" disabled>Save Previewed Dates</button>
+          </div>
+          <div id="rsExceptionMessage" class="message"></div>
+          <div id="rsPreviewWrap" class="hidden"><div class="tableWrap" style="margin-top:10px"><table><thead><tr><th>Date</th><th>Existing</th><th>Requested</th><th>Result</th></tr></thead><tbody id="rsPreviewBody"></tbody></table></div></div>
+        </div>
+
+        <div class="card">
+          <h2>Bring Existing Special Dates Forward</h2>
+          <div class="muted">The original calendar is retained. Choose an existing special schedule to copy its future dates into the new calendar preview. Regular dates need no copying.</div>
+          <div class="formGrid" style="margin-top:12px">
+            <div><label for="rsLegacySelect">Original Calendar Schedule</label><select id="rsLegacySelect"></select></div>
+            <div><button id="rsLegacyPrepare" class="purple" type="button">Prepare Those Dates</button></div>
+          </div>
+          <div id="rsLegacyImportMessage" class="message"></div>
+        </div>
+        <div class="card">
+          <h2>Configured Special Days</h2>
+          <div class="muted">These dates are used only when Room Scheduling is enabled and Automatic Scheduling is on.</div>
+          <div class="tableWrap" style="margin-top:12px"><table><thead><tr><th>Date</th><th>Day Type</th><th>Note</th><th>Action</th></tr></thead><tbody id="rsExceptionsBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="studentsPanel" class="panel">
+        <div class="card">
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Master Student List</h2><div class="muted">Every active student can use every active room. Disable students instead of deleting them so pass history remains intact.</div></div><div class="actions"><button id="addStudentButton" class="green">Add Student</button><button id="importStudentsButton" class="purple">Import CSV</button><button id="refreshStudents" class="gray">Refresh</button></div></div>
+          <div class="controls" style="margin-top:12px"><div><label for="studentSearch">Search</label><input id="studentSearch" placeholder="Student name or ID"></div><div><label for="studentStatusFilter">Status</label><select id="studentStatusFilter"><option value="all">All Students</option><option value="active">Active Only</option><option value="inactive">Disabled Only</option></select></div></div>
+          <div id="studentsMessage" class="message"></div>
+          <div class="tableWrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Default Restroom</th><th>Actions</th></tr></thead><tbody id="studentsBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="destinationsPanel" class="panel">
+        <div class="card">
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Master Destinations</h2><div class="muted">One canonical list for the entire school. Teachers only choose room availability and an optional Max Out override.</div></div><div class="actions"><button id="addDestinationButton" class="green">Add Destination</button><button id="refreshDestinations" class="gray">Refresh</button></div></div>
+          <div id="destinationsMessage" class="message"></div>
+          <div class="tableWrap"><table><thead><tr><th>Destination</th><th>Schoolwide</th><th>Hall Pass</th><th>Teacher Approval</th><th>Default Max Out</th><th>Sort</th><th>Actions</th></tr></thead><tbody id="destinationsBody"></tbody></table></div>
+          <div class="muted" style="margin-top:10px">Disable a destination instead of deleting it. Historical pass names remain unchanged.</div>
+        </div>
+      </section>
+
+      <section id="calendarPanel" class="panel">
+        <div class="card">
+          <div class="calendarAutoBar">
+            <div>
+              <h3>Automatic Calendar Scheduling — Entire School</h3>
+              <div class="muted">In Hall Pilot 1.15 Room Scheduling mode, use the Room Scheduling tab for special dates. This original calendar is preserved for rollback.</div>
+              <div class="muted">Default: On. Every room, including newly added rooms, follows the school calendar. Dates without an entry use Regular.</div>
+              <div class="muted">Off: All rooms use Regular unless a teacher overrides today's schedule.</div>
+            </div>
+            <label for="calendarAutoEnabled" class="calendarAutoToggle">
+              <span id="calendarAutoLabel">Loading…</span>
+              <input id="calendarAutoEnabled" type="checkbox" role="switch" aria-describedby="calendarAutoStatus" disabled>
+            </label>
+          </div>
+          <div class="muted" id="calendarAutoStatus" role="status" aria-live="polite" style="margin-top:9px">Loading school setting…</div>
+        </div>
+        <div class="card">
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">School Schedule Calendar</h2><div class="muted">Set a master schedule by date. Rooms follow this automatically unless a teacher overrides today's schedule.</div></div><button id="refreshCalendar" class="gray">Refresh</button></div>
+          <div class="formGrid" style="margin-top:12px"><div><label for="calendarDate">Date</label><input id="calendarDate" type="date"></div><div><label for="calendarSchedule">Schedule</label><select id="calendarSchedule"></select></div><div><label for="calendarNote">Note <span class="muted">(optional)</span></label><input id="calendarNote" maxlength="250" placeholder="Rally, testing, assembly..."></div><div><button id="saveCalendarEntry" class="green">Save Date</button></div></div>
+          <div id="calendarMessage" class="message"></div>
+        </div>
+
+        <div class="card">
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Repeat / Bulk Schedule Dates</h2><div class="muted">Quickly add every Wednesday, several weekdays, or a pasted list of one-off dates. Preview first; existing dates are never silently overwritten.</div></div></div>
+          <div class="formGrid" style="margin-top:12px">
+            <div><label for="bulkCalendarSchedule">Schedule</label><select id="bulkCalendarSchedule"></select></div>
+            <div><label for="bulkStartDate">Start Date</label><input id="bulkStartDate" type="date"></div>
+            <div><label for="bulkEndDate">End Date</label><input id="bulkEndDate" type="date"></div>
+            <div><label for="bulkConflictMode">If Date Already Exists</label><select id="bulkConflictMode"><option value="skip">Skip it</option><option value="replace">Replace it</option></select></div>
+          </div>
+          <div style="margin-top:12px"><label>Repeat On</label><div class="checkRow" id="bulkWeekdays"><label><input type="checkbox" value="1">Monday</label><label><input type="checkbox" value="2">Tuesday</label><label><input type="checkbox" value="3" checked>Wednesday</label><label><input type="checkbox" value="4">Thursday</label><label><input type="checkbox" value="5">Friday</label><label><input type="checkbox" value="6">Saturday</label><label><input type="checkbox" value="0">Sunday</label></div></div>
+          <div class="formGrid" style="margin-top:12px"><div><label for="bulkCalendarNote">Note <span class="muted">(optional)</span></label><input id="bulkCalendarNote" maxlength="250" placeholder="Minimum day, testing, assembly..."></div><div><button id="previewWeeklyCalendar" class="purple">Preview Repeating Dates</button></div></div>
+          <div style="margin:18px 0 8px;border-top:1px solid #ddd"></div>
+          <div class="formGrid"><div style="grid-column:span 2"><label for="bulkDateList">Or Add Multiple Specific Dates</label><textarea id="bulkDateList" placeholder="One per line or separated by commas, e.g.
+10/14/2026
+10/28/2026
+2026-11-04"></textarea><div class="muted">Accepts M/D/YYYY or YYYY-MM-DD.</div></div><div><button id="previewListedCalendar" class="purple">Preview Listed Dates</button></div></div>
+          <div id="bulkCalendarMessage" class="message"></div>
+          <div id="bulkCalendarPreviewWrap" class="hidden">
+            <div class="tableWrap"><table><thead><tr><th>Date</th><th>Day</th><th>Existing</th><th>New Schedule</th><th>Result</th></tr></thead><tbody id="bulkCalendarPreviewBody"></tbody></table></div>
+            <div class="actions" style="margin-top:12px"><button id="applyBulkCalendar" class="green">Apply This Batch</button><button id="clearBulkCalendar" class="gray">Clear Preview</button></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 style="margin-bottom:4px">Repeat Batches</h2><div class="muted" style="margin-bottom:10px">Dates created together can be removed together. Editing one date individually detaches that date from its batch.</div>
+          <div class="tableWrap"><table><thead><tr><th>Batch</th><th>Schedule</th><th>Date Range</th><th>Dates</th><th>Action</th></tr></thead><tbody id="calendarBatchBody"></tbody></table></div>
+        </div>
+
+        <div class="card">
+          <h2>Configured Calendar Dates</h2>
+          <div class="tableWrap"><table><thead><tr><th>Date</th><th>Schedule</th><th>Note</th><th>Batch</th><th>Actions</th></tr></thead><tbody id="calendarBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="securityPanel" class="panel">
+        <div class="card">
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">PIN Security</h2><div class="muted">PIN policy is organization-wide; teacher lockouts remain school-scoped. Organization Admins can change policy and clear organization-wide attempt records.</div></div><button id="refreshSecurity" class="gray">Refresh</button></div>
+          <div class="formGrid" style="margin-top:12px"><div><label for="pinMaxFailures">Attempts Before Lockout</label><input id="pinMaxFailures" type="number" min="3" max="10"></div><div><label for="pinWindowMinutes">Attempt Window (minutes)</label><input id="pinWindowMinutes" type="number" min="5" max="60"></div><div><label for="pinLockMinutes">Lockout Length (minutes)</label><input id="pinLockMinutes" type="number" min="1" max="120"></div><div><button id="saveSecurity" class="green">Save Security Settings</button></div></div>
+          <div id="securityMessage" class="message"></div>
+        </div>
+        <div class="card"><div class="sectionHead"><div><h2 style="margin-bottom:4px">PIN Attempts / Lockouts</h2><div class="muted">Fingerprints are hashed; raw IP addresses are not stored here.</div></div><button id="clearAllLockouts" class="red">Clear All Attempt Records</button></div><div class="tableWrap"><table><thead><tr><th>Scope</th><th>Client</th><th>Failures</th><th>Status</th><th>Updated</th><th>Action</th></tr></thead><tbody id="lockoutsBody"></tbody></table></div></div>
+      </section>
+
+      <section id="reportsPanel" class="panel">
+        <div class="card">
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Campus Reports</h2><div class="muted">Analyze hall-pass use across the school. Reports are generated on demand and stay behind the Admin login.</div></div><button id="refreshReportOptions" class="gray">Refresh Filters</button></div>
+          <div class="formGrid" style="margin-top:12px">
+            <div><label for="reportType">Report</label><select id="reportType"><option value="overview">Campus Overview</option><option value="students">Student Summary</option><option value="detail">Student Detail</option><option value="long">Long Passes</option><option value="frequent">Frequent Passes</option><option value="overrides">Teacher Overrides</option></select></div>
+            <div><label for="campusReportRoom">Room</label><select id="campusReportRoom"><option value="">All Rooms</option></select></div>
+            <div><label for="campusReportStudent">Student</label><select id="campusReportStudent"><option value="">All Students</option></select></div>
+            <div><label for="campusReportDestination">Destination</label><select id="campusReportDestination"><option value="">All Destinations</option></select></div>
+            <div><label for="campusReportStart">Start Date</label><input id="campusReportStart" type="date"></div>
+            <div><label for="campusReportEnd">End Date</label><input id="campusReportEnd" type="date"></div>
+            <div><label for="longPassMinutes">Long Pass ≥ minutes</label><input id="longPassMinutes" type="number" min="1" max="240" value="10"></div>
+            <div><label for="frequentPassCount">Frequent ≥ passes</label><input id="frequentPassCount" type="number" min="1" max="1000" value="5"></div>
+          </div>
+          <div class="checkRow" style="margin-top:12px"><label><input id="campusIncludeTestData" type="checkbox">Include test data</label></div>
+          <div class="actions" style="margin-top:12px"><button id="generateCampusReport" class="green">Generate Report</button><button id="downloadCampusReport" class="gray" disabled>Download Report CSV</button><button id="printCampusStudentDetail" class="gray hidden" disabled>Print Student Detail</button></div>
+          <div id="reportsMessage" class="message"></div>
+        </div>
+        <div id="campusReportResults" class="hidden">
+          <div id="campusReportDrillNav" class="reportDrillTrail hidden"><button id="campusReportBack" class="gray" type="button">← Back</button><span class="muted" id="campusReportTrail" aria-live="polite"></span></div>
+          <div id="campusReportStats" class="grid" style="margin-bottom:16px"></div>
+          <div class="card"><div class="sectionHead"><h2 id="campusReportTitle" style="margin:0">Report</h2><div id="campusReportMeta" class="muted"></div></div><div class="tableWrap"><table><thead id="campusReportHead"></thead><tbody id="campusReportBody"></tbody></table></div></div>
+          <div id="reportSecondaryWrap" class="card hidden"><h2 id="reportSecondaryTitle"></h2><div class="tableWrap"><table><thead id="reportSecondaryHead"></thead><tbody id="reportSecondaryBody"></tbody></table></div></div>
+        </div>
+
+        <div class="card">
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Backup & Export</h2><div class="muted">Exports never include PIN hashes, staff session hashes, rate-limit fingerprints, or Supabase secrets.</div></div></div>
+          <div class="actions" style="margin-top:12px"><button id="exportStudents" class="gray">Export Students CSV</button><button id="exportPasses" class="gray">Export Pass History CSV</button><button id="exportConfiguration" class="gray">Export Rooms / Teachers / Settings JSON</button><button id="exportAudit" class="gray">Export Audit Log CSV</button><button id="downloadFullBackup" class="purple">Download Full Backup JSON</button></div>
+          <div id="backupMessage" class="message"></div>
+        </div>
+      </section>
+
+      <section id="auditPanel" class="panel">
+        <div class="card">
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Admin Audit Log</h2><div class="muted">Recent room, teacher, schedule, and PIN-management changes. PIN values and session tokens are never logged.</div></div><button id="refreshAudit" class="gray">Refresh</button></div>
+          <div class="controls" style="margin-top:12px"><div><label for="auditRoomFilter">Room</label><select id="auditRoomFilter"><option value="">All Rooms</option></select></div><div><label for="auditSearch">Search</label><input id="auditSearch" placeholder="Action, teacher, room..."></div></div>
+          <div id="auditMessage" class="message"></div>
+          <div class="tableWrap"><table><thead><tr><th>When</th><th>Teacher/Admin</th><th>Room</th><th>Action</th><th>Details</th></tr></thead><tbody id="auditBody"></tbody></table></div>
+        </div>
+      </section>
+      <section id="orgPanel" class="panel">
+        <div class="card"><div class="sectionHead"><div><h2 style="margin-bottom:4px">Organization & Schools</h2><div class="muted">Schools are isolated data scopes inside the organization. Organization Admins can add or edit schools.</div></div><div class="actions"><button id="addSchoolButton" class="green">Add School</button><button id="refreshOrganization" class="gray">Refresh</button></div></div><div id="organizationMessage" class="message"></div><div style="margin:12px 0"><strong id="organizationPanelName">—</strong><div id="organizationPanelKey" class="muted"></div></div><div class="tableWrap"><table><thead><tr><th>School</th><th>Key</th><th>Timezone</th><th>Status</th><th>Actions</th></tr></thead><tbody id="schoolsBody"></tbody></table></div></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="studentModal" class="modalBackdrop hidden" aria-hidden="true"><div class="modal"><h2 id="studentModalTitle">Add Student</h2><input id="studentEditUuid" type="hidden"><div class="formGrid"><div><label for="studentIdInput">Student ID</label><input id="studentIdInput" autocomplete="off"></div><div><label for="studentNameInput">Student Name</label><input id="studentNameInput" autocomplete="off"></div><div><label for="studentActiveInput">Status</label><select id="studentActiveInput"><option value="true">Active</option><option value="false">Disabled</option></select></div><div><label for="studentRestroomInput">Default Restroom Access</label><select id="studentRestroomInput"><option value="true">Allowed</option><option value="false">Disabled</option></select></div></div><div id="studentModalMessage" class="message"></div><div class="modalActions"><button class="gray" data-close="studentModal">Cancel</button><button id="saveStudentButton">Save Student</button></div></div></div>
+
+  <div id="studentImportModal" class="modalBackdrop hidden" aria-hidden="true"><div class="modal" style="width:min(950px,100%)"><h2>Import Master Student List</h2><p class="muted">CSV columns: <strong>Student ID, Student Name</strong>. Quoted names containing commas are supported. Importing never deletes pass history.</p><div class="formGrid"><div><label for="studentCsvFile">CSV File</label><input id="studentCsvFile" type="file" accept=".csv,text/csv"></div><div><label for="disableMissingStudents">Students missing from this file</label><select id="disableMissingStudents"><option value="false">Leave unchanged</option><option value="true">Disable them</option></select></div></div><div style="margin-top:12px"><label for="studentCsvText">Or paste CSV</label><textarea id="studentCsvText" rows="8" style="width:100%;padding:10px;border:2px solid #bbb;border-radius:7px;font:14px monospace" placeholder="Student ID,Student Name
+123456,Jane Smith"></textarea></div><div class="actions" style="margin-top:10px"><button id="previewStudentImport" class="purple">Preview Import</button></div><div id="studentImportMessage" class="message"></div><div id="studentImportPreview" class="hidden"><div id="studentImportSummary" class="grid" style="margin:10px 0"></div><div class="tableWrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Result</th></tr></thead><tbody id="studentImportBody"></tbody></table></div></div><div class="modalActions"><button class="gray" data-close="studentImportModal">Cancel</button><button id="confirmStudentImport" class="green" disabled>Import Students</button></div></div></div>
+
+  <div id="onboardingModal" class="modalBackdrop hidden" aria-hidden="true">
+    <div class="modal wizardModal">
+      <h2>Onboard a Room</h2>
+      <div class="muted" style="margin-bottom:10px">Create the room, assign a teacher, copy a working configuration, choose room destinations, and review everything before it is saved.</div>
+      <div class="wizardProgress">
+        <div data-onboard-progress="1">1. Room</div><div data-onboard-progress="2">2. Teacher</div><div data-onboard-progress="3">3. Defaults</div><div data-onboard-progress="4">4. Destinations</div><div data-onboard-progress="5">5. Review</div>
+      </div>
+
+      <section class="wizardStep" data-onboard-step="1">
+        <h3>Room</h3>
+        <div class="formGrid">
+          <div><label for="onboardRoomName">Room Name</label><input id="onboardRoomName" placeholder="D5"></div>
+          <div><label for="onboardRoomKey">Room Key</label><input id="onboardRoomKey" placeholder="d5"><div class="muted">Used in the room URLs.</div></div>
+          <div><label for="onboardTimezone">Timezone</label><input id="onboardTimezone" value="America/Los_Angeles"></div>
+        </div>
+      </section>
+
+      <section class="wizardStep" data-onboard-step="2">
+        <h3>Teacher</h3>
+        <div class="wizardChoice">
+          <label><input type="radio" name="onboardTeacherMode" value="new" checked> Create a new teacher</label>
+          <label><input type="radio" name="onboardTeacherMode" value="existing"> Assign an existing teacher</label>
+        </div>
+        <div id="onboardNewTeacherFields">
+          <div class="formGrid">
+            <div><label for="onboardTeacherName">Teacher Name</label><input id="onboardTeacherName" placeholder="Teacher name"></div>
+            <div><label for="onboardTeacherEmail">Email <span class="muted">(optional)</span></label><input id="onboardTeacherEmail" type="email"></div>
+            <div><label for="onboardTeacherPin">PIN</label><input id="onboardTeacherPin" type="password" inputmode="numeric" placeholder="4–10 digits"></div>
+            <div><label for="onboardTeacherPinConfirm">Confirm PIN</label><input id="onboardTeacherPinConfirm" type="password" inputmode="numeric" placeholder="Repeat PIN"></div>
+          </div>
+        </div>
+        <div id="onboardExistingTeacherFields" class="hidden">
+          <div class="formGrid">
+            <div><label for="onboardExistingTeacher">Existing Teacher</label><select id="onboardExistingTeacher"><option value="">Choose teacher</option></select></div>
+            <div><label for="onboardExistingPin">Reset PIN <span class="muted">(optional)</span></label><input id="onboardExistingPin" type="password" inputmode="numeric" placeholder="Leave blank to keep current PIN"></div>
+            <div><label for="onboardExistingPinConfirm">Confirm New PIN</label><input id="onboardExistingPinConfirm" type="password" inputmode="numeric" placeholder="Only if resetting PIN"></div>
+          </div>
+          <div class="muted" style="margin-top:8px">The teacher keeps all existing room assignments. This room is added to them.</div>
+        </div>
+      </section>
+
+      <section class="wizardStep" data-onboard-step="3">
+        <h3>Starting Configuration</h3>
+        <div class="formGrid">
+          <div><label for="onboardCloneRoom">Copy settings and room destination choices from</label><select id="onboardCloneRoom"><option value="">School defaults</option></select></div>
+        </div>
+        <div class="wizardHint">Cloning copies room settings and the two room-level destination choices. It does not copy students, pass history, teachers, or bell schedules.</div>
+        <div id="onboardCloneMessage" class="message"></div>
+      </section>
+
+      <section class="wizardStep" data-onboard-step="4">
+        <h3>Room Destinations</h3>
+        <div class="muted" style="margin-bottom:8px">These start from the room you selected above. Change only what should be different in the new room.</div>
+        <div class="tableWrap"><table class="wizardDestinationTable"><thead><tr><th>Destination</th><th>Schoolwide</th><th>Enabled in Room</th><th>Default Max Out</th><th>Max Out Override</th></tr></thead><tbody id="onboardDestinationsBody"></tbody></table></div>
+        <div id="onboardDestinationMessage" class="message"></div>
+      </section>
+
+      <section class="wizardStep" data-onboard-step="5">
+        <h3>Review</h3>
+        <div id="onboardReview" class="wizardReview"></div>
+      </section>
+
+      <div id="onboardingMessage" class="message"></div>
+      <div class="modalActions">
+        <button class="gray" data-close="onboardingModal">Cancel</button>
+        <button id="onboardBackButton" class="gray">Back</button>
+        <button id="onboardNextButton">Next</button>
+        <button id="onboardCreateButton" class="green hidden">Create Room</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="roomLinksModal" class="modalBackdrop hidden" aria-hidden="true">
+    <div class="modal" style="width:min(820px,100%)">
+      <h2 id="roomLinksTitle">Room Links</h2>
+      <div id="roomLinksTeacherSummary" class="muted"></div>
+      <input id="roomLinksRoomId" type="hidden">
+      <div class="roomLinkGrid">
+        <div class="roomLinkCard">
+          <label for="roomStudentLink">Student Hall Pass</label>
+          <div class="roomLinkRow"><input id="roomStudentLink" readonly><button id="copyStudentLink" class="small">Copy</button><button id="openStudentLink" class="small gray">Open</button></div>
+        </div>
+        <div class="roomLinkCard">
+          <label for="roomTeacherLink">Teacher Control Panel</label>
+          <div class="roomLinkRow"><input id="roomTeacherLink" readonly><button id="copyTeacherLink" class="small">Copy</button><button id="openTeacherLink" class="small gray">Open</button></div>
+        </div>
+      </div>
+      <h3 style="margin:18px 0 5px">Setup Message</h3>
+      <div class="muted">Ready to paste into email, text, or staff chat.</div>
+      <div id="roomSetupMessagePreview" class="setupMessagePreview"></div>
+      <div class="actions" style="margin-top:10px"><button id="copySetupMessage" class="purple">Copy Setup Message</button></div>
+      <h3 style="margin:20px 0 5px">Email Assigned Teacher</h3>
+      <div id="roomTeacherEmails"></div>
+      <div id="roomLinksMessage" class="message"></div>
+      <div class="modalActions"><button class="gray" data-close="roomLinksModal">Done</button></div>
+    </div>
+  </div>
+
+  <div id="schoolModal" class="modalBackdrop hidden" aria-hidden="true"><div class="modal"><h2 id="schoolModalTitle">Add School</h2><input id="schoolEditId" type="hidden"><div class="formGrid"><div><label for="schoolNameInput">School Name</label><input id="schoolNameInput" placeholder="Westfield Village Elementary School"></div><div><label for="schoolKeyInput">School Key</label><input id="schoolKeyInput" placeholder="westfield"><div class="muted">Permanent URL key; unique only within this organization. Different organizations may each use westfield.</div></div><div><label for="schoolTimezoneInput">Timezone</label><input id="schoolTimezoneInput" value="America/Los_Angeles"></div><div><label for="schoolActiveInput">Status</label><select id="schoolActiveInput"><option value="true">Active</option><option value="false">Disabled</option></select></div><div id="schoolCopyDefaultsWrap"><label for="schoolCopyDefaultsInput">Starting Configuration</label><select id="schoolCopyDefaultsInput"><option value="false">Start blank</option><option value="true">Copy destinations & schedules from current school</option></select></div></div><div id="schoolModalMessage" class="message"></div><div class="modalActions"><button class="gray" data-close="schoolModal">Cancel</button><button id="saveSchoolButton">Save School</button></div></div></div>
+
+  <div id="destinationModal" class="modalBackdrop hidden" aria-hidden="true"><div class="modal"><h2 id="destinationModalTitle">Add Destination</h2><input id="destinationEditId" type="hidden"><div class="formGrid"><div><label for="destinationNameInput">Destination Name</label><input id="destinationNameInput" autocomplete="off" placeholder="Nurse"></div><div><label for="destinationEnabledInput">Schoolwide Status</label><select id="destinationEnabledInput"><option value="true">Enabled</option><option value="false">Disabled</option></select></div><div><label for="destinationHallPassInput">Counts as Hall Pass</label><select id="destinationHallPassInput"><option value="true">Yes</option><option value="false">No</option></select></div><div><label for="destinationApprovalInput">Teacher Approval Required</label><select id="destinationApprovalInput"><option value="false">No</option><option value="true">Yes</option></select></div><div><label for="destinationDefaultMaxInput">Default Max Out <span class="muted">(0 = no limit)</span></label><input id="destinationDefaultMaxInput" type="number" min="0" value="0"></div><div><label for="destinationSortInput">Sort Order</label><input id="destinationSortInput" type="number" min="0" value="0"></div></div><div id="destinationModalMessage" class="message"></div><div class="modalActions"><button class="gray" data-close="destinationModal">Cancel</button><button id="saveDestinationButton">Save Destination</button></div></div></div>
+
+  <div id="roomModal" class="modalBackdrop hidden" aria-hidden="true"><div class="modal"><h2 id="roomModalTitle">Add Room</h2><input id="roomEditId" type="hidden"><div class="formGrid"><div><label for="roomKeyInput">Room Key</label><input id="roomKeyInput" placeholder="d1"><div class="muted">Permanent URL key; unique only within this school. Different schools may each use d4.</div></div><div><label for="roomNameInput">Room Name</label><input id="roomNameInput" placeholder="D1"></div><div><label for="roomTimezoneInput">Timezone</label><input id="roomTimezoneInput" value="America/Los_Angeles"></div><div><label for="roomActiveInput">Status</label><select id="roomActiveInput"><option value="true">Active</option><option value="false">Disabled</option></select></div></div><div style="margin-top:12px"><label>Assigned Teachers</label><div id="roomTeacherChecks" class="roomChecks"></div></div><div id="cloneWrap" style="margin-top:12px"><label for="cloneRoomSelect">Start with settings/destinations from</label><select id="cloneRoomSelect"><option value="">Blank defaults</option></select></div><div id="roomEditCloneWrap" class="hidden" style="margin-top:12px"><label for="editCloneRoomSelect">Replace this room's settings/destinations with a copy from</label><select id="editCloneRoomSelect"><option value="">Do not copy</option></select><div class="muted">This replaces room settings and destinations, but not the master bell schedule, students, or pass history.</div></div><div id="roomModalMessage" class="message"></div><div class="modalActions"><button class="gray" data-close="roomModal">Cancel</button><button id="saveRoomButton">Save Room</button></div></div></div>
+
+  <div id="scheduleModal" class="modalBackdrop hidden" aria-hidden="true"><div class="modal"><h2 id="scheduleModalTitle">Add Master Schedule Row</h2><input id="scheduleEditId" type="hidden"><div class="formGrid"><div><label for="scheduleNameInput">Schedule Name</label><input id="scheduleNameInput" placeholder="Regular"></div><div><label for="schedulePeriodInput">Period</label><input id="schedulePeriodInput" placeholder="1"></div><div><label for="scheduleStartInput">Start</label><input id="scheduleStartInput" type="time"></div><div><label for="scheduleEndInput">End</label><input id="scheduleEndInput" type="time"></div></div><div id="scheduleModalMessage" class="message"></div><div class="modalActions"><button class="gray" data-close="scheduleModal">Cancel</button><button id="saveScheduleButton">Save Schedule Row</button></div></div></div>
+
+  <div id="teacherModal" class="modalBackdrop hidden" aria-hidden="true"><div class="modal"><h2 id="teacherModalTitle">Add Teacher</h2><input id="teacherEditId" type="hidden"><div class="formGrid"><div><label for="teacherNameInput">Teacher Name</label><input id="teacherNameInput" placeholder="Last name or display name"></div><div><label for="teacherEmailInput">Email <span class="muted">(optional)</span></label><input id="teacherEmailInput" type="email"></div><div><label for="teacherRoleInput">Organization Role</label><select id="teacherRoleInput"><option value="teacher">Teacher</option><option value="admin">Organization Admin</option></select></div><div><label for="teacherSchoolAdminInput">This School</label><select id="teacherSchoolAdminInput"><option value="false">Teacher access</option><option value="true">School Admin</option></select></div><div><label for="teacherActiveInput">Status</label><select id="teacherActiveInput"><option value="true">Active</option><option value="false">Disabled</option></select></div><div><label for="teacherPinInput">PIN</label><input id="teacherPinInput" type="password" inputmode="numeric" placeholder="4–10 digits"><div id="pinHint" class="muted">Required for a new teacher.</div></div></div><div style="margin-top:12px"><label>Assigned Rooms</label><div id="teacherRoomChecks" class="roomChecks"></div></div><div id="teacherModalMessage" class="message"></div><div class="modalActions"><button class="gray" data-close="teacherModal">Cancel</button><button id="saveTeacherButton">Save Teacher</button></div></div></div>
+
+  <script src="config.js"></script><script src="api-shim.js"></script><script src="branding.js" defer></script>
+
+  <script>
+  /* Hall Pass: student name / ID type-ahead. Page-local, zero backend changes. */
+  window.HallPassStudentAutocomplete = (function () {
+    const controls = new Map();
+    const LIMIT = 8;
+    function normalize(v) { return String(v == null ? '' : v).toLocaleLowerCase().trim(); }
+    function makeList(input) {
+      const list = document.createElement('div');
+      list.className = 'hpStudentOptions';
+      list.id = input.id + '-options';
+      list.setAttribute('role', 'listbox');
+      list.hidden = true;
+      input.setAttribute('role', 'combobox');
+      input.setAttribute('aria-autocomplete', 'list');
+      input.setAttribute('aria-controls', list.id);
+      input.setAttribute('aria-expanded', 'false');
+      input.parentNode.appendChild(list);
+      return list;
+    }
+    function install(input, list, getRows, onPick, clearValue) {
+      let matches = [], active = -1;
+      function close() {
+        list.hidden = true;
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
+        active = -1;
+      }
+      function markActive(index) {
+        const items = Array.from(list.querySelectorAll('.hpStudentOption'));
+        if (!items.length) return;
+        active = (index + items.length) % items.length;
+        items.forEach((element, i) => {
+          element.classList.toggle('hpFocused', i === active);
+          element.setAttribute('aria-selected', i === active ? 'true' : 'false');
+        });
+        input.setAttribute('aria-activedescendant', items[active].id);
+        items[active].scrollIntoView({block:'nearest'});
+      }
+      function choose(index) {
+        if (!matches[index]) return;
+        onPick(matches[index]);
+        close();
+      }
+      function update(showWhenEmpty) {
+        const q = normalize(input.value);
+        list.replaceChildren();
+        matches = [];
+        if (!q && !showWhenEmpty) { close(); return; }
+        const rows = getRows();
+        const candidates = rows.filter(row => !q || normalize(row.label).includes(q) || normalize(row.id).includes(q));
+        matches = candidates.slice(0, LIMIT);
+        matches.forEach((row, i) => {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'hpStudentOption';
+          item.id = list.id + '-item-' + i;
+          item.setAttribute('role', 'option');
+          item.setAttribute('aria-selected', 'false');
+          item.textContent = row.label;
+          item.addEventListener('mousedown', e => e.preventDefault());
+          item.addEventListener('click', () => choose(i));
+          list.appendChild(item);
+        });
+        const note = document.createElement('div');
+        note.className = 'hpStudentNote';
+        if (!rows.length) note.textContent = 'Student roster not loaded.';
+        else if (!candidates.length) note.textContent = 'No matching students.';
+        else if (candidates.length > LIMIT) note.textContent = 'Keep typing to narrow the results.';
+        if (note.textContent) list.appendChild(note);
+        list.hidden = false;
+        input.setAttribute('aria-expanded', 'true');
+        input.removeAttribute('aria-activedescendant');
+        active = -1;
+      }
+      input.addEventListener('input', () => { clearValue(); update(false); });
+      input.addEventListener('focus', () => { if (input.value) input.select(); update(false); });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (list.hidden) update(true);
+          if (matches.length) markActive(active < 0 ? (e.key === 'ArrowDown' ? 0 : matches.length - 1) : active + (e.key === 'ArrowDown' ? 1 : -1));
+        } else if (e.key === 'Enter' && !list.hidden && matches.length && active >= 0) {
+          e.preventDefault(); e.stopPropagation(); choose(active);
+        } else if (e.key === 'Escape' && !list.hidden) {
+          e.preventDefault(); close();
+        }
+      });
+      input.addEventListener('blur', () => setTimeout(close, 130));
+      return {update, close};
+    }
+    function enhanceSelect(id, hint, allowBlank) {
+      if (controls.has(id)) return controls.get(id);
+      const select = document.getElementById(id);
+      if (!select) return null;
+      const parent = document.createElement('div');
+      parent.className = 'hpStudentPicker';
+      select.parentNode.insertBefore(parent, select);
+      parent.appendChild(select);
+      select.classList.add('hpStudentPickerNative');
+      const input = document.createElement('input');
+      input.id = id + '-autocomplete';
+      input.type = 'text';
+      input.autocomplete = 'off';
+      input.placeholder = hint || 'Start typing student name or ID';
+      input.setAttribute('aria-label', hint || 'Find student');
+      parent.appendChild(input);
+      document.querySelectorAll('label[for="' + id + '"]').forEach(label => label.htmlFor = input.id);
+      const list = makeList(input);
+      function rows() {
+        return Array.from(select.options).filter(opt => (allowBlank || opt.value !== '')).map(opt => ({id:opt.value, label:opt.textContent.trim()}));
+      }
+      function sync() {
+        const chosen = select.selectedOptions[0];
+        input.value = select.value && chosen ? chosen.textContent.trim() : '';
+        control.close();
+      }
+      const control = install(input, list, rows, row => {
+        select.value = row.id;
+        input.value = row.id ? row.label : '';
+        select.dispatchEvent(new Event('change', {bubbles:true}));
+      }, () => { select.value = ''; });
+      select.addEventListener('change', sync);
+      const api = {refresh:sync, input, select};
+      controls.set(id, api);
+      sync();
+      return api;
+    }
+    function enhanceTextSearch(id, getStudents, onPick) {
+      if (controls.has(id)) return controls.get(id);
+      const input = document.getElementById(id);
+      if (!input) return null;
+      const parent = document.createElement('div');
+      parent.className = 'hpStudentHints';
+      input.parentNode.insertBefore(parent, input);
+      parent.appendChild(input);
+      const list = makeList(input);
+      const control = install(input, list, () => {
+        const rows = getStudents() || [];
+        return rows.map(s => ({id:String(s.studentId ?? s.id ?? ''), label:String(s.name ?? s.studentName ?? '') + ' (' + String(s.studentId ?? s.id ?? '') + ')'})).filter(s => s.id);
+      }, row => {
+        input.value = row.id; // Search by exact ID to distinguish students with the same name.
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+        if (onPick) onPick(row);
+      }, () => {});
+      const api = {refresh:() => { if (document.activeElement === input && input.value) control.update(false); }, input};
+      controls.set(id, api);
+      return api;
+    }
+    return {enhanceSelect, enhanceTextSearch, refresh(id) {const control = controls.get(id); if (control) control.refresh();}};
+  })();
+  </script>
+
+  <script>
+    let rsState=null,rsPreviewData=null;
+    let unlocked=false,lastState=null,management={rooms:[],teachers:[]},destinationsState={rows:[]},reportOptions=null,currentCampusReport=null,reportSortState={main:null,secondary:null},campusDrillStack=[],campusReportRequestId=0,bulkCalendarPreview=null,onboardingStep=1,onboardingDestinations=[],adminAccess={organization:null,schools:[],selectedSchool:null,organizationAdmin:false},organizationState={schools:[]};
+    window.HALLPASS_ADMIN_BUILD='1.15.0-dev';
+    const $=id=>document.getElementById(id); const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    function fmt(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString([], {month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'});} function elapsed(v){const ms=Date.now()-new Date(v).getTime();if(!Number.isFinite(ms))return '—';const m=Math.max(0,Math.floor(ms/60000));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0');}
+    function setMsg(id,t,e=false){const x=$(id);x.textContent=t||'';x.className='message'+(e?' error':(t?' success':''));}
+    function siteBase(){return location.href.split('#')[0].split('?')[0].replace(/admin\.html$/,'');}
+    function currentOrgKey(){return adminAccess.organization?.key||hallpassApi.organizationKey||''} function currentSchoolKey(){return adminAccess.selectedSchool?.key||hallpassApi.schoolKey||''}
+    function scopedQuery(key){const p=new URLSearchParams();if(currentOrgKey())p.set('org',currentOrgKey());if(currentSchoolKey())p.set('school',currentSchoolKey());if(key)p.set('room',key);return p.toString()}
+    function studentUrl(key){return siteBase()+'?'+scopedQuery(key)} function teacherUrl(key){return siteBase()+'teacher.html?'+scopedQuery(key)}
+    function updateHallpassAdminTitle(){
+      const school=String(currentSchoolKey()||'').trim().replace(/[_-]+/g,' ').replace(/\b[a-z]/g,c=>c.toUpperCase());
+      document.title='Hall Pilot Admin' + (school ? ' - ' + school : '');
+    }
+    function applyAdminContext(r){if(r?.organization)adminAccess.organization=r.organization;if(Array.isArray(r?.schools))adminAccess.schools=r.schools;if(r?.selectedSchool)adminAccess.selectedSchool=r.selectedSchool;if(typeof r?.organizationAdmin==='boolean')adminAccess.organizationAdmin=r.organizationAdmin;const org=adminAccess.organization;$('organizationLabel').textContent=org?`${org.name} (${org.key})`:'—';const select=$('schoolSelector');if(select){const selected=currentSchoolKey();const activeSchools=(adminAccess.schools||[]).filter(x=>x.active!==false);select.innerHTML=activeSchools.map(x=>`<option value="${esc(x.key)}">${esc(x.name)}</option>`).join('');if(selected&&[...select.options].some(o=>o.value===selected))select.value=selected;else if(activeSchools.length){select.value=activeSchools[0].key;}}if(org){$('organizationPanelName').textContent=org.name;$('organizationPanelKey').textContent='Organization key: '+org.key;}const add=$('addSchoolButton');if(add)add.classList.toggle('hidden',adminAccess.organizationAdmin!==true);updateHallpassAdminTitle();if(window.HallPilotBranding){window.HallPilotBranding.render({organizationKey:currentOrgKey(),schoolKey:currentSchoolKey(),schoolName:adminAccess.selectedSchool?.name||''})}}
+    function setSchoolInUrl(key){const url=new URL(location.href);if(currentOrgKey())url.searchParams.set('org',currentOrgKey());else url.searchParams.delete('org');if(key)url.searchParams.set('school',key);else url.searchParams.delete('school');url.searchParams.delete('room');history.replaceState(null,'',url);updateHallpassAdminTitle();if(window.HallPilotBranding){window.HallPilotBranding.render({organizationKey:currentOrgKey(),schoolKey:key,schoolName:adminAccess.selectedSchool?.name||''})}}
+    function teachersForRoom(room){return management.teachers.filter(t=>(room?.teacherIds||[]).includes(t.id))}
+    function setupMessageForRoom(room){return `${adminAccess.organization?.name||'Hall Pass'}
+${adminAccess.selectedSchool?.name||'School'} — ${room.room}
+
+Student Hall Pass:
+${studentUrl(room.key)}
+
+Teacher Control Panel:
+${teacherUrl(room.key)}
+
+Please bookmark the Teacher Control Panel on your classroom computer. The Student Hall Pass link is the page students should use.`}
+    async function copyTextValue(text,message='Copied.') {try{if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(text);else throw new Error('fallback')}catch(e){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();const ok=document.execCommand('copy');ta.remove();if(!ok)throw new Error('Could not copy to clipboard.')}setMsg('roomLinksMessage',message)}
+    function openRoomLinks(roomId){const room=management.rooms.find(r=>r.id===roomId);if(!room){setMsg('manageMessage','Room links could not be loaded.',true);return}$('roomLinksRoomId').value=room.id;$('roomLinksTitle').textContent=`Room Links — ${room.room}`;$('roomStudentLink').value=studentUrl(room.key);$('roomTeacherLink').value=teacherUrl(room.key);const teachers=teachersForRoom(room);$('roomLinksTeacherSummary').textContent=teachers.length?`Assigned to ${teachers.map(t=>t.name).join(', ')}`:'No teacher is currently assigned to this room.';$('roomSetupMessagePreview').textContent=setupMessageForRoom(room);$('roomTeacherEmails').innerHTML=teachers.length?teachers.map(t=>`<div class="teacherEmailRow"><div class="teacherEmailIdentity"><strong>${esc(t.name)}</strong><span>${t.email?esc(t.email):'No email address on file'}</span></div>${t.email?`<button class="small green" data-email-room-teacher="${esc(t.id)}">Email Teacher</button>`:`<button class="small gray" data-edit-teacher-from-links="${esc(t.id)}">Add Email</button>`}</div>`).join(''):'<div class="muted" style="padding:10px 0">Assign a teacher to this room before sending a setup email.</div>';setMsg('roomLinksMessage','');showModal('roomLinksModal')}
+    function currentLinksRoom(){return management.rooms.find(r=>r.id===$('roomLinksRoomId').value)||null}
+    function emailRoomTeacher(teacherId){const room=currentLinksRoom(),teacher=management.teachers.find(t=>t.id===teacherId);if(!room||!teacher||!teacher.email){setMsg('roomLinksMessage','That teacher does not have an email address on file.',true);return}const subject=`${adminAccess.selectedSchool?.name||'Hall Pass'} — ${room.room}`,body=`Hi ${teacher.name},\n\n${setupMessageForRoom(room)}\n\nThank you.`;window.location.href=`mailto:${teacher.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`}
+    async function login(){const pin=$('adminPin').value.trim(),b=$('loginButton');if(!pin){setMsg('loginMessage','Enter the Admin PIN.',true);return;}b.disabled=true;b.textContent='UNLOCKING...';try{const r=await hallpassApi.call('adminLogin',[pin]);if(!r.success){setMsg('loginMessage',r.message,true);return;}unlocked=true;applyAdminContext(r);if(r.selectedSchool?.key&&!hallpassApi.schoolKey)setSchoolInUrl(r.selectedSchool.key);$('loginCard').classList.add('hidden');$('dashboard').classList.remove('hidden');$('adminName').textContent=r.admin.name;await Promise.all([refreshLive(),refreshManagement()]);}catch(e){setMsg('loginMessage',e.message,true)}finally{b.disabled=false;b.textContent='Unlock Campus Dashboard'}}
+    async function refreshLive(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('message','Refreshing...');try{const r=await hallpassApi.call('adminState',[$('roomFilter').value,$('search').value.trim()]);if(!r.success){setMsg('message',r.message,true);return;}lastState=r;applyAdminContext(r);renderLive(r);setMsg('message','Updated.')}catch(e){setMsg('message',e.message,true)}finally{if(button)button.disabled=false}}
+    function renderLive(r){$('statRooms').textContent=r.campusStats.activeRooms;$('statOut').textContent=r.campusStats.out;$('statWaiting').textContent=r.campusStats.waiting;const campusButton=$('campusLockButton');if(campusButton){campusButton.textContent=r.campusEmergencyLock?'Campus Lock: ON':'Campus Lock: OFF';campusButton.classList.toggle('green',r.campusEmergencyLock);campusButton.classList.toggle('red',!r.campusEmergencyLock);}const sel=$('roomFilter'),cur=sel.value;sel.innerHTML='<option value="">All Rooms</option>'+r.rooms.map(x=>`<option value="${esc(x.key)}">${esc(x.room)}${x.emergencyLock?' — LOCKED':''}</option>`).join('');sel.value=cur;
+      $('outBody').innerHTML=r.out.length?r.out.map(x=>`<tr><td><span class="roomTag">${esc(x.roomKey.toUpperCase())}</span></td><td>${esc(x.name)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${fmt(x.leaveTime)}</td><td data-left="${esc(x.leaveTime)}">${elapsed(x.leaveTime)}</td></tr>`).join(''):'<tr><td colspan="5">No students currently out.</td></tr>';
+      $('waitingBody').innerHTML=r.waiting.length?r.waiting.map(x=>`<tr><td><span class="roomTag">${esc(x.roomKey.toUpperCase())}</span></td><td>${esc(x.name)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${fmt(x.requested)}</td></tr>`).join(''):'<tr><td colspan="4">No students waiting.</td></tr>';
+      $('historyBody').innerHTML=r.history.length?r.history.map(x=>`<tr><td><span class="roomTag">${esc(x.roomKey.toUpperCase())}</span></td><td>${esc(x.name)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${fmt(x.left)}</td><td>${fmt(x.returned)}</td><td>${esc(x.statusNote||'')}</td></tr>`).join(''):'<tr><td colspan="6">No matching pass history.</td></tr>';}
+    async function refreshManagement(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('manageMessage','Refreshing...');try{const r=await hallpassApi.call('adminManagementState',[]);if(!r.success){setMsg('manageMessage',r.message,true);return;}management=r;applyAdminContext(r);renderManagement();refreshAuditRoomFilter();setMsg('manageMessage','Updated.')}catch(e){setMsg('manageMessage',e.message,true)}finally{if(button)button.disabled=false}}
+    function assignmentTeachers(){return adminAccess.organizationAdmin===true?(management.organizationTeachers||management.teachers||[]):(management.teachers||[])} function teacherNames(ids){const pool=[...(management.teachers||[]),...(management.organizationTeachers||[])];return (ids||[]).map(id=>pool.find(t=>t.id===id)?.name).filter(Boolean).join(', ')||'—'} function roomNames(ids){return (ids||[]).map(id=>management.rooms.find(r=>r.id===id)?.room).filter(Boolean).join(', ')||'—'}
+    function renderManagement(){$('roomsBody').innerHTML=management.rooms.length?management.rooms.map(r=>`<tr class="${r.active?'':'inactive'}"><td><strong>${esc(r.room)}</strong>${r.emergencyLock?'<div class="lock">Emergency Lock</div>':''}</td><td>${esc(r.key)}</td><td>${esc(teacherNames(r.teacherIds))}</td><td>${r.active?'Active':'Disabled'}</td><td><a href="${esc(studentUrl(r.key))}" target="_blank">Student</a></td><td><a href="${esc(teacherUrl(r.key))}" target="_blank">Teacher</a></td><td><div class="actions"><button class="small purple" data-room-links="${esc(r.id)}">Links</button><button class="small" data-edit-room="${esc(r.id)}">Edit</button><button class="small red" data-delete-room="${esc(r.id)}">Delete</button></div></td></tr>`).join(''):'<tr><td colspan="7">No rooms.</td></tr>';
+      $('teachersBody').innerHTML=management.teachers.length?management.teachers.map(t=>`<tr class="${t.active?'':'inactive'}"><td><strong>${esc(t.name)}</strong></td><td>${esc(t.email||'—')}</td><td>${t.role==='admin'?'Organization Admin':(t.schoolAdmin?'School Admin':'Teacher')}</td><td>${esc(roomNames(t.roomIds))}</td><td>${t.active?'Active':'Disabled'}</td><td>${adminAccess.organizationAdmin===true||(t.role!=='admin'&&!t.schoolAdmin)?`<button class="small" data-edit-teacher="${esc(t.id)}">Edit</button>`:'—'}</td></tr>`).join(''):'<tr><td colspan="6">No teachers.</td></tr>'; renderMasterSchedules();}
+    function renderMasterSchedules(){const rows=(management&&management.masterSchedules)||[];$('masterScheduleBody').innerHTML=rows.length?rows.map(x=>`<tr><td><strong>${esc(x.schedule)}</strong></td><td>${esc(x.period)}</td><td>${esc(x.startTime)}</td><td>${esc(x.endTime)}</td><td><div class="actions"><button class="small" data-edit-schedule="${esc(x.id)}">Edit</button><button class="small red" data-delete-schedule="${esc(x.id)}">Delete</button></div></td></tr>`).join(''):'<tr><td colspan="5">No master schedule rows.</td></tr>'}
+    function openSchedule(id=''){const row=((management&&management.masterSchedules)||[]).find(x=>String(x.id)===String(id));$('scheduleEditId').value=row?.id||'';$('scheduleModalTitle').textContent=row?'Edit Master Schedule Row':'Add Master Schedule Row';$('scheduleNameInput').value=row?.schedule||'';$('schedulePeriodInput').value=row?.period||'';$('scheduleStartInput').value=row?.startTime||'';$('scheduleEndInput').value=row?.endTime||'';setMsg('scheduleModalMessage','');showModal('scheduleModal')}
+    async function saveSchedule(){const b=$('saveScheduleButton'),data={id:$('scheduleEditId').value?Number($('scheduleEditId').value):null,schedule:$('scheduleNameInput').value.trim(),period:$('schedulePeriodInput').value.trim(),startTime:$('scheduleStartInput').value,endTime:$('scheduleEndInput').value};b.disabled=true;setMsg('scheduleModalMessage','Saving...');try{const r=await hallpassApi.call('adminSaveMasterSchedule',[data]);if(!r.success){setMsg('scheduleModalMessage',r.message,true);return;}hideModal('scheduleModal');await refreshManagement();setMsg('scheduleMessage',r.message)}catch(e){setMsg('scheduleModalMessage',e.message,true)}finally{b.disabled=false}}
+    async function deleteSchedule(id){if(!window.confirm('Delete this schedule row?'))return;setMsg('scheduleMessage','Deleting...');try{const r=await hallpassApi.call('adminDeleteMasterSchedule',[Number(id)]);if(!r.success){setMsg('scheduleMessage',r.message,true);return;}await refreshManagement();setMsg('scheduleMessage',r.message)}catch(e){setMsg('scheduleMessage',e.message,true)}}
+
+
+    async function setCampusLock(){const turnOn=!(lastState&&lastState.campusEmergencyLock);if(turnOn&&!window.confirm('Lock every room at this school?\nNew passes stop; waiting lists clear.'))return;const b=$('campusLockButton');b.disabled=true;setMsg('campusLockMessage',turnOn?'Locking campus...':'Unlocking campus...');try{const r=await hallpassApi.call('adminSetCampusLock',[turnOn]);if(!r.success){setMsg('campusLockMessage',r.message,true);return;}await Promise.all([refreshLive(),refreshSecurity()]);setMsg('campusLockMessage',r.message)}catch(e){setMsg('campusLockMessage',e.message,true)}finally{b.disabled=false}}
+
+    async function refreshStudents(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('studentsMessage','Refreshing...');try{const r=await hallpassApi.call('adminStudentsState',[{includeInactive:true}]);if(!r.success){setMsg('studentsMessage',r.message,true);return;}studentsState=r;renderStudents();HallPassStudentAutocomplete.refresh('studentSearch');HallPassStudentAutocomplete.refresh('search');setMsg('studentsMessage',`${r.rows.length} students loaded.`)}catch(e){setMsg('studentsMessage',e.message,true)}finally{if(button)button.disabled=false}}
+    function visibleStudents(){const term=$('studentSearch').value.trim().toLowerCase(),status=$('studentStatusFilter').value;return (studentsState.rows||[]).filter(x=>(status==='all'||(status==='active'&&x.active)||(status==='inactive'&&!x.active))&&(!term||(`${x.studentId} ${x.name}`).toLowerCase().includes(term)))}
+    function renderStudents(){const rows=visibleStudents();$('studentsBody').innerHTML=rows.length?rows.map(x=>`<tr class="${x.active?'':'inactive'}"><td>${esc(x.studentId)}</td><td><strong>${esc(x.name)}</strong></td><td>${x.active?'Active':'Disabled'}</td><td>${x.restroomAllowed?'Allowed':'Disabled'}</td><td><button class="small" data-edit-student="${esc(x.id)}">Edit</button></td></tr>`).join(''):'<tr><td colspan="5">No students found.</td></tr>'}
+    function openStudent(id=''){const x=(studentsState.rows||[]).find(s=>s.id===id);$('studentEditUuid').value=x?.id||'';$('studentModalTitle').textContent=x?'Edit Student':'Add Student';$('studentIdInput').value=x?.studentId||'';$('studentNameInput').value=x?.name||'';$('studentActiveInput').value=String(x?.active!==false);$('studentRestroomInput').value=String(x?.restroomAllowed!==false);setMsg('studentModalMessage','');showModal('studentModal')}
+    async function saveStudent(){const b=$('saveStudentButton'),id=$('studentEditUuid').value,data={studentId:$('studentIdInput').value.trim(),name:$('studentNameInput').value.trim(),active:$('studentActiveInput').value==='true',restroomAllowed:$('studentRestroomInput').value==='true'};b.disabled=true;setMsg('studentModalMessage','Saving...');try{const r=await hallpassApi.call('adminSaveStudent',[id||null,data]);if(!r.success){setMsg('studentModalMessage',r.message,true);return;}hideModal('studentModal');await refreshStudents();setMsg('studentsMessage',r.message)}catch(e){setMsg('studentModalMessage',e.message,true)}finally{b.disabled=false}}
+    function parseCsvLine(line){const cells=[];let cur='',quoted=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(quoted&&line[i+1]==='"'){cur+='"';i++;}else quoted=!quoted;}else if(ch===','&&!quoted){cells.push(cur);cur='';}else cur+=ch;}cells.push(cur);return cells.map(x=>x.trim())}
+    function parseStudentCsv(text){const lines=String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());if(!lines.length)throw new Error('The CSV is empty.');let start=0;const first=parseCsvLine(lines[0]);if(first.some(x=>/student\s*id|student\s*name/i.test(x)))start=1;const rows=[],seen=new Set();for(let i=start;i<lines.length;i++){const cells=parseCsvLine(lines[i]);while(cells.length>2&&String(cells[cells.length-1]||'').trim()==='')cells.pop();const studentId=String(cells[0]||'').trim(),name=String(cells.slice(1).join(', ')||'').replace(/(?:,\s*)+$/,'').trim();if(!studentId&&!name)continue;if(!studentId||!name)throw new Error(`Row ${i+1} needs both Student ID and Student Name.`);if(seen.has(studentId))throw new Error(`Student ID ${studentId} appears more than once.`);seen.add(studentId);rows.push({studentId,name})}if(!rows.length)throw new Error('No student rows found.');return rows}
+    async function openStudentImport(){pendingStudentImport=null;$('studentCsvFile').value='';$('studentCsvText').value='';$('disableMissingStudents').value='false';$('studentImportPreview').classList.add('hidden');$('confirmStudentImport').disabled=true;setMsg('studentImportMessage','');if(!(studentsState.rows||[]).length)await refreshStudents();showModal('studentImportModal')}
+    async function previewStudentImport(){try{let text=$('studentCsvText').value;const file=$('studentCsvFile').files[0];if(file)text=await file.text();const rows=parseStudentCsv(text);const existing=new Map((studentsState.rows||[]).map(x=>[String(x.studentId),x]));let added=0,updated=0,reactivated=0,unchanged=0;const preview=rows.map(r=>{const old=existing.get(r.studentId);let result;if(!old){added++;result='New'}else if(!old.active){reactivated++;result='Reactivate'}else if(old.name!==r.name){updated++;result='Update name'}else{unchanged++;result='Unchanged'}return {...r,result}});let wouldDisable=0;if($('disableMissingStudents').value==='true'){const ids=new Set(rows.map(x=>x.studentId));wouldDisable=(studentsState.rows||[]).filter(x=>x.active&&!ids.has(String(x.studentId))).length}pendingStudentImport={rows,disableMissing:$('disableMissingStudents').value==='true'};$('studentImportSummary').innerHTML=[['New',added],['Updated',updated],['Reactivated',reactivated],['Unchanged',unchanged],['Would Disable',wouldDisable]].map(x=>`<div class="stat"><div class="label">${x[0]}</div><div class="value">${x[1]}</div></div>`).join('');$('studentImportBody').innerHTML=preview.slice(0,100).map(x=>`<tr><td>${esc(x.studentId)}</td><td>${esc(x.name)}</td><td>${esc(x.result)}</td></tr>`).join('')+(preview.length>100?`<tr><td colspan="3" class="muted">Preview shows first 100 of ${preview.length} rows.</td></tr>`:'');$('studentImportPreview').classList.remove('hidden');$('confirmStudentImport').disabled=false;setMsg('studentImportMessage',`Ready to import ${rows.length} students.`)}catch(e){pendingStudentImport=null;$('confirmStudentImport').disabled=true;$('studentImportPreview').classList.add('hidden');setMsg('studentImportMessage',e.message,true)}}
+    async function confirmStudentImport(){if(!pendingStudentImport)return;const b=$('confirmStudentImport');const warning=pendingStudentImport.disableMissing?'\nStudents missing from the file will be disabled.':'';if(!window.confirm(`Import ${pendingStudentImport.rows.length} students?${warning}`))return;b.disabled=true;setMsg('studentImportMessage','Importing...');try{const r=await hallpassApi.call('adminImportStudents',[pendingStudentImport]);if(!r.success){setMsg('studentImportMessage',r.message,true);return;}hideModal('studentImportModal');await refreshStudents();setMsg('studentsMessage',r.message)}catch(e){setMsg('studentImportMessage',e.message,true)}finally{b.disabled=false}}
+
+    async function refreshSecurity(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('securityMessage','Refreshing...');try{const r=await hallpassApi.call('adminSecurityState',[]);if(!r.success){setMsg('securityMessage',r.message,true);return;}securityState=r;$('pinMaxFailures').value=r.settings.pinMaxFailures;$('pinWindowMinutes').value=r.settings.pinWindowMinutes;$('pinLockMinutes').value=r.settings.pinLockMinutes;const canEditPolicy=r.organizationAdmin===true;['pinMaxFailures','pinWindowMinutes','pinLockMinutes','saveSecurity'].forEach(id=>{$(id).disabled=!canEditPolicy});renderLockouts(r.lockouts||[]);$('clearAllLockouts').classList.toggle('hidden',!canEditPolicy);setMsg('securityMessage',canEditPolicy?'Updated.':'Organization PIN policy is read-only for School Admins.')}catch(e){setMsg('securityMessage',e.message,true)}finally{if(button)button.disabled=false}}
+    function renderLockouts(rows){$('lockoutsBody').innerHTML=rows.length?rows.map(x=>`<tr><td>${esc(x.scope)}</td><td>${esc(x.fingerprint)}</td><td>${x.failureCount}</td><td>${x.isLocked?'<strong class="lock">LOCKED</strong>':'Tracking'}</td><td>${esc(new Date(x.updatedAt).toLocaleString())}</td><td><button class="small" data-clear-lockout="1" data-scope="${esc(x.scope)}" data-hash="${esc(x.fingerprintHash)}">Clear</button></td></tr>`).join(''):'<tr><td colspan="6">No recent failed PIN attempts.</td></tr>'}
+    async function saveSecurity(){const b=$('saveSecurity'),data={pinMaxFailures:Number($('pinMaxFailures').value),pinWindowMinutes:Number($('pinWindowMinutes').value),pinLockMinutes:Number($('pinLockMinutes').value)};b.disabled=true;setMsg('securityMessage','Saving...');try{const r=await hallpassApi.call('adminUpdateSecurity',[data]);if(!r.success){setMsg('securityMessage',r.message,true);return;}await refreshSecurity();setMsg('securityMessage',r.message)}catch(e){setMsg('securityMessage',e.message,true)}finally{b.disabled=false}}
+    async function clearLockout(scope,hash){if(!window.confirm(scope?'Clear this PIN lockout and attempt record?':'Clear all PIN lockouts and attempt records?'))return;try{const r=await hallpassApi.call('adminClearLockout',[scope||'',hash||'']);if(!r.success){setMsg('securityMessage',r.message,true);return;}await refreshSecurity();setMsg('securityMessage',r.message)}catch(e){setMsg('securityMessage',e.message,true)}}
+
+    function fillCalendarScheduleOptions(){if(!management)return;const names=[];(management.masterSchedules||[]).forEach(x=>{if(!names.some(n=>n.toLowerCase()===x.schedule.toLowerCase()))names.push(x.schedule)});const html=names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');['calendarSchedule','bulkCalendarSchedule'].forEach(id=>{const el=$(id);if(!el)return;const cur=el.value;el.innerHTML=html;if(names.includes(cur))el.value=cur})}
+    async function refreshDestinations(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('destinationsMessage','Refreshing...');try{const r=await hallpassApi.call('adminDestinationsState',[]);if(!r.success){setMsg('destinationsMessage',r.message,true);return;}destinationsState=r;renderDestinations();setMsg('destinationsMessage',`${r.rows.length} destination${r.rows.length===1?'':'s'} loaded.`)}catch(e){setMsg('destinationsMessage',e.message,true)}finally{if(button)button.disabled=false}}
+    function renderDestinations(){const rows=destinationsState.rows||[];$('destinationsBody').innerHTML=rows.length?rows.map(d=>{const muted=d.enabled?'':' destinationMuted';return `<tr><td class="${muted.trim()}"><strong>${esc(d.name)}</strong></td><td class="${muted.trim()}">${d.enabled?'Enabled':'Disabled'}</td><td class="${muted.trim()}">${d.countsAsHallPass?'Yes':'No'}</td><td class="${muted.trim()}">${d.teacherApproval?'Required':'No'}</td><td class="${muted.trim()}">${d.defaultMaxOut===0?'0 (no limit)':esc(d.defaultMaxOut)}</td><td class="${muted.trim()}">${esc(d.sortOrder)}</td><td class="destinationAction"><button class="small destinationEditButton" style="opacity:1!important;filter:none!important;background:#1f5ea8!important;color:#fff!important" data-edit-destination="${esc(d.id)}">Edit</button></td></tr>`}).join(''):'<tr><td colspan="7">No destinations.</td></tr>'}
+    function openDestination(id=''){const d=(destinationsState.rows||[]).find(x=>x.id===id);$('destinationEditId').value=d?.id||'';$('destinationModalTitle').textContent=d?'Edit Destination':'Add Destination';$('destinationNameInput').value=d?.name||'';$('destinationEnabledInput').value=String(d?.enabled!==false);$('destinationHallPassInput').value=String(d?d.countsAsHallPass:true);$('destinationApprovalInput').value=String(d?.teacherApproval===true);$('destinationDefaultMaxInput').value=String(d?.defaultMaxOut??0);$('destinationSortInput').value=String(d?.sortOrder??((destinationsState.rows||[]).reduce((m,x)=>Math.max(m,Number(x.sortOrder)||0),0)+1));setMsg('destinationModalMessage','');showModal('destinationModal')}
+    async function saveMasterDestination(){const b=$('saveDestinationButton'),id=$('destinationEditId').value,data={name:$('destinationNameInput').value.trim(),enabled:$('destinationEnabledInput').value==='true',countsAsHallPass:$('destinationHallPassInput').value==='true',teacherApproval:$('destinationApprovalInput').value==='true',defaultMaxOut:$('destinationDefaultMaxInput').value,sortOrder:$('destinationSortInput').value};b.disabled=true;setMsg('destinationModalMessage','Saving...');try{const r=await hallpassApi.call('adminSaveMasterDestination',[id||null,data]);if(!r.success){setMsg('destinationModalMessage',r.message,true);return;}hideModal('destinationModal');await refreshDestinations();setMsg('destinationsMessage',r.message)}catch(e){setMsg('destinationModalMessage',e.message,true)}finally{b.disabled=false}}
+
+    async function refreshOrganization(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('organizationMessage','Refreshing...');try{const r=await hallpassApi.call('adminOrganizationState',[]);if(!r.success){setMsg('organizationMessage',r.message,true);return;}organizationState=r;adminAccess.organization=r.organization;adminAccess.schools=r.schools||[];adminAccess.organizationAdmin=r.organizationAdmin===true;applyAdminContext(adminAccess);renderSchools();setMsg('organizationMessage','Updated.')}catch(e){setMsg('organizationMessage',e.message,true)}finally{if(button)button.disabled=false}}
+    function renderSchools(){const rows=organizationState.schools||adminAccess.schools||[];$('schoolsBody').innerHTML=rows.length?rows.map(x=>`<tr class="${x.active?'':'inactive'}"><td><strong>${esc(x.name)}</strong></td><td>${esc(x.key)}</td><td>${esc(x.timezone||'')}</td><td>${x.active?'Active':'Disabled'}</td><td>${adminAccess.organizationAdmin?`<button class="small" data-edit-school="${esc(x.id)}">Edit</button>`:'—'}</td></tr>`).join(''):'<tr><td colspan="5">No schools.</td></tr>'}
+    function openSchool(id=''){if(adminAccess.organizationAdmin!==true)return;const rows=organizationState.schools||adminAccess.schools||[];const x=rows.find(s=>String(s.id)===String(id));$('schoolEditId').value=x?.id||'';$('schoolModalTitle').textContent=x?'Edit School':'Add School';$('schoolNameInput').value=x?.name||'';$('schoolKeyInput').value=x?.key||'';$('schoolKeyInput').disabled=Boolean(x);$('schoolTimezoneInput').value=x?.timezone||'America/Los_Angeles';$('schoolActiveInput').value=String(x?.active!==false);$('schoolCopyDefaultsWrap').classList.toggle('hidden',Boolean(x));$('schoolCopyDefaultsInput').value='false';setMsg('schoolModalMessage','');showModal('schoolModal')}
+    async function saveSchool(){const b=$('saveSchoolButton'),id=$('schoolEditId').value,wasCurrent=Boolean(id&&adminAccess.selectedSchool&&String(adminAccess.selectedSchool.id)===String(id)),data={name:$('schoolNameInput').value.trim(),key:$('schoolKeyInput').value.trim().toLowerCase(),timezone:$('schoolTimezoneInput').value.trim(),active:$('schoolActiveInput').value==='true',copyDefaults:$('schoolCopyDefaultsInput').value==='true'};b.disabled=true;setMsg('schoolModalMessage','Saving...');try{const r=await hallpassApi.call(id?'adminUpdateSchool':'adminCreateSchool',id?[id,data]:[data]);if(!r.success){setMsg('schoolModalMessage',r.message,true);return;}hideModal('schoolModal');await refreshOrganization();if(wasCurrent&&r.school){if(r.school.active!==false){adminAccess.selectedSchool=r.school;setSchoolInUrl(r.school.key)}else{const fallback=(adminAccess.schools||[]).find(x=>x.active!==false&&String(x.id)!==String(r.school.id));if(fallback){adminAccess.selectedSchool=fallback;setSchoolInUrl(fallback.key);lastState=null;management={rooms:[],teachers:[]};destinationsState={rows:[]};reportOptions=null;clearCampusReportOnChange();bulkCalendarPreview=null;await Promise.all([refreshLive(),refreshManagement()])}else{adminAccess.selectedSchool=null;setSchoolInUrl('')}}}applyAdminContext(adminAccess);setMsg('organizationMessage',r.message)}catch(e){setMsg('schoolModalMessage',e.message,true)}finally{b.disabled=false}}
+    async function switchSchool(){const key=$('schoolSelector').value;if(!key||key===currentSchoolKey())return;const selected=(adminAccess.schools||[]).find(x=>x.key===key);adminAccess.selectedSchool=selected||{key};setSchoolInUrl(key);lastState=null;management={rooms:[],teachers:[]};destinationsState={rows:[]};reportOptions=null;clearCampusReportOnChange();bulkCalendarPreview=null;rsState=null;rsPreviewData=null;setMsg('message','Switching school...');await Promise.all([refreshLive(),refreshManagement()]);const active=document.querySelector('.panel.active')?.id;if(active==='studentsPanel')await refreshStudents();else if(active==='destinationsPanel')await refreshDestinations();else if(active==='calendarPanel')await refreshCalendar();else if(active==='roomSchedulePanel')await refreshRoomScheduling();else if(active==='securityPanel')await refreshSecurity();else if(active==='reportsPanel')await refreshReportOptions();else if(active==='auditPanel')await refreshAudit();else if(active==='orgPanel')await refreshOrganization()}
+
+    // The backend must return autoSchedulingEnabled as a school-scoped boolean.
+    // Never assume an older server supports the toggle.
+
+    // Hall Pilot 1.15: room scheduling admin actions.
+    async function refreshRoomScheduling(button) {
+      if (!unlocked) return;
+      if (button) button.disabled = true;
+      setMsg('rsModeMessage', 'Loading schedule assignments...');
+      try {
+        const r = await hallpassApi.call('adminRoomSchedulingState', []);
+        if (!r.success) { setMsg('rsModeMessage', r.message, true); return; }
+        rsState = r; rsPreviewData = null;
+        renderRoomScheduling();
+        setMsg('rsModeMessage', '');
+      } catch(e) { setMsg('rsModeMessage', e.message, true); }
+      finally { if (button) button.disabled = false; }
+    }
+
+    function rsDayTypes() {
+      const unique = new Map();
+      for (const x of (rsState?.assignments || [])) {
+        const type = String(x.dayType || '').trim();
+        if (type && type.toLowerCase() !== 'regular') unique.set(type.toLowerCase(), type);
+      }
+      return [...unique.values()].sort((a,b)=>a.localeCompare(b));
+    }
+
+    function renderRoomScheduling() {
+      if (!rsState) return;
+      const selected = new Set([...document.querySelectorAll('#rsRoomChecks [data-rs-room]:checked')].map(x => x.value));
+      $('rsModeStatus').textContent = rsState.enabled
+        ? 'Room Scheduling is ON. Ordinary days use each room’s Primary schedule.'
+        : 'Room Scheduling is OFF. Westfield continues using its original school-wide calendar.';
+      $('rsLegacyWarning').textContent = rsState.legacyFutureCount
+        ? rsState.legacyFutureCount + ' future date(s) remain in the original calendar. They are preserved, but not used while Room Scheduling is ON. Review them before enabling.'
+        : 'The original calendar remains preserved for rollback.';
+      if (!rsState.autoEnabled) $('rsModeStatus').textContent += ' Automatic calendar scheduling is OFF: special-day dates will not apply.';
+      $('rsToggleMode').disabled = false;
+      $('rsToggleMode').textContent = rsState.enabled ? 'Return to Original Calendar Mode' : 'Enable Room Scheduling';
+      $('rsToggleMode').className = rsState.enabled ? 'gray' : 'purple';
+      const activeRooms = rsState.rooms.filter(x => x.active);
+      $('rsRoomChecks').innerHTML = activeRooms.map(r=>'<label><input type="checkbox" data-rs-room value="' + esc(r.id) + '"' + (selected.has(r.id)?' checked':'') + '>' + esc(r.name) + '</label>').join('') || '<span class="muted">No active rooms.</span>';
+      const opts = rsState.schedules.map(x=>'<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
+      const current = $('rsMasterSchedule').value;
+      $('rsMasterSchedule').innerHTML = '<option value="">Choose schedule</option>' + opts;
+      if (rsState.schedules.includes(current)) $('rsMasterSchedule').value = current;
+      const assignments = rsState.assignments;
+      const byRoom = new Map(rsState.rooms.map(r=>[r.id,assignments.filter(x=>x.roomId===r.id)]));
+      $('rsRoomTable').innerHTML = rsState.rooms.map(r=>{
+        const list = byRoom.get(r.id) || [];
+        const named = name => list.find(x=>x.dayType.toLowerCase()===name.toLowerCase())?.schedule || '—';
+        const other = list.filter(x=>!['minimum','rally'].includes(x.dayType.toLowerCase())).map(x=>x.dayType + ': ' + x.schedule).join('; ') || '—';
+        return '<tr><td>' + esc(r.name) + (r.active?'':' (disabled)') + '</td><td>' + esc(r.defaultSchedule) + '</td><td>' + esc(named('Minimum')) + '</td><td>' + esc(named('Rally')) + '</td><td>' + esc(other) + '</td></tr>';
+      }).join('') || '<tr><td colspan="5">No rooms.</td></tr>';
+      const prior = $('rsExceptionDayType').value;
+      const types = rsDayTypes();
+      $('rsExceptionDayType').innerHTML = '<option value="">Choose special day</option>' + types.map(x=>'<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
+      if (types.includes(prior)) $('rsExceptionDayType').value = prior;
+      const legacyGroups = new Map();
+      (rsState.legacyDates || []).forEach(row=>{
+        if (String(row.schedule||'').toLowerCase()==='regular') return;
+        const name=String(row.schedule||'');
+        legacyGroups.set(name, (legacyGroups.get(name)||0)+1);
+      });
+      const prevLegacy=$('rsLegacySelect').value;
+      $('rsLegacySelect').innerHTML='<option value="">Choose original special schedule</option>'+
+        [...legacyGroups].map(([name,count])=>'<option value="'+esc(name)+'">'+esc(name)+' ('+count+' future dates)</option>').join('');
+      if(legacyGroups.has(prevLegacy))$('rsLegacySelect').value=prevLegacy;
+      $('rsExceptionsBody').innerHTML = rsState.exceptions.length ? rsState.exceptions.map(x=>
+        '<tr><td>' + esc(x.date) + '</td><td>' + esc(x.dayType) + '</td><td>' + esc(x.note || '—') + '</td><td><button class="small red" data-rs-delete-date="' + esc(x.date) + '">Remove</button></td></tr>'
+      ).join('') : '<tr><td colspan="4">No special days. Every day uses each room’s Primary schedule.</td></tr>';
+      rsResetPreview();
+    }
+
+
+    function rsPrepareLegacyDates(){
+      if(!rsState)return;
+      const legacyName=$('rsLegacySelect').value;
+      if(!legacyName)return setMsg('rsLegacyImportMessage','Choose an original special schedule.',true);
+      const types=rsDayTypes();
+      const mappedType=types.find(x=>x.toLowerCase()===legacyName.toLowerCase());
+      if(!mappedType)return setMsg('rsLegacyImportMessage','First assign the matching special-day type to rooms (for example Minimum), then prepare its dates.',true);
+      const dates=(rsState.legacyDates||[]).filter(x=>x.schedule===legacyName).map(x=>x.date);
+      if(!dates.length)return setMsg('rsLegacyImportMessage','No future dates found.',true);
+      if(dates.length>250)return setMsg('rsLegacyImportMessage','More than 250 dates. Import smaller batches.',true);
+      $('rsExceptionDayType').value=mappedType;
+      $('rsOneDate').value='';
+      $('rsDateList').value=dates.join('\n');
+      $('rsRepeatStart').value='';$('rsRepeatEnd').value='';
+      document.querySelectorAll('#rsWeekdays input').forEach(x=>x.checked=false);
+      $('rsNote').value='';
+      rsPreviewSpecialDates();
+      setMsg('rsLegacyImportMessage',dates.length+' original '+legacyName+' dates prepared for preview. Nothing has been saved yet; original calendar remains unchanged.');
+    }
+
+    function rsResetPreview() {
+      rsPreviewData = null;
+      $('rsApply').disabled = true;
+      $('rsPreviewWrap').classList.add('hidden');
+    }
+
+    function rsSelectedRoomIds(){return [...document.querySelectorAll('#rsRoomChecks [data-rs-room]:checked')].map(x=>x.value)}
+    function rsSelectAll(yes){document.querySelectorAll('#rsRoomChecks [data-rs-room]').forEach(x=>x.checked=Boolean(yes))}
+    async function rsAssign() {
+      const ids=rsSelectedRoomIds(), type=$('rsAssignDayType').value.trim(), schedule=$('rsMasterSchedule').value;
+      if (!ids.length) return setMsg('rsAssignMessage','Select one or more active rooms.',true);
+      if (!type || !schedule) return setMsg('rsAssignMessage','Choose both a day type and a master schedule.',true);
+      const button=$('rsAssignSchedule');button.disabled=true;
+      try {
+        const r=await hallpassApi.call('adminAssignRoomSchedules',[{roomIds:ids,dayType:type,schedule}]);
+        if(!r.success)throw Error(r.message);
+        await refreshRoomScheduling();
+        setMsg('rsAssignMessage',r.message);
+      }catch(e){setMsg('rsAssignMessage',e.message,true)}
+      finally{button.disabled=false}
+    }
+
+    function rsDateCollection(){
+      const dates = new Set();
+      const add = value => {
+        const raw=String(value||'').trim();
+        if (!raw) return;
+        const date=parseCalendarDateToken(raw);
+        if (!date) throw Error('Invalid date: ' + raw);
+        dates.add(date);
+      };
+      add($('rsOneDate').value);
+      $('rsDateList').value.split(/[\n,;]+/).forEach(add);
+      const start=$('rsRepeatStart').value, end=$('rsRepeatEnd').value;
+      const days=[...document.querySelectorAll('#rsWeekdays input:checked')].map(x=>Number(x.value));
+      if ((start || end || days.length) && !(start && end && days.length))
+        throw Error('Repeating dates need a start, end, and at least one weekday.');
+      if (start && end && days.length) {
+        if (start > end) throw Error('Repeat end must be after start.');
+        let cursor=new Date(start + 'T12:00:00Z'),last=new Date(end+'T12:00:00Z');
+        for(let i=0;cursor<=last && i<=370;i++,cursor.setUTCDate(cursor.getUTCDate()+1)){
+          if(days.includes(cursor.getUTCDay()))dates.add(cursor.toISOString().slice(0,10));
+        }
+        if(cursor<=last)throw Error('Date range too long; use smaller batches.');
+      }
+      const result=[...dates].sort();
+      if (!result.length || result.length>250) throw Error('Select between 1 and 250 dates.');
+      return result;
+    }
+
+    function rsMissingRooms(dayType) {
+      const maps=rsState?.assignments||[];
+      const schedules=new Set((rsState?.schedules||[]).map(x=>x.toLowerCase()));
+      return (rsState?.rooms||[]).filter(room=>room.active && !maps.some(x=>
+        x.roomId===room.id && x.dayType.toLowerCase()===dayType.toLowerCase() && schedules.has(x.schedule.toLowerCase())
+      ));
+    }
+    function rsPreviewSpecialDates(){
+      rsResetPreview();
+      if(!rsState)return setMsg('rsExceptionMessage','Load scheduling first.',true);
+      try {
+        const dayType=$('rsExceptionDayType').value;
+        if(!dayType)throw Error('Choose a special day type.');
+        const dates=rsDateCollection();
+        const missing=rsMissingRooms(dayType);
+        if(missing.length)throw Error('Assign ' + dayType + ' to these rooms first: ' + missing.map(x=>x.name).join(', '));
+        const conflictMode=$('rsConflictMode').value,already=new Map(rsState.exceptions.map(x=>[x.date,x]));
+        rsPreviewData={dates,dayType,conflictMode,note:$('rsNote').value.trim()};
+        $('rsPreviewBody').innerHTML=dates.map(date=>{
+          const prior=already.get(date);
+          const result=prior?(conflictMode==='replace'?'Replace':'Skip'):'Add';
+          return '<tr><td>'+esc(date)+'</td><td>'+esc(prior?.dayType||'—')+'</td><td>'+esc(dayType)+'</td><td>'+esc(result)+'</td></tr>';
+        }).join('');
+        $('rsPreviewWrap').classList.remove('hidden');
+        $('rsApply').disabled=false;
+        setMsg('rsExceptionMessage',dates.length+' date(s) previewed. Nothing saved yet.');
+      } catch(e){setMsg('rsExceptionMessage',e.message,true)}
+    }
+
+    async function rsApplySpecialDates(){
+      if(!rsPreviewData)return setMsg('rsExceptionMessage','Preview the dates first.',true);
+      const b=$('rsApply');b.disabled=true;
+      try{
+        const r=await hallpassApi.call('adminSaveDayExceptions',[rsPreviewData]);
+        if(!r.success)throw Error(r.message);
+        await refreshRoomScheduling();
+        setMsg('rsExceptionMessage',r.message);
+      }catch(e){setMsg('rsExceptionMessage',e.message,true);b.disabled=false}
+    }
+
+    async function rsDeleteSpecialDate(date){
+      if(!window.confirm('Remove special day on ' + date + '? This will restore each room’s Primary schedule for that day.'))return;
+      try{
+        const r=await hallpassApi.call('adminDeleteDayException',[date]);
+        if(!r.success)throw Error(r.message);
+        await refreshRoomScheduling();
+        setMsg('rsExceptionMessage',r.message);
+      }catch(e){setMsg('rsExceptionMessage',e.message,true)}
+    }
+
+    async function rsToggleMode(){
+      if(!rsState)return;
+      const on=!rsState.enabled;
+      const msg=on
+        ? 'Enable room scheduling for EVERY classroom? This replaces the original calendar with room defaults and the new special-day calendar. ' + rsState.legacyFutureCount + ' future original-calendar dates will be preserved but ignored.'
+        : 'Return to the ORIGINAL calendar? Special-day exceptions will be preserved but no longer applied.';
+      if(!window.confirm(msg))return;
+      const b=$('rsToggleMode');b.disabled=true;
+      try{
+        const r=await hallpassApi.call('adminSetRoomSchedulingEnabled',[{enabled:on,acknowledgeLegacyCalendar:on}]);
+        if(!r.success)throw Error(r.message);
+        await refreshRoomScheduling();
+        setMsg('rsModeMessage',r.message);
+      }catch(e){setMsg('rsModeMessage',e.message,true)}
+      finally{b.disabled=false}
+    }
+
+    function renderCalendarAutoSetting(state){
+      const el=$('calendarAutoEnabled'),label=$('calendarAutoLabel'),status=$('calendarAutoStatus');
+      const supported=state&&typeof state.autoSchedulingEnabled==='boolean';
+      el.disabled=!supported;
+      el.checked=supported?state.autoSchedulingEnabled:false;
+      label.textContent=supported?(el.checked?'On':'Off'):'Unavailable';
+      const roomMode=state?.roomSchedulingEnabled===true;
+      ['saveCalendarEntry','previewWeeklyCalendar','previewListedCalendar','applyBulkCalendar'].forEach(id=>$(id).disabled=roomMode);
+      status.textContent=roomMode?'Original calendar is read-only while Room Scheduling is enabled. Use the Room Scheduling tab for special dates.':supported
+        ? (el.checked?'Automatic calendar scheduling is On for the entire school.':'Automatic calendar scheduling is Off; rooms use Regular unless teachers override.')
+        : 'School-wide switch unavailable until the scheduling server is upgraded. Existing scheduling is unchanged.';
+    }
+    async function changeCalendarAutoSetting(){
+      const el=$('calendarAutoEnabled');
+      const previous=Boolean(calendarState&&calendarState.autoSchedulingEnabled);
+      const next=el.checked;
+      if(!calendarState||typeof calendarState.autoSchedulingEnabled!=='boolean'){renderCalendarAutoSetting(calendarState);return;}
+      if(!next&&!window.confirm('Turn off automatic calendar scheduling for the ENTIRE school? Rooms will use Regular unless teachers override their schedule for today.')){el.checked=previous;return;}
+      el.disabled=true;
+      $('calendarAutoLabel').textContent='Saving…';
+      $('calendarAutoStatus').textContent='Saving school-wide setting…';
+      try{
+        // Contract: backend authorizes Admin, saves per school, and applies
+        // this value in the shared schedule resolver for all existing/future rooms.
+        const r=await hallpassApi.call('adminSetCalendarAutoScheduling',[{enabled:next}]);
+        if(!r||!r.success)throw new Error(r&&r.message?r.message:'Unable to save setting.');
+        await refreshCalendar();
+      }catch(e){
+        el.checked=previous;
+        renderCalendarAutoSetting(calendarState);
+        $('calendarAutoStatus').textContent='Not saved: '+(e&&e.message?e.message:String(e));
+      }
+    }
+    async function refreshCalendar(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('calendarMessage','Refreshing...');try{if(!(management.masterSchedules||[]).length)await refreshManagement();const r=await hallpassApi.call('adminCalendarState',[]);if(!r.success){setMsg('calendarMessage',r.message,true);renderCalendarAutoSetting(null);return;}calendarState=r;renderCalendarAutoSetting(r);fillCalendarScheduleOptions();renderCalendar();renderCalendarBatches();if(!$('bulkStartDate').value){const today=new Date();$('bulkStartDate').value=isoDateLocal(today);const end=new Date(today);end.setMonth(end.getMonth()+3);$('bulkEndDate').value=isoDateLocal(end)}setMsg('calendarMessage',`${r.rows.length} calendar date${r.rows.length===1?'':'s'} configured.`)}catch(e){setMsg('calendarMessage',e.message,true);renderCalendarAutoSetting(null)}finally{if(button)button.disabled=false}}
+    function renderCalendar(){const rows=calendarState.rows||[];$('calendarBody').innerHTML=rows.length?rows.map(x=>`<tr><td>${esc(x.date)}</td><td><strong>${esc(x.schedule)}</strong></td><td>${esc(x.note||'—')}</td><td>${esc(x.batchLabel||'—')}</td><td><div class="actions"><button class="small" data-edit-calendar="${esc(x.date)}">Edit</button><button class="small red" data-delete-calendar="${esc(x.date)}">Delete</button></div></td></tr>`).join(''):'<tr><td colspan="5">No calendar schedule dates configured.</td></tr>'}
+    function renderCalendarBatches(){const map=new Map();(calendarState.rows||[]).filter(x=>x.batchId).forEach(x=>{if(!map.has(x.batchId))map.set(x.batchId,{id:x.batchId,label:x.batchLabel||'Repeat batch',schedule:x.schedule,dates:[]});map.get(x.batchId).dates.push(x.date)});const batches=Array.from(map.values()).sort((a,b)=>a.dates[0].localeCompare(b.dates[0]));$('calendarBatchBody').innerHTML=batches.length?batches.map(b=>{b.dates.sort();return `<tr><td><strong>${esc(b.label)}</strong></td><td>${esc(b.schedule)}</td><td>${esc(b.dates[0])} through ${esc(b.dates[b.dates.length-1])}</td><td>${b.dates.length}</td><td><button class="small red" data-delete-calendar-batch="${esc(b.id)}">Delete Batch</button></td></tr>`}).join(''):'<tr><td colspan="5">No repeat batches yet.</td></tr>'}
+    async function saveCalendarEntry(){const b=$('saveCalendarEntry'),data={date:$('calendarDate').value,schedule:$('calendarSchedule').value,note:$('calendarNote').value.trim(),active:true};b.disabled=true;setMsg('calendarMessage','Saving...');try{const r=await hallpassApi.call('adminSaveCalendarEntry',[data]);if(!r.success){setMsg('calendarMessage',r.message,true);return;}$('calendarNote').value='';await refreshCalendar();setMsg('calendarMessage',r.message)}catch(e){setMsg('calendarMessage',e.message,true)}finally{b.disabled=false}}
+    function editCalendar(date){const x=(calendarState.rows||[]).find(r=>r.date===date);if(!x)return;$('calendarDate').value=x.date;$('calendarSchedule').value=x.schedule;$('calendarNote').value=x.note||'';if(x.batchId)setMsg('calendarMessage','This date is part of a repeat batch. Saving it individually will detach this date from that batch.');window.scrollTo({top:$('calendarPanel').offsetTop,behavior:'smooth'})}
+    async function deleteCalendar(date){if(!window.confirm(`Remove the schedule override for ${date}?`))return;try{const r=await hallpassApi.call('adminDeleteCalendarEntry',[date]);if(!r.success){setMsg('calendarMessage',r.message,true);return;}await refreshCalendar();setMsg('calendarMessage',r.message)}catch(e){setMsg('calendarMessage',e.message,true)}}
+    function parseCalendarDateToken(value){const s=String(value||'').trim();let y,m,d;let match=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);if(match){y=+match[1];m=+match[2];d=+match[3]}else{match=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(!match)return '';m=+match[1];d=+match[2];y=+match[3]}const dt=new Date(y,m-1,d,12);if(dt.getFullYear()!==y||dt.getMonth()!==m-1||dt.getDate()!==d)return '';return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+    function localDateFromKey(key){const [y,m,d]=key.split('-').map(Number);return new Date(y,m-1,d,12)}
+    function calendarDayName(key){return localDateFromKey(key).toLocaleDateString([], {weekday:'long'})}
+    function selectedBulkWeekdays(){return Array.from($('bulkWeekdays').querySelectorAll('input:checked')).map(x=>Number(x.value))}
+    function buildWeeklyCalendarDates(){const start=parseCalendarDateToken($('bulkStartDate').value),end=parseCalendarDateToken($('bulkEndDate').value),days=selectedBulkWeekdays();if(!start||!end){setMsg('bulkCalendarMessage','Choose a valid start and end date.',true);return null}if(start>end){setMsg('bulkCalendarMessage','Start date must be on or before end date.',true);return null}if(!days.length){setMsg('bulkCalendarMessage','Choose at least one weekday.',true);return null}const out=[],cursor=localDateFromKey(start),finish=localDateFromKey(end);for(let guard=0;cursor<=finish&&guard<800;guard++,cursor.setDate(cursor.getDate()+1)){if(days.includes(cursor.getDay()))out.push(isoDateLocal(cursor));if(out.length>250){setMsg('bulkCalendarMessage','A batch can contain at most 250 dates.',true);return null}}return out}
+    function buildListedCalendarDates(){const tokens=$('bulkDateList').value.split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean);if(!tokens.length){setMsg('bulkCalendarMessage','Enter at least one date.',true);return null}const bad=[],dates=[];tokens.forEach(t=>{const d=parseCalendarDateToken(t);if(!d)bad.push(t);else if(!dates.includes(d))dates.push(d)});if(bad.length){setMsg('bulkCalendarMessage','Could not read: '+bad.slice(0,5).join(', ')+(bad.length>5?' ...':''),true);return null}if(dates.length>250){setMsg('bulkCalendarMessage','A batch can contain at most 250 dates.',true);return null}return dates.sort()}
+    function previewBulkCalendar(dates,source){if(!dates||!dates.length){setMsg('bulkCalendarMessage','No matching dates were found.',true);return}const schedule=$('bulkCalendarSchedule').value;if(!schedule){setMsg('bulkCalendarMessage','Choose a schedule.',true);return}const conflictMode=$('bulkConflictMode').value,existing=new Map((calendarState.rows||[]).map(x=>[x.date,x]));bulkCalendarPreview={dates,schedule,note:$('bulkCalendarNote').value.trim(),conflictMode,source};$('bulkCalendarPreviewBody').innerHTML=dates.map(date=>{const old=existing.get(date);const result=old?(conflictMode==='replace'?'Will replace':'Will skip'):'Will add';return `<tr><td>${esc(date)}</td><td>${esc(calendarDayName(date))}</td><td>${old?esc(old.schedule):'—'}</td><td><strong>${esc(schedule)}</strong></td><td>${esc(result)}</td></tr>`}).join('');$('bulkCalendarPreviewWrap').classList.remove('hidden');const conflicts=dates.filter(d=>existing.has(d)).length;setMsg('bulkCalendarMessage',`${dates.length} date${dates.length===1?'':'s'} previewed${conflicts?` • ${conflicts} existing date${conflicts===1?'':'s'}`:''}.`)}
+    function clearBulkCalendarPreview(){bulkCalendarPreview=null;$('bulkCalendarPreviewBody').innerHTML='';$('bulkCalendarPreviewWrap').classList.add('hidden');setMsg('bulkCalendarMessage','')}
+    function bulkBatchLabel(p){if(p.source==='weekly'){const days=selectedBulkWeekdays().map(n=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][n]).join('/');return `${p.schedule} • ${days} • ${p.dates[0]}–${p.dates[p.dates.length-1]}`}return `${p.schedule} • ${p.dates.length} selected date${p.dates.length===1?'':'s'}`}
+    async function applyBulkCalendar(){if(!bulkCalendarPreview)return;const b=$('applyBulkCalendar');b.disabled=true;setMsg('bulkCalendarMessage','Applying batch...');try{const p={...bulkCalendarPreview,note:$('bulkCalendarNote').value.trim(),conflictMode:$('bulkConflictMode').value,label:bulkBatchLabel(bulkCalendarPreview)};const r=await hallpassApi.call('adminSaveCalendarBatch',[p]);if(!r.success){setMsg('bulkCalendarMessage',r.message,true);return;}clearBulkCalendarPreview();await refreshCalendar();setMsg('bulkCalendarMessage',r.message)}catch(e){setMsg('bulkCalendarMessage',e.message,true)}finally{b.disabled=false}}
+    async function deleteCalendarBatch(id){const rows=(calendarState.rows||[]).filter(x=>x.batchId===id);if(!rows.length)return;const label=rows[0].batchLabel||'this repeat batch';if(!window.confirm(`Delete ${rows.length} dates in this batch?\nIndividually edited dates stay.`))return;try{const r=await hallpassApi.call('adminDeleteCalendarBatch',[id]);if(!r.success){setMsg('calendarMessage',r.message,true);return;}await refreshCalendar();setMsg('calendarMessage',r.message)}catch(e){setMsg('calendarMessage',e.message,true)}}
+
+    function auditDetails(value){try{const text=JSON.stringify(value||{});return text==='{}'?'—':text}catch(e){return '—'}}
+    async function refreshAudit(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('auditMessage','Refreshing...');try{const opts={roomKey:$('auditRoomFilter').value,search:$('auditSearch').value.trim(),limit:200};const r=await hallpassApi.call('adminAuditLog',[opts]);if(!r.success){setMsg('auditMessage',r.message,true);return;}$('auditBody').innerHTML=r.rows.length?r.rows.map(x=>`<tr><td>${esc(new Date(x.createdAt).toLocaleString())}</td><td>${esc(x.teacher)}</td><td>${esc(x.room||x.roomKey||'—')}</td><td><strong>${esc(x.action)}</strong></td><td class="muted">${esc(auditDetails(x.details))}</td></tr>`).join(''):'<tr><td colspan="5">No audit entries found.</td></tr>';setMsg('auditMessage',`Showing ${r.rows.length} entr${r.rows.length===1?'y':'ies'}.`)}catch(e){setMsg('auditMessage',e.message,true)}finally{if(button)button.disabled=false}}
+    function refreshAuditRoomFilter(){const sel=$('auditRoomFilter');if(!sel||!management)return;const cur=sel.value;sel.innerHTML='<option value="">All Rooms</option>'+management.rooms.map(r=>`<option value="${esc(r.key)}">${esc(r.room)}</option>`).join('');sel.value=cur}
+
+
+    function isoDateLocal(d){const x=new Date(d.getTime()-d.getTimezoneOffset()*60000);return x.toISOString().slice(0,10)}
+    function setDefaultReportDates(){if($('campusReportEnd').value)return;const end=new Date(),start=new Date();start.setDate(end.getDate()-29);$('campusReportStart').value=isoDateLocal(start);$('campusReportEnd').value=isoDateLocal(end)}
+    async function refreshReportOptions(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('reportsMessage','Loading report filters...');try{const r=await hallpassApi.call('adminReportOptions',[]);if(!r.success){setMsg('reportsMessage',r.message,true);return;}reportOptions=r;const roomCur=$('campusReportRoom').value,studentCur=$('campusReportStudent').value,destCur=$('campusReportDestination').value;$('campusReportRoom').innerHTML='<option value="">All Rooms</option>'+r.rooms.map(x=>`<option value="${esc(x.key)}">${esc(x.room)}${x.active?'':' (disabled)'}</option>`).join('');$('campusReportStudent').innerHTML='<option value="">All Students</option>'+r.students.map(x=>`<option value="${esc(x.id)}">${esc(x.name)} (${esc(x.id)})${x.active?'':' — disabled'}</option>`).join('');$('campusReportDestination').innerHTML='<option value="">All Destinations</option>'+r.destinations.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');$('campusReportRoom').value=roomCur;$('campusReportStudent').value=studentCur;HallPassStudentAutocomplete.refresh('campusReportStudent');$('campusReportDestination').value=destCur;setDefaultReportDates();setMsg('reportsMessage','Filters ready.')}catch(e){setMsg('reportsMessage',e.message,true)}finally{if(button)button.disabled=false}}
+    function reportMinutes(v){v=Number(v);if(!Number.isFinite(v)||v<=0)return '0:00';const sec=Math.round(v*60);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')}
+    function reportDateTime(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString()}
+    function campusReportOptionsFromForm(){return {studentDetail:$('reportType').value==='detail',startDate:$('campusReportStart').value,endDate:$('campusReportEnd').value,roomKey:$('campusReportRoom').value,studentId:$('campusReportStudent').value,destination:$('campusReportDestination').value,includeTestData:$('campusIncludeTestData').checked,longMinutes:Number($('longPassMinutes').value||10),frequentCount:Number($('frequentPassCount').value||5)}}
+
+    const CAMPUS_REPORT_FORM = ['reportType','campusReportRoom','campusReportStudent','campusReportDestination','campusReportStart','campusReportEnd','longPassMinutes','frequentPassCount','campusIncludeTestData'];
+    function captureCampusReportForm(){
+      return Object.fromEntries(CAMPUS_REPORT_FORM.map(id=>[id,id==='campusIncludeTestData'?$(id).checked:$(id).value]));
+    }
+    function restoreCampusReportForm(saved){
+      CAMPUS_REPORT_FORM.forEach(id=>{if(id==='campusIncludeTestData')$(id).checked=saved[id]===true;else $(id).value=saved[id]||'';});
+      HallPassStudentAutocomplete.refresh('campusReportStudent');
+    }
+    function renderCampusDrillNavigation(){
+      const hasHistory=campusDrillStack.length>0;
+      $('campusReportDrillNav').classList.toggle('hidden',!hasHistory);
+      $('campusReportBack').disabled=!hasHistory;
+      $('campusReportTrail').textContent=hasHistory
+        ? [...campusDrillStack.map(step=>step.label),$('campusReportTitle').textContent].join(' › ')
+        : '';
+    }
+    function reportDrillLink(kind,value,label){
+      return '<button type="button" class="studentReportLink" data-report-drill="'+esc(kind)+'" data-report-value="'+esc(value)+'" title="View '+(kind==='student'?'individual pass history':'students')+' for '+esc(label)+'">'+esc(label)+'</button>';
+    }
+    async function generateCampusReport(preserveDrill=false){
+      if(preserveDrill!==true)campusDrillStack=[];
+      const options=campusReportOptionsFromForm(),type=$('reportType').value,schoolKey=currentSchoolKey(),requestId=++campusReportRequestId;
+      if(options.studentDetail&&!options.studentId){setMsg('reportsMessage','Choose a student to generate a Student Detail report.',true);renderCampusDrillNavigation();return false;}
+      const b=$('generateCampusReport');
+      b.disabled=true;setMsg('reportsMessage','Generating report...');
+      currentCampusReport=null;$('campusReportResults').classList.add('hidden');$('downloadCampusReport').disabled=true;$('printCampusStudentDetail').classList.add('hidden');$('printCampusStudentDetail').disabled=true;
+      try{
+        const r=await hallpassApi.call('adminCampusReport',[options]);
+        if(requestId!==campusReportRequestId||schoolKey!==currentSchoolKey())return false;
+        if(!r.success){setMsg('reportsMessage',r.message,true);return false;}
+        if(type!==$('reportType').value||JSON.stringify(options)!==JSON.stringify(campusReportOptionsFromForm())){setMsg('reportsMessage','Report filters changed. Generate again to see the latest selection.');return false;}
+        if(type==='detail'&&!r.studentDetail){setMsg('reportsMessage','Student Detail is unavailable from the server.',true);return false;}
+        currentCampusReport=r;reportSortState={main:null,secondary:null};renderCampusReport();
+        $('downloadCampusReport').disabled=false;
+        $('printCampusStudentDetail').classList.toggle('hidden',type!=='detail');$('printCampusStudentDetail').disabled=type!=='detail';
+        setMsg('reportsMessage','Report generated from '+r.filters.startDate+' through '+r.filters.endDate+'.');
+        return true;
+      }catch(e){if(requestId===campusReportRequestId)setMsg('reportsMessage',e.message,true);return false}
+      finally{if(requestId===campusReportRequestId)b.disabled=false}
+    }
+    async function drillDownCampusReport(kind,value){
+      if(!currentCampusReport||$('generateCampusReport').disabled)return false;
+      value=String(value||'');
+      if(!value||!['room','destination','student'].includes(kind))return false;
+      const fromType=$('reportType').value;
+      const previous={
+        form:captureCampusReportForm(),report:currentCampusReport,
+        sort:{main:reportSortState.main?{...reportSortState.main}:null,secondary:reportSortState.secondary?{...reportSortState.secondary}:null},
+        label:$('campusReportTitle').textContent
+      };
+      if(kind==='room'){
+        if(!Array.from($('campusReportRoom').options).some(o=>o.value===value)){setMsg('reportsMessage','Room not found in this school.',true);return false;}
+        $('campusReportRoom').value=value;
+        $('campusReportStudent').value='';
+        $('reportType').value='students';
+      }else if(kind==='destination'){
+        const select=$('campusReportDestination');
+        if(!Array.from(select.options).some(o=>o.value===value)){
+          // Preserve the ability to drill into renamed or retired destinations.
+          select.add(new Option(value+' (historical)',value));
+        }
+        select.value=value;
+        $('campusReportStudent').value='';
+        $('reportType').value='students';
+      }else{
+        if(!Array.from($('campusReportStudent').options).some(o=>o.value===value)){setMsg('reportsMessage','Student not in this school roster.',true);return false;}
+        $('campusReportStudent').value=value;
+        $('reportType').value='detail';
+      }
+      HallPassStudentAutocomplete.refresh('campusReportStudent');
+      campusDrillStack.push(previous);
+      const ok=await generateCampusReport(true);
+      if(!ok&&campusDrillStack[campusDrillStack.length-1]===previous){
+        campusDrillStack.pop();restoreCampusReportForm(previous.form);
+        currentCampusReport=previous.report;reportSortState=previous.sort;renderCampusReport();
+        $('downloadCampusReport').disabled=false;
+        $('printCampusStudentDetail').classList.toggle('hidden',fromType!=='detail');$('printCampusStudentDetail').disabled=fromType!=='detail';
+      }
+      return ok;
+    }
+    function backCampusReportDrill(){
+      if(!campusDrillStack.length)return;
+      ++campusReportRequestId;$('generateCampusReport').disabled=false;
+      const previous=campusDrillStack.pop();
+      restoreCampusReportForm(previous.form);
+      currentCampusReport=previous.report;reportSortState=previous.sort;renderCampusReport();
+      $('downloadCampusReport').disabled=false;
+      const detail=$('reportType').value==='detail';
+      $('printCampusStudentDetail').classList.toggle('hidden',!detail);$('printCampusStudentDetail').disabled=!detail;
+      setMsg('reportsMessage','Previous report restored. Select Generate Report to refresh the data.');
+    }
+    function printCampusStudentDetail(){
+      if(!currentCampusReport?.studentDetail||$('reportType').value!=='detail')return;
+      document.body.classList.add('printCampusStudentDetail');window.print();
+    }
+    window.addEventListener('afterprint',()=>document.body.classList.remove('printCampusStudentDetail'));
+    function clearCampusReportOnChange(){
+      ++campusReportRequestId;campusDrillStack=[];
+      currentCampusReport=null;reportSortState={main:null,secondary:null};
+      $('campusReportResults').classList.add('hidden');$('downloadCampusReport').disabled=true;
+      $('printCampusStudentDetail').disabled=true;$('printCampusStudentDetail').classList.add('hidden');
+      renderCampusDrillNavigation();
+    }
+    function reportStatsHtml(s){return [['Passes',s.totalPasses],['Completed',s.completedPasses],['Average Time',reportMinutes(s.averageMinutes)],['Longest',reportMinutes(s.longestMinutes)],['Total Time Out',reportMinutes(s.totalMinutes)],['Overrides',s.overrides]].map(x=>`<div class="stat"><div class="label">${esc(x[0])}</div><div class="value">${esc(x[1])}</div></div>`).join('')}
+    function reportSortValue(row,column){const value=row[column.key];if(column.type==='number'){const n=Number(value);return Number.isFinite(n)?n:-Infinity}if(column.type==='date'){const t=new Date(value||0).getTime();return Number.isFinite(t)?t:0}if(column.type==='boolean')return value?1:0;return String(value==null?'':value).toLowerCase()}
+    function sortedReportData(rows,columns,target){const state=reportSortState[target];if(!state||!state.key)return rows.slice();const column=columns.find(c=>c.key===state.key);if(!column)return rows.slice();const dir=state.direction==='desc'?-1:1;return rows.slice().sort((a,b)=>{const av=reportSortValue(a,column),bv=reportSortValue(b,column);let cmp=0;if(column.type==='text')cmp=String(av).localeCompare(String(bv),undefined,{numeric:true,sensitivity:'base'});else cmp=av<bv?-1:av>bv?1:0;if(cmp===0&&column.key!=='studentName'){const an=String(a.studentName||a.room||a.destination||'');const bn=String(b.studentName||b.room||b.destination||'');cmp=an.localeCompare(bn,undefined,{numeric:true,sensitivity:'base'})}return cmp*dir})}
+    function setReportSort(target,key,columns){const column=columns.find(c=>c.key===key);if(!column)return;const current=reportSortState[target];if(current&&current.key===key)reportSortState[target]={key:key,direction:current.direction==='asc'?'desc':'asc'};else reportSortState[target]={key:key,direction:column.defaultDir||(column.type==='number'?'desc':'asc')};renderCampusReport()}
+    function renderSortableReportTable(headId,bodyId,columns,data,rowRenderer,target){const state=reportSortState[target];const head=$(headId);head.innerHTML='<tr>'+columns.map(c=>{const active=state&&state.key===c.key;const arrow=active?(state.direction==='asc'?'▲':'▼'):'';const aria=active?(state.direction==='asc'?'ascending':'descending'):'none';return `<th class="sortableReportHeader" data-sort-key="${esc(c.key)}" tabindex="0" role="button" aria-sort="${aria}" title="Click to sort">${esc(c.label)}<span class="sortArrow">${arrow}</span></th>`}).join('')+'</tr>';const sorted=sortedReportData(data,columns,target);$(bodyId).innerHTML=sorted.length?sorted.map(rowRenderer).join(''):`<tr><td colspan="${columns.length}">No matching records.</td></tr>`;head.querySelectorAll('[data-sort-key]').forEach(th=>{const activate=()=>setReportSort(target,th.dataset.sortKey,columns);th.addEventListener('click',activate);th.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();activate()}})})}
+    function renderCampusReport(){if(!currentCampusReport)return;const r=currentCampusReport,type=$('reportType').value;$('campusReportResults').classList.remove('hidden');$('campusReportStats').innerHTML=reportStatsHtml(r.summary);$('campusReportMeta').textContent=[
+      r.filters.startDate+' to '+r.filters.endDate,
+      r.filters.roomKey?'Room: '+($('campusReportRoom').selectedOptions[0]?.textContent||r.filters.roomKey):'',
+      r.filters.destination?'Destination: '+r.filters.destination:'',
+      r.filters.studentId?'Student: '+($('campusReportStudent').selectedOptions[0]?.textContent||r.filters.studentId):''
+    ].filter(Boolean).join(' · ');$('reportSecondaryWrap').classList.add('hidden');let title='Campus Overview',columns=[],data=[],renderer=null;if(type==='detail'){
+      const student=r.studentDetail||{studentId:'',studentName:'',rows:[]};
+      title='Student Detail — '+student.studentName+' ('+student.studentId+')';
+      columns=[
+        {label:'Date',key:'date',type:'text',defaultDir:'desc'},
+        {label:'Room',key:'room',type:'text'},
+        {label:'Schedule / Period',key:'schedule',type:'text'},
+        {label:'Destination',key:'destination',type:'text'},
+        {label:'Requested',key:'requested',type:'date',defaultDir:'desc'},
+        {label:'Left',key:'left',type:'date',defaultDir:'desc'},
+        {label:'Returned',key:'returned',type:'date',defaultDir:'desc'},
+        {label:'Duration',key:'durationMinutes',type:'number',defaultDir:'desc'},
+        {label:'Wait',key:'waitSeconds',type:'number',defaultDir:'desc'},
+        {label:'Override / Status',key:'teacherOverride',type:'boolean'}];
+      data=student.rows||[];
+      renderer=x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.room)}<div class="muted">${esc(x.roomKey)}</div></td><td>${esc(x.schedule)}<div class="muted">${esc(x.period||'—')}</div></td><td>${esc(x.destination)}</td><td>${reportDateTime(x.requested)}</td><td>${reportDateTime(x.left)}</td><td>${reportDateTime(x.returned)}</td><td>${x.returned?reportMinutes(x.durationMinutes):'Still out'}</td><td>${Math.round(Number(x.waitSeconds||0))} sec</td><td>${x.teacherOverride?'Yes':'No'}${x.teacher?' · '+esc(x.teacher):''}${x.overrideNote?'<div class="muted">'+esc(x.overrideNote)+'</div>':''}${x.statusNote?'<div class="muted">'+esc(x.statusNote)+'</div>':''}${x.testData?'<div class="muted">Test data</div>':''}</td></tr>`;
+    }else if(type==='students'){title='Student Summary';columns=[{label:'Student',key:'studentName',type:'text'},{label:'ID',key:'studentId',type:'text'},{label:'Rooms',key:'rooms',type:'text'},{label:'Passes',key:'totalPasses',type:'number'},{label:'Restroom',key:'restroomPasses',type:'number'},{label:'Average',key:'averageMinutes',type:'number'},{label:'Longest',key:'longestMinutes',type:'number'},{label:'Total Time',key:'totalMinutes',type:'number'},{label:'Overrides',key:'overrides',type:'number'}];data=r.byStudent;renderer=x=>`<tr><td>${reportDrillLink('student',x.studentId,x.studentName)}</td><td>${esc(x.studentId)}</td><td>${esc(x.rooms||'—')}</td><td>${x.totalPasses}</td><td>${x.restroomPasses}</td><td>${reportMinutes(x.averageMinutes)}</td><td>${reportMinutes(x.longestMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td><td>${x.overrides}</td></tr>`}else if(type==='long'){title=`Long Passes (≥ ${r.filters.longMinutes} min)`;columns=[{label:'Date',key:'left',type:'date',defaultDir:'desc'},{label:'Room',key:'room',type:'text'},{label:'Student',key:'studentName',type:'text'},{label:'Destination',key:'destination',type:'text'},{label:'Left',key:'left',type:'date',defaultDir:'desc'},{label:'Returned',key:'returned',type:'date',defaultDir:'desc'},{label:'Duration',key:'durationMinutes',type:'number',defaultDir:'desc'},{label:'Override',key:'teacherOverride',type:'boolean',defaultDir:'desc'}];data=r.longPasses;renderer=x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.room)}</td><td>${reportDrillLink('student',x.studentId,x.studentName)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${reportDateTime(x.left)}</td><td>${reportDateTime(x.returned)}</td><td><strong>${reportMinutes(x.durationMinutes)}</strong></td><td>${x.teacherOverride?'Yes':'No'}</td></tr>`}else if(type==='frequent'){title=`Frequent Passes (≥ ${r.filters.frequentCount})`;columns=[{label:'Student',key:'studentName',type:'text'},{label:'ID',key:'studentId',type:'text'},{label:'Rooms',key:'rooms',type:'text'},{label:'Passes',key:'totalPasses',type:'number'},{label:'Restroom',key:'restroomPasses',type:'number'},{label:'Average',key:'averageMinutes',type:'number'},{label:'Total Time',key:'totalMinutes',type:'number'},{label:'Overrides',key:'overrides',type:'number'}];data=r.frequentStudents;renderer=x=>`<tr><td>${reportDrillLink('student',x.studentId,x.studentName)}</td><td>${esc(x.studentId)}</td><td>${esc(x.rooms||'—')}</td><td>${x.totalPasses}</td><td>${x.restroomPasses}</td><td>${reportMinutes(x.averageMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td><td>${x.overrides}</td></tr>`}else if(type==='overrides'){title='Teacher Override Report';columns=[{label:'Date',key:'left',type:'date',defaultDir:'desc'},{label:'Room',key:'room',type:'text'},{label:'Student',key:'studentName',type:'text'},{label:'Destination',key:'destination',type:'text'},{label:'Teacher',key:'teacher',type:'text'},{label:'Left',key:'left',type:'date',defaultDir:'desc'},{label:'Duration',key:'durationMinutes',type:'number',defaultDir:'desc'},{label:'Reason / Status',key:'overrideNote',type:'text'}];data=r.overrides;renderer=x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.room)}</td><td>${reportDrillLink('student',x.studentId,x.studentName)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${esc(x.teacher||'—')}</td><td>${reportDateTime(x.left)}</td><td>${x.durationMinutes==null?'—':reportMinutes(x.durationMinutes)}</td><td>${esc(x.overrideNote||x.statusNote||'—')}</td></tr>`}else{title='Campus Overview by Room';columns=[{label:'Room',key:'room',type:'text'},{label:'Passes',key:'totalPasses',type:'number'},{label:'Completed',key:'completedPasses',type:'number'},{label:'Average',key:'averageMinutes',type:'number'},{label:'Longest',key:'longestMinutes',type:'number'},{label:'Total Time',key:'totalMinutes',type:'number'},{label:'Overrides',key:'overrides',type:'number'}];data=r.byRoom;renderer=x=>`<tr><td>${reportDrillLink('room',x.roomKey,x.room)}<div class="muted">${esc(x.roomKey)}</div></td><td>${x.totalPasses}</td><td>${x.completedPasses}</td><td>${reportMinutes(x.averageMinutes)}</td><td>${reportMinutes(x.longestMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td><td>${x.overrides}</td></tr>`;$('reportSecondaryWrap').classList.remove('hidden');$('reportSecondaryTitle').textContent='By Destination';const destinationColumns=[{label:'Destination',key:'destination',type:'text'},{label:'Passes',key:'totalPasses',type:'number'},{label:'Completed',key:'completedPasses',type:'number'},{label:'Average',key:'averageMinutes',type:'number'},{label:'Longest',key:'longestMinutes',type:'number'},{label:'Total Time',key:'totalMinutes',type:'number'}];renderSortableReportTable('reportSecondaryHead','reportSecondaryBody',destinationColumns,r.byDestination,x=>`<tr><td>${reportDrillLink('destination',x.destination,x.destination)}</td><td>${x.totalPasses}</td><td>${x.completedPasses}</td><td>${reportMinutes(x.averageMinutes)}</td><td>${reportMinutes(x.longestMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td></tr>`,'secondary')} $('campusReportTitle').textContent=title;renderSortableReportTable('campusReportHead','campusReportBody',columns,data,renderer,'main');renderCampusDrillNavigation()}
+    function csvValue(v){if(v==null)return '';if(typeof v==='object')v=JSON.stringify(v);const s=String(v);return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
+    function downloadTextFile(name,text,type='text/plain;charset=utf-8'){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+    function downloadCsvRows(name,rows){if(!rows.length){setMsg('backupMessage','There are no rows to export.',true);return;}const headers=[...new Set(rows.flatMap(x=>Object.keys(x)))],text=[headers.map(csvValue).join(','),...rows.map(r=>headers.map(h=>csvValue(r[h])).join(','))].join('\r\n');downloadTextFile(name,text,'text/csv;charset=utf-8')}
+    function campusReportRows(){if(!currentCampusReport)return [];const r=currentCampusReport,type=$('reportType').value;if(type==='detail')return (r.studentDetail?.rows||[]).map(x=>({date:x.date,room:x.room,room_key:x.roomKey,schedule:x.schedule,period:x.period,destination:x.destination,requested:x.requested,left:x.left,returned:x.returned,duration_minutes:x.durationMinutes,wait_seconds:x.waitSeconds,teacher_override:x.teacherOverride,teacher:x.teacher,override_note:x.overrideNote,status_note:x.statusNote,test_data:x.testData}));if(type==='students'||type==='frequent')return (type==='students'?r.byStudent:r.frequentStudents).map(x=>({student_name:x.studentName,student_id:x.studentId,rooms:x.rooms,total_passes:x.totalPasses,restroom_passes:x.restroomPasses,completed_passes:x.completedPasses,average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes,total_minutes:x.totalMinutes,teacher_overrides:x.overrides}));if(type==='long')return r.longPasses.map(x=>({date:x.date,room:x.room,room_key:x.roomKey,student_name:x.studentName,student_id:x.studentId,destination:x.destination,left:x.left,returned:x.returned,duration_minutes:x.durationMinutes,teacher_override:x.teacherOverride}));if(type==='overrides')return r.overrides.map(x=>({date:x.date,room:x.room,room_key:x.roomKey,student_name:x.studentName,student_id:x.studentId,destination:x.destination,teacher:x.teacher,left:x.left,returned:x.returned,duration_minutes:x.durationMinutes,override_note:x.overrideNote,status_note:x.statusNote}));return r.byRoom.map(x=>({room:x.room,room_key:x.roomKey,total_passes:x.totalPasses,completed_passes:x.completedPasses,average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes,total_minutes:x.totalMinutes,teacher_overrides:x.overrides}))}
+    function downloadCampusReport(){if(!currentCampusReport)return;const type=$('reportType').value;const id=type==='detail'?'-'+String(currentCampusReport.studentDetail?.studentId||'student').replace(/[^a-z0-9_-]/gi,'-'):'';downloadCsvRows(`hall-pass-${type}${id}-${currentCampusReport.filters.startDate}-to-${currentCampusReport.filters.endDate}.csv`,campusReportRows())}
+    async function exportBackupDataset(dataset,button){if(button)button.disabled=true;setMsg('backupMessage',`Preparing ${dataset} export...`);try{const r=await hallpassApi.call('adminBackupDataset',[dataset]);if(!r.success){setMsg('backupMessage',r.message,true);return;}const stamp=new Date().toISOString().slice(0,10);if(dataset==='students')downloadCsvRows(`hall-pass-students-${stamp}.csv`,r.rows||[]);else if(dataset==='passes')downloadCsvRows(`hall-pass-history-${stamp}.csv`,r.rows||[]);else if(dataset==='audit')downloadCsvRows(`hall-pass-audit-${stamp}.csv`,(r.rows||[]).map(x=>({...x,details:JSON.stringify(x.details||{})})));else if(dataset==='configuration')downloadTextFile(`hall-pass-configuration-${stamp}.json`,JSON.stringify(r.data,null,2),'application/json;charset=utf-8');else if(dataset==='full')downloadTextFile(`${(adminAccess.selectedSchool?.key||'school').replace(/[^a-z0-9_-]+/gi,'-')}-hall-pass-full-backup-${stamp}.json`,JSON.stringify(r.backup,null,2),'application/json;charset=utf-8');setMsg('backupMessage','Download created.')}catch(e){setMsg('backupMessage',e.message,true)}finally{if(button)button.disabled=false}}
+
+    function onboardingTeacherMode(){return (document.querySelector('input[name="onboardTeacherMode"]:checked')||{}).value||'new'}
+    function toggleOnboardingTeacherMode(){const existing=onboardingTeacherMode()==='existing';$('onboardNewTeacherFields').classList.toggle('hidden',existing);$('onboardExistingTeacherFields').classList.toggle('hidden',!existing)}
+    function populateOnboardingLists(){
+      $('onboardExistingTeacher').innerHTML='<option value="">Choose teacher</option>'+assignmentTeachers().filter(t=>t.active!==false&&(adminAccess.organizationAdmin===true||t.role!=='admin')).map(t=>`<option value="${esc(t.id)}">${esc(t.name)}${t.attachedToSchool===false?' — other school':''}${t.role==='admin'?' — Organization Admin':''}</option>`).join('');
+      $('onboardCloneRoom').innerHTML='<option value="">School defaults</option>'+management.rooms.filter(r=>r.active!==false).map(r=>`<option value="${esc(r.id)}">${esc(r.room)} (${esc(r.key)})</option>`).join('');
+    }
+    async function loadOnboardingDestinations(sourceRoomId=''){
+      setMsg('onboardCloneMessage','Loading destination defaults...');
+      try{
+        const r=await hallpassApi.call('adminOnboardingDestinationDefaults',[sourceRoomId||'']);
+        if(!r.success){setMsg('onboardCloneMessage',r.message,true);return false;}
+        onboardingDestinations=(r.rows||[]).map(x=>({...x}));
+        renderOnboardingDestinations();
+        setMsg('onboardCloneMessage',r.sourceRoom?`Loaded destination choices from ${r.sourceRoom.room}.`:'Using school destination defaults.');
+        return true;
+      }catch(e){setMsg('onboardCloneMessage',e.message,true);return false;}
+    }
+    function renderOnboardingDestinations(){
+      const rows=onboardingDestinations||[];
+      $('onboardDestinationsBody').innerHTML=rows.length?rows.map(x=>`<tr data-onboard-catalog="${esc(x.catalogId)}"><td><strong>${esc(x.name)}</strong></td><td>${x.schoolwideEnabled?'Enabled':'<span class="wizardSchoolDisabled">Disabled</span>'}</td><td><input type="checkbox" data-onboard-dest-enabled="${esc(x.catalogId)}" ${x.enabled?'checked':''} ${x.schoolwideEnabled?'':'disabled'}></td><td>${Number(x.defaultMaxOut||0)}</td><td><input type="number" min="0" placeholder="Use default" data-onboard-dest-max="${esc(x.catalogId)}" value="${x.maxOutOverride==null?'':esc(x.maxOutOverride)}" ${x.schoolwideEnabled?'':'disabled'}></td></tr>`).join(''):'<tr><td colspan="5">No master destinations found.</td></tr>';
+    }
+    function collectOnboardingDestinations(){return (onboardingDestinations||[]).map(x=>{const enabled=document.querySelector(`[data-onboard-dest-enabled="${CSS.escape(String(x.catalogId))}"]`),max=document.querySelector(`[data-onboard-dest-max="${CSS.escape(String(x.catalogId))}"]`);return {catalogId:x.catalogId,enabled:enabled?enabled.checked:x.enabled,maxOutOverride:max?max.value:''}})}
+    function setOnboardingStep(step){onboardingStep=Math.max(1,Math.min(5,Number(step)||1));document.querySelectorAll('[data-onboard-step]').forEach(x=>x.classList.toggle('active',Number(x.dataset.onboardStep)===onboardingStep));document.querySelectorAll('[data-onboard-progress]').forEach(x=>{const n=Number(x.dataset.onboardProgress);x.classList.toggle('active',n===onboardingStep);x.classList.toggle('done',n<onboardingStep)});$('onboardBackButton').classList.toggle('hidden',onboardingStep===1);$('onboardNextButton').classList.toggle('hidden',onboardingStep===5);$('onboardCreateButton').classList.toggle('hidden',onboardingStep!==5);setMsg('onboardingMessage','')}
+    function validateOnboardingStep(step){
+      if(step===1){const name=$('onboardRoomName').value.trim(),key=$('onboardRoomKey').value.trim().toLowerCase(),tz=$('onboardTimezone').value.trim();if(!name){setMsg('onboardingMessage','Enter a room name.',true);return false}if(!/^[a-z0-9_-]+$/.test(key)){setMsg('onboardingMessage','Room key may use lowercase letters, numbers, underscores, and hyphens only.',true);return false}if(management.rooms.some(r=>String(r.key).toLowerCase()===key)){setMsg('onboardingMessage','That room key already exists in this school.',true);return false}if(!tz){setMsg('onboardingMessage','Enter the room timezone.',true);return false}}
+      if(step===2){if(onboardingTeacherMode()==='new'){const name=$('onboardTeacherName').value.trim(),pin=$('onboardTeacherPin').value.trim(),confirm=$('onboardTeacherPinConfirm').value.trim();if(!name){setMsg('onboardingMessage','Enter the teacher name.',true);return false}if(!/^\d{4,10}$/.test(pin)){setMsg('onboardingMessage','Teacher PIN must be 4–10 digits.',true);return false}if(pin!==confirm){setMsg('onboardingMessage','Teacher PINs do not match.',true);return false}}else{if(!$('onboardExistingTeacher').value){setMsg('onboardingMessage','Choose an existing teacher.',true);return false}const pin=$('onboardExistingPin').value.trim(),confirm=$('onboardExistingPinConfirm').value.trim();if(pin&&!/^\d{4,10}$/.test(pin)){setMsg('onboardingMessage','New PIN must be 4–10 digits.',true);return false}if(pin!==confirm){setMsg('onboardingMessage','PIN confirmation does not match.',true);return false}}}
+      return true;
+    }
+    function onboardingTeacherSummary(){if(onboardingTeacherMode()==='new')return $('onboardTeacherName').value.trim();const t=assignmentTeachers().find(x=>x.id===$('onboardExistingTeacher').value);return t?t.name:'Existing teacher'}
+    function renderOnboardingReview(){const source=management.rooms.find(r=>r.id===$('onboardCloneRoom').value),dest=collectOnboardingDestinations(),enabled=dest.filter((x,i)=>x.enabled&&onboardingDestinations[i]?.schoolwideEnabled).length,overrides=dest.filter(x=>String(x.maxOutOverride||'').trim()!=='').length,key=$('onboardRoomKey').value.trim().toLowerCase();$('onboardReview').innerHTML=`<div class="wizardReviewGrid"><div class="wizardReviewItem"><strong>Room</strong>${esc($('onboardRoomName').value.trim())} (${esc(key)})<div class="muted">${esc($('onboardTimezone').value.trim())}</div></div><div class="wizardReviewItem"><strong>Teacher</strong>${esc(onboardingTeacherSummary())}<div class="muted">${onboardingTeacherMode()==='new'?'New teacher account':'Existing teacher assignment'}</div></div><div class="wizardReviewItem"><strong>Starting configuration</strong>${source?esc(source.room+' ('+source.key+')'):'School defaults'}</div><div class="wizardReviewItem"><strong>Destinations</strong>${enabled} enabled<div class="muted">${overrides} Max Out override${overrides===1?'':'s'}</div></div></div><div style="margin-top:12px"><strong>Student URL</strong><div class="wizardUrl">${esc(studentUrl(key))}</div><strong style="display:block;margin-top:8px">Teacher URL</strong><div class="wizardUrl">${esc(teacherUrl(key))}</div></div>`}
+    async function openOnboardingWizard(){
+      setMsg('manageMessage','Loading onboarding wizard...');
+      try{await refreshManagement();populateOnboardingLists();$('onboardRoomName').value='';$('onboardRoomKey').value='';$('onboardTimezone').value='America/Los_Angeles';document.querySelector('input[name="onboardTeacherMode"][value="new"]').checked=true;toggleOnboardingTeacherMode();$('onboardTeacherName').value='';$('onboardTeacherEmail').value='';$('onboardTeacherPin').value='';$('onboardTeacherPinConfirm').value='';$('onboardExistingTeacher').value='';$('onboardExistingPin').value='';$('onboardExistingPinConfirm').value='';$('onboardCloneRoom').value='';await loadOnboardingDestinations('');setOnboardingStep(1);showModal('onboardingModal');setMsg('manageMessage','')}catch(e){setMsg('manageMessage',e.message,true)}
+    }
+    async function onboardingNext(){if(!validateOnboardingStep(onboardingStep))return;if(onboardingStep===3){const ok=await loadOnboardingDestinations($('onboardCloneRoom').value);if(!ok)return}const next=Math.min(5,onboardingStep+1);setOnboardingStep(next);if(next===5)renderOnboardingReview()}
+    function onboardingBack(){setOnboardingStep(Math.max(1,onboardingStep-1))}
+    async function createOnboardedRoom(){if(!validateOnboardingStep(1)||!validateOnboardingStep(2))return;const b=$('onboardCreateButton'),teacherMode=onboardingTeacherMode();const data={room:{room:$('onboardRoomName').value.trim(),key:$('onboardRoomKey').value.trim().toLowerCase(),timezone:$('onboardTimezone').value.trim()},teacher:teacherMode==='new'?{mode:'new',name:$('onboardTeacherName').value.trim(),email:$('onboardTeacherEmail').value.trim(),pin:$('onboardTeacherPin').value.trim()}:{mode:'existing',teacherId:$('onboardExistingTeacher').value,pin:$('onboardExistingPin').value.trim()},cloneFromRoomId:$('onboardCloneRoom').value,destinations:collectOnboardingDestinations()};b.disabled=true;b.textContent='CREATING...';setMsg('onboardingMessage','Creating room and teacher setup...');try{const r=await hallpassApi.call('adminOnboardRoom',[data]);if(!r.success){setMsg('onboardingMessage',r.message,true);return}hideModal('onboardingModal');await Promise.all([refreshManagement(),refreshLive()]);setMsg('manageMessage',r.message);openRoomLinks(r.room.id)}catch(e){setMsg('onboardingMessage',e.message,true)}finally{b.disabled=false;b.textContent='Create Room'}}
+
+    function fillRoomChecks(containerId,selectedIds,mode){const items=mode==='teachers'?assignmentTeachers():management.rooms;$(containerId).innerHTML=items.map(x=>{const id=x.id,label=mode==='teachers'?x.name:x.room,isProtected=mode==='teachers'&&adminAccess.organizationAdmin!==true&&x.role==='admin';return `<label><input type="checkbox" value="${esc(id)}" ${(selectedIds||[]).includes(id)?'checked':''} ${isProtected?'disabled':''}>${esc(label)}${x.role==='admin'?' (Organization Admin)':''}${x.active===false?' (disabled)':''}</label>`}).join('')||'<span class="muted">None available.</span>'}
+    function selectedChecks(containerId){return Array.from($(containerId).querySelectorAll('input[type=checkbox]:checked')).map(x=>x.value)}
+    function fillCloneSelect(id,excludeId='',blankText='Blank defaults'){const options=management.rooms.filter(r=>r.id!==excludeId && r.active).map(r=>`<option value="${esc(r.id)}">${esc(r.room)} (${esc(r.key)})</option>`).join('');$(id).innerHTML=`<option value="">${esc(blankText)}</option>`+options}
+    function openRoom(id=''){const r=management.rooms.find(x=>x.id===id);$('roomEditId').value=r?.id||'';$('roomModalTitle').textContent=r?'Edit Room':'Add Room';$('roomKeyInput').value=r?.key||'';$('roomKeyInput').disabled=Boolean(r);$('roomNameInput').value=r?.room||'';$('roomTimezoneInput').value=r?.timezone||'America/Los_Angeles';$('roomActiveInput').value=String(r?.active!==false);fillRoomChecks('roomTeacherChecks',r?.teacherIds||[],'teachers');fillCloneSelect('cloneRoomSelect','');fillCloneSelect('editCloneRoomSelect',r?.id||'','Do not copy');$('cloneWrap').classList.toggle('hidden',Boolean(r));$('roomEditCloneWrap').classList.toggle('hidden',!r);setMsg('roomModalMessage','');showModal('roomModal')}
+    async function saveRoom(){const b=$('saveRoomButton'),id=$('roomEditId').value,data={key:$('roomKeyInput').value.trim().toLowerCase(),room:$('roomNameInput').value.trim(),timezone:$('roomTimezoneInput').value.trim(),active:$('roomActiveInput').value==='true',teacherIds:selectedChecks('roomTeacherChecks')};if(!id)data.cloneFromRoomId=$('cloneRoomSelect').value;b.disabled=true;setMsg('roomModalMessage','Saving...');try{let r;if(id){r=await hallpassApi.call('adminUpdateRoom',[id,data]);if(r.success && $('editCloneRoomSelect').value){const c=await hallpassApi.call('adminCloneRoomConfig',[id,$('editCloneRoomSelect').value]);if(!c.success)r=c}}else r=await hallpassApi.call('adminCreateRoom',[data]);if(!r.success){setMsg('roomModalMessage',r.message,true);return;}hideModal('roomModal');await Promise.all([refreshManagement(),refreshLive()]);setMsg('manageMessage',r.message)}catch(e){setMsg('roomModalMessage',e.message,true)}finally{b.disabled=false}}
+    async function deleteRoom(id){const r=management.rooms.find(x=>x.id===id);if(!r)return;const ok=window.confirm(`Delete room ${r.room}?\nRooms with pass or waiting history cannot be deleted.`);if(!ok)return;setMsg('manageMessage','Deleting room...');try{const result=await hallpassApi.call('adminDeleteRoom',[id]);if(!result.success){setMsg('manageMessage',result.message,true);return;}await Promise.all([refreshManagement(),refreshLive()]);setMsg('manageMessage',result.message)}catch(e){setMsg('manageMessage',e.message,true)}}
+    function openTeacher(id=''){const t=management.teachers.find(x=>x.id===id);if((t?.role==='admin'||t?.schoolAdmin)&&adminAccess.organizationAdmin!==true){setMsg('manageMessage','Only an Organization Admin can manage Admin accounts.',true);return}$('teacherEditId').value=t?.id||'';$('teacherModalTitle').textContent=t?'Edit Teacher':'Add Teacher';$('teacherNameInput').value=t?.name||'';$('teacherEmailInput').value=t?.email||'';$('teacherRoleInput').value=t?.role||'teacher';$('teacherSchoolAdminInput').value=String(t?.schoolAdmin===true);$('teacherActiveInput').value=String(t?.active!==false);$('teacherRoleInput').disabled=adminAccess.organizationAdmin!==true;$('teacherSchoolAdminInput').disabled=adminAccess.organizationAdmin!==true;$('teacherPinInput').value='';$('pinHint').textContent=t?'Leave blank to keep the current PIN; enter a new PIN to reset it.':'Required for a new teacher.';fillRoomChecks('teacherRoomChecks',t?.roomIds||[],'rooms');setMsg('teacherModalMessage','');showModal('teacherModal')}
+    async function saveTeacher(){const b=$('saveTeacherButton'),id=$('teacherEditId').value,data={name:$('teacherNameInput').value.trim(),email:$('teacherEmailInput').value.trim(),role:$('teacherRoleInput').value,schoolAdmin:$('teacherSchoolAdminInput').value==='true',active:$('teacherActiveInput').value==='true',pin:$('teacherPinInput').value.trim(),roomIds:selectedChecks('teacherRoomChecks')};b.disabled=true;setMsg('teacherModalMessage','Saving...');try{const r=id?await hallpassApi.call('adminUpdateTeacher',[id,data]):await hallpassApi.call('adminCreateTeacher',[data]);if(!r.success){setMsg('teacherModalMessage',r.message,true);return;}hideModal('teacherModal');await refreshManagement();setMsg('manageMessage',r.message)}catch(e){setMsg('teacherModalMessage',e.message,true)}finally{b.disabled=false}}
+    function showModal(id){$(id).classList.remove('hidden');$(id).setAttribute('aria-hidden','false')} function hideModal(id){$(id).classList.add('hidden');$(id).setAttribute('aria-hidden','true')}
+    HallPassStudentAutocomplete.enhanceSelect('campusReportStudent', 'All students — type name or ID', true);
+    HallPassStudentAutocomplete.enhanceTextSearch('studentSearch', () => studentsState.rows || []);
+    HallPassStudentAutocomplete.enhanceTextSearch('search', () => studentsState.rows || [], () => refreshLive());
+    // Load the master roster only when a user asks for student suggestions in Live Campus.
+    let studentHintLoadRequested = false;
+    $('search').addEventListener('focus', () => {
+      if (unlocked && !studentHintLoadRequested && !(studentsState.rows || []).length) {
+        studentHintLoadRequested = true;
+        refreshStudents().finally(() => { studentHintLoadRequested = false; });
+      }
+    });
+
+    $('campusLockButton').addEventListener('click',setCampusLock);$('refreshStudents').addEventListener('click',e=>refreshStudents(e.currentTarget));$('refreshDestinations').addEventListener('click',e=>refreshDestinations(e.currentTarget));$('addDestinationButton').addEventListener('click',()=>openDestination());$('saveDestinationButton').addEventListener('click',saveMasterDestination);$('addStudentButton').addEventListener('click',()=>openStudent());$('importStudentsButton').addEventListener('click',openStudentImport);$('saveStudentButton').addEventListener('click',saveStudent);$('previewStudentImport').addEventListener('click',previewStudentImport);$('confirmStudentImport').addEventListener('click',confirmStudentImport);$('studentSearch').addEventListener('input',renderStudents);$('studentStatusFilter').addEventListener('change',renderStudents);$('refreshSecurity').addEventListener('click',e=>refreshSecurity(e.currentTarget));$('saveSecurity').addEventListener('click',saveSecurity);$('clearAllLockouts').addEventListener('click',()=>clearLockout('',''));$('calendarAutoEnabled').addEventListener('change',changeCalendarAutoSetting);
+    $('rsLegacyPrepare').addEventListener('click',rsPrepareLegacyDates);
+    $('rsRefresh').addEventListener('click',e=>refreshRoomScheduling(e.currentTarget));
+    $('rsToggleMode').addEventListener('click',rsToggleMode);
+    $('rsSelectAll').addEventListener('click',()=>rsSelectAll(true));
+    $('rsSelectNone').addEventListener('click',()=>rsSelectAll(false));
+    $('rsAssignSchedule').addEventListener('click',rsAssign);
+    $('rsPreview').addEventListener('click',rsPreviewSpecialDates);
+    $('rsApply').addEventListener('click',rsApplySpecialDates);
+    $('roomSchedulePanel').addEventListener('input',e=>{if(e.target.closest('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays,#rsExceptionDayType,#rsConflictMode'))rsResetPreview();});
+    $('roomSchedulePanel').addEventListener('change',e=>{if(e.target.closest('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays,#rsExceptionDayType,#rsConflictMode'))rsResetPreview();});
+    $('rsExceptionsBody').addEventListener('click',e=>{const b=e.target.closest('[data-rs-delete-date]');if(b)rsDeleteSpecialDate(b.dataset.rsDeleteDate)});
+    $('refreshCalendar').addEventListener('click',e=>refreshCalendar(e.currentTarget));$('saveCalendarEntry').addEventListener('click',saveCalendarEntry);$('previewWeeklyCalendar').addEventListener('click',()=>previewBulkCalendar(buildWeeklyCalendarDates(),'weekly'));$('previewListedCalendar').addEventListener('click',()=>previewBulkCalendar(buildListedCalendarDates(),'listed'));$('applyBulkCalendar').addEventListener('click',applyBulkCalendar);$('clearBulkCalendar').addEventListener('click',clearBulkCalendarPreview);$('bulkConflictMode').addEventListener('change',()=>{if(bulkCalendarPreview)previewBulkCalendar(bulkCalendarPreview.dates,bulkCalendarPreview.source)});
+    $('refreshReportOptions').addEventListener('click',e=>refreshReportOptions(e.currentTarget));$('generateCampusReport').addEventListener('click',generateCampusReport);$('downloadCampusReport').addEventListener('click',downloadCampusReport);$('campusReportBack').addEventListener('click',backCampusReportDrill);$('printCampusStudentDetail').addEventListener('click',printCampusStudentDetail);['campusReportBody','reportSecondaryBody'].forEach(id=>$(id).addEventListener('click',e=>{const btn=e.target.closest('[data-report-drill]');if(btn)drillDownCampusReport(btn.dataset.reportDrill,btn.dataset.reportValue)}));$('reportType').addEventListener('change',clearCampusReportOnChange);['campusReportRoom','campusReportStudent','campusReportDestination','campusReportStart','campusReportEnd','longPassMinutes','frequentPassCount','campusIncludeTestData'].forEach(id=>$(id).addEventListener('change',clearCampusReportOnChange));$('exportStudents').addEventListener('click',e=>exportBackupDataset('students',e.currentTarget));$('exportPasses').addEventListener('click',e=>exportBackupDataset('passes',e.currentTarget));$('exportConfiguration').addEventListener('click',e=>exportBackupDataset('configuration',e.currentTarget));$('exportAudit').addEventListener('click',e=>exportBackupDataset('audit',e.currentTarget));$('downloadFullBackup').addEventListener('click',e=>exportBackupDataset('full',e.currentTarget));
+    $('refreshAudit').addEventListener('click',e=>refreshAudit(e.currentTarget));$('auditRoomFilter').addEventListener('change',()=>refreshAudit());$('auditSearch').addEventListener('keydown',e=>{if(e.key==='Enter')refreshAudit()});$('loginButton').addEventListener('click',login);$('adminPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('refreshLive').addEventListener('click',e=>refreshLive(e.currentTarget));$('roomFilter').addEventListener('change',()=>refreshLive());$('search').addEventListener('keydown',e=>{if(e.key==='Enter')refreshLive()});$('refreshManage').addEventListener('click',e=>refreshManagement(e.currentTarget));$('refreshSchedules').addEventListener('click',e=>refreshManagement(e.currentTarget));$('addScheduleButton').addEventListener('click',()=>openSchedule());$('saveScheduleButton').addEventListener('click',saveSchedule);$('onboardRoomButton').addEventListener('click',openOnboardingWizard);$('addRoomButton').addEventListener('click',()=>openRoom());$('addTeacherButton').addEventListener('click',()=>openTeacher());$('saveRoomButton').addEventListener('click',saveRoom);$('saveTeacherButton').addEventListener('click',saveTeacher);
+    $('onboardBackButton').addEventListener('click',onboardingBack);$('onboardNextButton').addEventListener('click',onboardingNext);$('onboardCreateButton').addEventListener('click',createOnboardedRoom);$('copyStudentLink').addEventListener('click',()=>copyTextValue($('roomStudentLink').value,'Student link copied.'));$('copyTeacherLink').addEventListener('click',()=>copyTextValue($('roomTeacherLink').value,'Teacher link copied.'));$('copySetupMessage').addEventListener('click',()=>{const room=currentLinksRoom();if(room)copyTextValue(setupMessageForRoom(room),'Setup message copied.')});$('openStudentLink').addEventListener('click',()=>window.open($('roomStudentLink').value,'_blank','noopener'));$('openTeacherLink').addEventListener('click',()=>window.open($('roomTeacherLink').value,'_blank','noopener'));document.querySelectorAll('input[name="onboardTeacherMode"]').forEach(x=>x.addEventListener('change',toggleOnboardingTeacherMode));$('onboardCloneRoom').addEventListener('change',()=>loadOnboardingDestinations($('onboardCloneRoom').value));$('onboardRoomName').addEventListener('blur',()=>{if(!$('onboardRoomKey').value.trim())$('onboardRoomKey').value=$('onboardRoomName').value.trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')});
+    $('schoolSelector').addEventListener('change',switchSchool);$('addSchoolButton').addEventListener('click',()=>openSchool());$('refreshOrganization').addEventListener('click',e=>refreshOrganization(e.currentTarget));$('saveSchoolButton').addEventListener('click',saveSchool);
+    document.addEventListener('click',e=>{const tab=e.target.closest('[data-panel]');if(tab){document.querySelectorAll('.tabButton').forEach(x=>x.classList.toggle('active',x===tab));document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('active',x.id===tab.dataset.panel));if(tab.dataset.panel==='managePanel'||tab.dataset.panel==='schedulePanel')refreshManagement();if(tab.dataset.panel==='studentsPanel')refreshStudents();if(tab.dataset.panel==='destinationsPanel')refreshDestinations();if(tab.dataset.panel==='securityPanel')refreshSecurity();if(tab.dataset.panel==='calendarPanel')refreshCalendar();if(tab.dataset.panel==='roomSchedulePanel')refreshRoomScheduling();if(tab.dataset.panel==='reportsPanel')refreshReportOptions();if(tab.dataset.panel==='auditPanel'){refreshManagement().then(()=>refreshAudit())}if(tab.dataset.panel==='orgPanel')refreshOrganization();return}const sch=e.target.closest('[data-edit-school]');if(sch){openSchool(sch.dataset.editSchool);return}const es=e.target.closest('[data-edit-schedule]');if(es){openSchedule(es.dataset.editSchedule);return}const ds=e.target.closest('[data-delete-schedule]');if(ds){deleteSchedule(ds.dataset.deleteSchedule);return}const rl=e.target.closest('[data-room-links]');if(rl){openRoomLinks(rl.dataset.roomLinks);return}const er=e.target.closest('[data-edit-room]');if(er){openRoom(er.dataset.editRoom);return}const ert=e.target.closest('[data-email-room-teacher]');if(ert){emailRoomTeacher(ert.dataset.emailRoomTeacher);return}const aet=e.target.closest('[data-edit-teacher-from-links]');if(aet){hideModal('roomLinksModal');openTeacher(aet.dataset.editTeacherFromLinks);return}const dr=e.target.closest('[data-delete-room]');if(dr){deleteRoom(dr.dataset.deleteRoom);return}const et=e.target.closest('[data-edit-teacher]');if(et){openTeacher(et.dataset.editTeacher);return}const est=e.target.closest('[data-edit-student]');if(est){openStudent(est.dataset.editStudent);return}const edest=e.target.closest('[data-edit-destination]');if(edest){openDestination(edest.dataset.editDestination);return}const clr=e.target.closest('[data-clear-lockout]');if(clr){clearLockout(clr.dataset.scope,clr.dataset.hash);return}const ecal=e.target.closest('[data-edit-calendar]');if(ecal){editCalendar(ecal.dataset.editCalendar);return}const dcal=e.target.closest('[data-delete-calendar]');if(dcal){deleteCalendar(dcal.dataset.deleteCalendar);return}const dbatch=e.target.closest('[data-delete-calendar-batch]');if(dbatch){deleteCalendarBatch(dbatch.dataset.deleteCalendarBatch);return}const cl=e.target.closest('[data-close]');if(cl)hideModal(cl.dataset.close)});
+    updateHallpassAdminTitle();
+    setInterval(()=>document.querySelectorAll('[data-left]').forEach(x=>x.textContent=elapsed(x.dataset.left)),1000);setInterval(()=>{if(unlocked && $('livePanel').classList.contains('active'))refreshLive()},5000);
+  </script>
+</body></html>
