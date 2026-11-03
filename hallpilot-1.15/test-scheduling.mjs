@@ -54,6 +54,14 @@ async function testScheduling(staffSource, publicSource) {
     const regular=await fn(admin,room,settings,{room_scheduling_enabled:true,auto_scheduling_enabled:true},null,'2099-11-02');
     verify(regular.effectiveSchedule==='K Regular',name+' primary schedule selected');
   }
+  // Deleting the old master Regular must not close normal days before room scheduling is enabled.
+  const legacyRegular=db.master_schedules.find(x=>x.schedule_name==='Regular');
+  db.master_schedules=db.master_schedules.filter(x=>x!==legacyRegular);
+  for(const [name,fn] of [['student',pub.resolveRoomSchedule],['teacher',staff.resolveRoomSchedule]]){
+    const fallback=await fn(admin,room,settings,{room_scheduling_enabled:false,auto_scheduling_enabled:true},null,'2099-11-02');
+    verify(fallback.effectiveSchedule==='K Regular',name+' legacy fallback uses room Primary when Regular deleted');
+  }
+  db.master_schedules.push(legacyRegular);
   let res=await staff.adminRoomSchedulingState(admin,school);
   verify(res.rooms.length===2&&res.legacyFutureCount===1,'school scoped admin state');
   res=await staff.adminAssignRoomSchedules(admin,teacher,school,{roomIds:['r1','other'],dayType:'Primary',schedule:'K Regular'});
