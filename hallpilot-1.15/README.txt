@@ -156,3 +156,43 @@ TESTS
   rename with room assignment, overlapping times, duplicate names, delete.
 - Temporary test schedule was removed; original test-room settings restored.
 - Development Admin JavaScript syntax and unique element IDs checked.
+
+
+REPLACING AN ASSIGNED SCHEDULE BEFORE DELETING (NEW)
+----------------------------------------------------
+Admin > Master Schedules > Delete now shows which rooms, teacher overrides,
+legacy calendar dates, and special-day mappings still use the schedule.
+Choose the replacement master schedule, then select Replace & Delete.
+The database updates references and removes the old schedule together in
+a single transaction; a failure rolls back all changes.
+Existing pass and waiting history is not renamed or deleted.
+
+For example, Westfield Dev had 11 room Primary assignments pointing to
+the leftover one-period 'Regular' schedule. Its full six-period schedule
+was 'Primary - MS'. The new UI lets the Admin select the correct replacement
+for those rooms, rather than requiring one-by-one edits.
+
+IMPORTANT LEGACY COMPATIBILITY
+------------------------------
+The original (flag-OFF) calendar resolver historically assumes a schedule
+named Regular. When a replacement deletes that schedule, staff AND student
+resolvers now fall back to each room's assigned Primary when the old master
+Regular name no longer exists. While Regular exists, original behavior is
+unchanged. This change is DEVELOPMENT ONLY and is not yet on production.
+
+FILES
+-----
+003-replace-delete-schedule.sql creates the atomic RPC.
+This must be applied to development only. Admin-only Edge Function actions
+adminScheduleUsage and adminReplaceDeleteSchedule use it.
+The operation blocks while any passes or waiting requests remain active.
+Both SQL RPCs accept service_role only; they are not browser-accessible.
+The UI requires the Admin to select the actual replacement, so a default
+schedule is never guessed for grade levels with different bell times.
+
+TESTS
+-----
+22 synthetic scheduling regression tests passed, including the missing
+Regular legacy-fallback case for both Student and Staff paths.
+Database replacement/delete smoke test passed with rollback of all
+temporary changes. Live production remains unchanged.
