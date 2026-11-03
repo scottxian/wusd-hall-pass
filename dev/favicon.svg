@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 345" role="img" aria-labelledby="t"><title id="t">Hall Pilot paper airplane flying through a school hallway</title><defs>
+<linearGradient id="wallL" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#06245b"/><stop offset=".6" stop-color="#0966ef"/><stop offset="1" stop-color="#069dff"/></linearGradient>
+<linearGradient id="wallR" x1="1" y1="0" x2="0" y2="1"><stop stop-color="#06245b"/><stop offset=".6" stop-color="#0966ef"/><stop offset="1" stop-color="#069dff"/></linearGradient>
+<linearGradient id="planeL" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#099fff"/><stop offset="1" stop-color="#0874ee"/></linearGradient>
+<linearGradient id="planeR" x1="1" y1="0" x2="0" y2="1"><stop stop-color="#0263d8"/><stop offset="1" stop-color="#04347b"/></linearGradient>
+<linearGradient id="door" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#bedefb"/></linearGradient>
+</defs>
+<path fill="url(#wallL)" d="M13 10L204 119V191L13 287Z"/>
+<path fill="url(#door)" d="M87 89L130 113V207L87 237Z"/>
+<path fill="url(#wallR)" d="M467 10L276 119V191L467 287Z"/>
+<path fill="url(#door)" d="M393 89L350 113V207L393 237Z"/>
+<path fill="url(#planeL)" d="M240 180L82 319L212 286L240 337Z"/>
+<path fill="url(#planeR)" d="M240 180L398 319L268 286L240 337Z"/>
+<path fill="#07376f" d="M240 180L240 337L268 286Z"/>
+<path fill="#a7e0ff" d="M240 180L240 337L212 286Z"/></svg>
