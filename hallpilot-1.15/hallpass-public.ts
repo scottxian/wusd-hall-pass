@@ -145,6 +145,19 @@ async function resolveRoomSchedule(admin, room, settings, system, legacyCalendar
     effectiveSchedule = legacyCalendar.schedule_name
     source = 'School Calendar'
   }
+  // The old calendar assumes a master schedule named Regular. If an Admin
+  // deliberately replaces/deletes that legacy schedule, fall back to the
+  // room's assigned Primary rather than closing all normal-day passes.
+  if (system.room_scheduling_enabled !== true && source === 'School Default'
+      && normalize(settings.schedule_mode) !== 'regular') {
+    const {data: regular, error: regularError} = await admin.from('master_schedules')
+      .select('id').eq('school_id',room.school_id).ilike('schedule_name','Regular').limit(1)
+    if (regularError) throw regularError
+    if (!regular?.length) {
+      effectiveSchedule = String(settings.schedule_mode)
+      source = 'Room Primary (Legacy Fallback)'
+    }
+  }
   if (settings.schedule_override_date === today && settings.schedule_override_name) {
     effectiveSchedule = settings.schedule_override_name
     source = 'Teacher Override'
