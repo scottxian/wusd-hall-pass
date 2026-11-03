@@ -196,3 +196,27 @@ TESTS
 Regular legacy-fallback case for both Student and Staff paths.
 Database replacement/delete smoke test passed with rollback of all
 temporary changes. Live production remains unchanged.
+
+
+ADMIN INTERFACE CLEANUP (DEVELOPMENT ONLY, NOV 3 2026)
+----------------------------------------------------
+The development Admin no longer shows every page as one flat wrapped row.
+Five primary navigation groups show only their relevant subpages:
+- Campus: Overview.
+- People & Rooms: Rooms, Teachers, Students, Destinations.
+- Scheduling: Bell Schedules, Room Scheduling, Legacy Calendar.
+- Reports: Pass Reports & Backup, Audit Log.
+- Settings: Security, Organization & Schools.
+The Rooms and Teachers lists are now separate pages, not one giant page.
+Room list shows only Room, Classroom Teachers, Status and two actions:
+Edit / Links. Admin-only account names are not repeated as classroom
+teachers. Student/Teacher URLs remain in the room Links dialog.
+Delete Room is retained under Edit Room so the main table stays readable.
+The organization/school chooser is compact and routine refreshes no longer
+print distracting green "Updated" lines. The Dev brand uses ../assets/
+because the shared assets are at the site root rather than /dev/assets/.
+
+No production admin file or production branding was changed.
+Validated 5 groups/12 tabs/0 missing panels, all element lookups, valid
+inline JS, restored assets and all existing actions still in markup.
+Interactive logged-in browser review is still required.
