@@ -1210,12 +1210,14 @@ async function ensureRoomDestinations(admin, roomId, schoolId) {
 
 async function cloneRoomConfiguration(admin, sourceRoomId, targetRoomId, schoolId) {
   if (!sourceRoomId || sourceRoomId === targetRoomId) return
-  const [settingsQ, sourceDestQ] = await Promise.all([
+  const [settingsQ, sourceDestQ, sourceSchedulesQ] = await Promise.all([
     admin.from('room_settings').select('*').eq('room_id', sourceRoomId).maybeSingle(),
-    admin.from('destinations').select('catalog_id,room_enabled,max_out_override').eq('room_id', sourceRoomId)
+    admin.from('destinations').select('catalog_id,room_enabled,max_out_override').eq('room_id', sourceRoomId),
+    admin.from('room_schedule_assignments').select('day_type,schedule_name').eq('room_id', sourceRoomId)
   ])
   if (settingsQ.error) throw settingsQ.error
   if (sourceDestQ.error) throw sourceDestQ.error
+  if (sourceSchedulesQ.error) throw sourceSchedulesQ.error
 
   if (settingsQ.data) {
     const x = settingsQ.data
@@ -1237,6 +1239,15 @@ async function cloneRoomConfiguration(admin, sourceRoomId, targetRoomId, schoolI
     if (q.error) throw q.error
   }
 
+  // Clone room mapping references, not the master bell times themselves.
+  const clearMaps = await admin.from('room_schedule_assignments').delete().eq('room_id', targetRoomId)
+  if (clearMaps.error) throw clearMaps.error
+  if (sourceSchedulesQ.data?.length) {
+    const scheduleCopy = await admin.from('room_schedule_assignments').insert(
+      sourceSchedulesQ.data.map(x => ({ room_id: targetRoomId, day_type: x.day_type, schedule_name: x.schedule_name }))
+    )
+    if (scheduleCopy.error) throw scheduleCopy.error
+  }
   await ensureRoomDestinations(admin, targetRoomId, schoolId)
 
   // Reset target room destination choices to master defaults, then copy only the
@@ -1754,10 +1765,12 @@ async function adminSaveMasterSchedule(admin, authTeacher, school, data) {
         const defaultUse = roomIds.length ? await admin.from('room_settings').select('room_id').in('room_id', roomIds).ilike('schedule_mode', oldRow.schedule_name).limit(1) : { data: [], error: null }
         const overrideUse = roomIds.length ? await admin.from('room_settings').select('room_id').in('room_id', roomIds).ilike('schedule_override_name', oldRow.schedule_name).limit(1) : { data: [], error: null }
         const calendarUse = await admin.from('school_calendar').select('calendar_date').eq('school_id', school.id).ilike('schedule_name', oldRow.schedule_name).limit(1)
+        const specialUse = roomIds.length ? await admin.from('room_schedule_assignments').select('room_id').in('room_id', roomIds).ilike('schedule_name', oldRow.schedule_name).limit(1) : { data: [], error: null }
         if (defaultUse.error) throw defaultUse.error
         if (overrideUse.error) throw overrideUse.error
         if (calendarUse.error) throw calendarUse.error
-        if (defaultUse.data?.length || overrideUse.data?.length || calendarUse.data?.length) return fail('This is the final row for a schedule that is still in use. Update rooms/calendar references before renaming it.')
+        if (specialUse.error) throw specialUse.error
+        if (defaultUse.data?.length || overrideUse.data?.length || calendarUse.data?.length || specialUse.data?.length) return fail('This is the final row for a schedule that is still in use. Update room schedule assignments first.')
       }
     }
     q = await admin.from('master_schedules').update(values).eq('school_id', school.id).eq('id', id).select('id').maybeSingle()
@@ -1785,10 +1798,12 @@ async function adminDeleteMasterSchedule(admin, authTeacher, school, id) {
     const defaultUse = roomIds.length ? await admin.from('room_settings').select('room_id').in('room_id', roomIds).ilike('schedule_mode', row.schedule_name).limit(1) : { data: [], error: null }
     const overrideUse = roomIds.length ? await admin.from('room_settings').select('room_id').in('room_id', roomIds).ilike('schedule_override_name', row.schedule_name).limit(1) : { data: [], error: null }
     const calendarUse = await admin.from('school_calendar').select('calendar_date').eq('school_id', school.id).ilike('schedule_name', row.schedule_name).limit(1)
+    const specialUse = roomIds.length ? await admin.from('room_schedule_assignments').select('room_id').in('room_id', roomIds).ilike('schedule_name', row.schedule_name).limit(1) : { data: [], error: null }
     if (defaultUse.error) throw defaultUse.error
     if (overrideUse.error) throw overrideUse.error
     if (calendarUse.error) throw calendarUse.error
-    if (defaultUse.data?.length || overrideUse.data?.length || calendarUse.data?.length) return fail('This schedule is still used by a room or the school calendar. Update those references before deleting the final row.')
+    if (specialUse.error) throw specialUse.error
+    if (defaultUse.data?.length || overrideUse.data?.length || calendarUse.data?.length || specialUse.data?.length) return fail('This schedule is still referenced by a room or calendar. Update those assignments first.')
   }
   const { error } = await admin.from('master_schedules').delete().eq('school_id', school.id).eq('id', id)
   if (error) throw error
@@ -2118,6 +2133,9 @@ async function adminAssignRoomSchedules(admin, authTeacher, school, data = {}) {
   const rq = await admin.from('rooms').select('id').eq('school_id', school.id).eq('active', true).in('id', roomIds)
   if (rq.error) throw rq.error
   if ((rq.data || []).length !== roomIds.length) return fail('One or more selected classrooms are not active in this school.')
+  const roomMode = await getSchoolSettings(admin, school.id)
+  if (roomMode.room_scheduling_enabled === true && await hasSchoolTraffic(admin, roomIds))
+    return fail('Wait until these rooms have no active passes or waiting requests before changing live schedule assignments.')
   const now = new Date().toISOString()
   if (isPrimary) {
     const q = await admin.from('room_settings').update({ schedule_mode: canonical, updated_at: now }).in('room_id', roomIds)
@@ -2179,6 +2197,9 @@ async function adminSaveDayExceptions(admin, authTeacher, school, data = {}) {
   const rooms = status.rooms.filter(x => x.active)
   const missing = rooms.filter(room => !status.assignments.some(x => String(x.roomId) === String(room.id) && normalize(x.dayType) === normalize(dayType) && status.schedules.some(s => normalize(s) === normalize(x.schedule))))
   if (missing.length) return fail('Assign ' + dayType + ' to all active rooms first. Missing: ' + missing.map(x => x.name).join(', '))
+  const today = localDateKey(new Date(), school.timezone || 'America/Los_Angeles')
+  if (dates.includes(today) && status.enabled && await hasSchoolTraffic(admin, rooms.map(x => x.id)))
+    return fail('Cannot change today’s schedule while students are out or waiting. Choose a future day or wait until the campus is clear.')
   const note = String(data.note || '').replace(/\s+/g, ' ').trim().slice(0, 250)
   const replace = normalize(data.conflictMode) === 'replace'
   const old = await admin.from('school_day_exceptions').select('calendar_date').eq('school_id', school.id).in('calendar_date', dates)
@@ -2198,6 +2219,12 @@ async function adminSaveDayExceptions(admin, authTeacher, school, data = {}) {
 async function adminDeleteDayException(admin, authTeacher, school, date) {
   const valid = validDayDate(date)
   if (!valid) return fail('Choose a valid date.')
+  const today = localDateKey(new Date(), school.timezone || 'America/Los_Angeles')
+  const mode = await getSchoolSettings(admin, school.id)
+  if (valid === today && mode.room_scheduling_enabled === true) {
+    const roomIds = await schoolRoomIds(admin, school.id)
+    if (await hasSchoolTraffic(admin, roomIds)) return fail('Cannot change today’s special schedule while students are out or waiting.')
+  }
   const q = await admin.from('school_day_exceptions').delete().eq('school_id', school.id).eq('calendar_date', valid)
   if (q.error) throw q.error
   await writeAudit(admin, authTeacher.id, 'ADMIN_DELETE_SPECIAL_DAY', null, { date: valid }, school.id)
