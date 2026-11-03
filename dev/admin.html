@@ -41,7 +41,8 @@
     .calendarAutoToggle input:checked::before {transform:translateX(23px)}
     .calendarAutoToggle input:focus-visible {outline:3px solid #1765cb;outline-offset:3px}
     .calendarAutoToggle input:disabled {opacity:.55;cursor:not-allowed}
-</style>
+    #schedulePreviewDialog::backdrop{background:rgba(0,0,0,.45)}
+  </style>
 <link rel="stylesheet" href="branding.css">
 </head>
 <body><div style="background:#f4c542;color:#222;padding:8px;text-align:center;font-weight:bold">HALL PILOT DEV · SAMPLE DATA</div>
@@ -103,7 +104,7 @@
           <div class="checkRow" id="rsRoomChecks" style="margin:8px 0 12px"></div>
           <div class="formGrid">
             <div><label for="rsAssignDayType">Day Type</label><input id="rsAssignDayType" list="rsDayTypes" value="Regular" placeholder="Regular or Minimum"><datalist id="rsDayTypes"><option value="Regular"><option value="Minimum"><option value="Rally"><option value="Testing"><option value="Assembly"></datalist></div>
-            <div><label for="rsMasterSchedule">Master Bell Schedule</label><select id="rsMasterSchedule"></select></div>
+            <div><label for="rsMasterSchedule">Master Bell Schedule</label><select id="rsMasterSchedule"></select><button id="rsViewSchedule" type="button" class="gray" style="margin-top:8px" aria-haspopup="dialog">View Schedule</button></div>
             <div><button id="rsAssignSchedule" class="green" type="button">Assign to Selected Rooms</button></div>
           </div>
           <div id="rsAssignMessage" class="message"></div>
@@ -392,6 +393,12 @@
 
   <script src="config.js"></script><script src="api-shim.js"></script><script src="branding.js" defer></script>
 
+
+  <dialog id="schedulePreviewDialog" aria-labelledby="schedulePreviewTitle" style="width:min(560px,calc(100% - 28px));max-height:85vh;overflow:auto;border:0;border-radius:12px;padding:20px">
+    <h2 id="schedulePreviewTitle">Schedule Preview</h2>
+    <div id="schedulePreviewContent" aria-live="polite"></div>
+    <form method="dialog" class="modalActions"><button autofocus type="submit">Close</button></form>
+  </dialog>
   <script>
   /* Hall Pass: student name / ID type-ahead. Page-local, zero backend changes. */
   window.HallPassStudentAutocomplete = (function () {
@@ -626,6 +633,52 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     // Never assume an older server supports the toggle.
 
     // Hall Pilot 1.15: room scheduling admin actions.
+
+    async function previewSelectedSchedule() {
+      const name = $('rsMasterSchedule').value;
+      if (!name) {
+        setMsg('rsAssignMessage', 'Choose a master bell schedule first.', true);
+        return;
+      }
+      const dialog = $('schedulePreviewDialog');
+      const content = $('schedulePreviewContent');
+      const button = $('rsViewSchedule');
+      const school = hallpassApi.schoolKey;
+      $('schedulePreviewTitle').textContent = name;
+      content.textContent = 'Loading bell times…';
+      dialog.showModal();
+      button.disabled = true;
+      try {
+        const result = await hallpassApi.call('adminManagementState', []);
+        if (school !== hallpassApi.schoolKey) {
+          dialog.close();
+          return;
+        }
+        if (!result.success) throw new Error(result.message || 'Unable to load schedule.');
+        const rows = (result.masterSchedules || [])
+          .filter(row => row.schedule === name)
+          .sort((a, b) => a.startTime.localeCompare(b.startTime));
+        content.innerHTML = rows.length
+          ? '<div class="tableWrap"><table><thead><tr><th scope="col">Period</th><th scope="col">Start</th><th scope="col">End</th></tr></thead><tbody>'
+            + rows.map(row => '<tr><td>' + esc(row.period) + '</td><td>'
+              + esc(previewBellTime(row.startTime)) + '</td><td>'
+              + esc(previewBellTime(row.endTime)) + '</td></tr>').join('')
+            + '</tbody></table></div>'
+          : '<p>No bell periods are configured for this schedule.</p>';
+      } catch (error) {
+        content.textContent = error.message;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    function previewBellTime(value) {
+      const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(String(value || ''));
+      if (!match) return String(value || '');
+      const hour = Number(match[1]);
+      return (hour % 12 || 12) + ':' + match[2] + (hour < 12 ? ' AM' : ' PM');
+    }
+
     async function refreshRoomScheduling(button) {
       if (!unlocked) return;
       if (button) button.disabled = true;
@@ -1100,6 +1153,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('rsSelectAll').addEventListener('click',()=>rsSelectAll(true));
     $('rsSelectNone').addEventListener('click',()=>rsSelectAll(false));
     $('rsAssignSchedule').addEventListener('click',rsAssign);
+    $('rsViewSchedule').addEventListener('click',previewSelectedSchedule);
     $('rsPreview').addEventListener('click',rsPreviewSpecialDates);
     $('rsApply').addEventListener('click',rsApplySpecialDates);
     $('roomSchedulePanel').addEventListener('input',e=>{if(e.target.closest('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays,#rsExceptionDayType,#rsConflictMode'))rsResetPreview();});
