@@ -123,7 +123,7 @@
 </style>
 <link rel="stylesheet" href="branding.css">
 </head>
-<body>
+<body><div style="background:#f4c542;color:#222;padding:8px;text-align:center;font-weight:bold">HALL PILOT DEV · SAMPLE DATA</div>
   <div class="header">
     <h1>Teacher Hall Pass Dashboard</h1>
     <div id="roomLabel" class="headerStatus"></div>
@@ -664,7 +664,8 @@
       const schedule = state.schedule;
       document.getElementById('statSchedule').textContent = schedule.schedule || '—';
       document.getElementById('statPeriod').textContent = schedule.period || '—';
-      document.getElementById('statWindow').textContent = schedule.isOpen ? 'OPEN' : 'CLOSED';
+      document.getElementById('statWindow').textContent =
+        String(state.settings?.['Emergency Lock'] || '').toLowerCase()==='yes' ? 'PAUSED' : (schedule.isOpen ? 'OPEN' : 'CLOSED');
       document.getElementById('statOut').textContent = state.out.length;
       document.getElementById('statWaiting').textContent = state.waiting.length;
       document.getElementById('statNextChange').textContent = schedule.nextChange ? formatTime(schedule.nextChange) : '—';
