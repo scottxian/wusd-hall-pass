@@ -278,3 +278,30 @@ element IDs present, and all UI actions preserved.
 Production admin.html and teacher.html were verified unchanged.
 Both dev/admin.html and dev/teacher.html were copied into main
 for GitHub Pages dev testing; browser visual testing remains pending.
+
+
+FINAL INTERFACE REFINEMENTS (DEVELOPMENT ONLY, NOV 4 2026)
+---------------------------------------------------------
+1. Teacher's compact Period / Pass Window / Students Out summary sticks
+   to the top on scroll and becomes smaller on longer pages.
+2. Teacher schedule displays both actual schedule and origin:
+   Teacher override or Automatic plus the backend-provided source.
+3. Admin, Teacher and Student live tables show helpful empty states.
+   Unchanged Admin and Teacher live lists skip wholesale rerenders.
+4. Consistent primary/secondary/destructive styles and focus outlines;
+   the teacher confirms removal from the waiting list. Admin routine
+   success messages fade after five seconds; errors remain visible.
+5. Student copy/accessibility review: readable self-confirmation,
+   consistent destination labeling, screen-reader field labels,
+   polite status announcements, clearer emergency-lock wording.
+   Existing pass request/approval/return logic was not changed.
+
+Validation: 30 static, DOM-reference, UI and scheduling checks passed,
+including all 22 existing scheduling regression cases. Checked
+balanced HTML, unique IDs, JavaScript syntax, existing key actions,
+correct branch deployment, dev banners, and production root files.
+Browser end-to-end login and visual acceptance remain for user testing.
+
+Staged on hallpilot-1-15-room-scheduling; published dev/admin.html,
+dev/teacher.html and dev/index.html to main for GitHub Pages only.
+No production root page or production Supabase changes.
