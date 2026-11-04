@@ -335,11 +335,17 @@
             </div>
             <div><label for="reportStart">Start Date</label><input id="reportStart" type="date"></div>
             <div><label for="reportEnd">End Date</label><input id="reportEnd" type="date"></div>
+          </div>
+          <details class="teacherDisclosure reportDisclosure">
+            <summary>Advanced Report Options</summary><div class="disclosureBody">
+              <div class="reportControls">
             <div class="checkboxLabel"><label><input id="includeTestData" type="checkbox">Include Test Data</label></div>
             <div id="reportAutoExpandWrap" class="checkboxLabel"><label><input id="autoExpandAllDetails" type="checkbox">Auto-expand all student details</label></div>
             <div id="frequentPassWrap"><label for="flagPassCount">Flag Total Passes ≥</label><input id="flagPassCount" type="number" min="1" value="5"></div>
             <div id="frequentTimeWrap"><label for="flagAverageMinutes">Flag Average Minutes ≥</label><input id="flagAverageMinutes" type="number" min="1" value="8"></div>
-          </div>
+              </div>
+            </div>
+          </details>
           <div class="buttonRow">
             <button class="primary" onclick="generateReport(this)">Generate Report</button>
             <button id="printReportButton" class="gray" onclick="printReport()" disabled>Print Report</button>
@@ -1715,6 +1721,10 @@
       .teacherPrimaryStatus .statLabel{font-size:11px}
       .teacherStatusDetails{font-size:13px;gap:6px 14px}
     }
+    .reportDisclosure{margin:4px 0 16px;border:1px solid #dce4ec;border-radius:9px;background:#f8fafc}
+    .reportDisclosure summary{font-size:14px;padding:11px 14px}
+    .reportDisclosure .disclosureBody{padding:12px 14px}
+    .reportDisclosure .reportControls{margin-bottom:0}
   </style></head><body>
         <h1>Student Pass Report: ${escapeHtml(report.studentName)}</h1>
         <div class="meta">${escapeHtml(meta)}</div>
