@@ -82,6 +82,41 @@
       .compactRooms .actions{flex-direction:column;align-items:flex-start}
       .roomDangerZone{align-items:flex-start;flex-direction:column}
     }
+
+    /* Hall Pilot DEV UI: live campus boards, calm tables, progressive disclosure */
+    .adminLiveGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px}
+    .adminLiveGrid>.card{min-width:0;margin-bottom:0;height:100%}
+    .adminLiveGrid h2{margin:0 0 14px}
+    .adminLiveGrid .tableWrap{overflow-x:auto}
+    .adminLiveGrid th,.adminLiveGrid td{font-size:13px;padding:9px 7px;white-space:normal;overflow-wrap:anywhere}
+    .adminLiveGrid th{font-size:12px}
+    .adminSafetyRow .card{border:1px solid #e1d6d4;box-shadow:none}
+    .adminSafetyRow .sectionHead{gap:14px}
+    .adminSafetyRow h2{font-size:16px}
+    .adminSafetyRow .muted{max-width:800px}
+    .adminDisclosure{padding:0;overflow:hidden}
+    .adminDisclosure summary{padding:16px 18px;list-style:none;display:flex;justify-content:space-between;gap:12px;align-items:center;color:#254c74;font-weight:700;font-size:17px;cursor:pointer}
+    .adminDisclosure summary::-webkit-details-marker{display:none}
+    .adminDisclosure summary::after{content:"⌄";font-size:22px;font-weight:400}
+    .adminDisclosure[open] summary::after{content:"⌃"}
+    .adminDisclosure[open] summary{border-bottom:1px solid #e0e6ec}
+    .adminDisclosureBody{padding:16px 18px}
+    .adminDisclosureBody>.sectionHead:first-child h2{display:none}
+    .roomScheduleNav{display:flex;align-items:center;gap:12px;padding:6px 0 16px}
+    .roomScheduleNav label{margin:0;color:#415267;font-size:15px}
+    .roomScheduleNav select{width:min(430px,100%);max-width:100%;border:1px solid #acb8c6;font-weight:600;color:#153f6d}
+    .scheduleRowMenu{width:auto;min-width:125px;max-width:170px;padding:7px 10px;border:1px solid #bac5d0;background:#fff;color:#40536b;font-size:13px;font-weight:600}
+    .reportDisclosure{border-top:1px solid #e1e6ed;padding:10px 0;margin-top:12px}
+    .reportDisclosure summary{font-size:14px;font-weight:700;color:#335d80;cursor:pointer}
+    .message:empty{display:none}
+    .tableWrap{max-width:100%}
+    .adminLiveGrid tbody tr:hover,.compactRooms tbody tr:hover{background:#f8fafc}
+    .card .sectionHead .actions button:not(.green){font-size:14px}
+    @media(max-width:1100px){.adminLiveGrid{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:600px){.adminLiveGrid th,.adminLiveGrid td{padding:8px 6px}
+       .roomScheduleNav select{flex:1;min-width:0}
+       .adminSafetyRow .sectionHead{align-items:flex-start}
+    }
   </style>
 <link rel="stylesheet" href="branding.css">
 </head>
@@ -128,11 +163,15 @@
 
       <section id="livePanel" class="panel active">
         <div class="grid" style="margin-bottom:16px"><div class="stat"><div class="label">Active Rooms</div><div id="statRooms" class="value">0</div></div><div class="stat"><div class="label">Students Out</div><div id="statOut" class="value">0</div></div><div class="stat"><div class="label">Waiting</div><div id="statWaiting" class="value">0</div></div></div>
-        <div class="card"><div class="sectionHead"><div><h2 style="margin-bottom:4px">Campus Emergency Lock</h2><div class="muted">Blocks all new passes campus-wide and clears waiting requests. Students already out remain visible until returned.</div></div><button id="campusLockButton" class="red">Campus Lock: OFF</button></div><div id="campusLockMessage" class="message"></div></div>
         <div class="card"><div class="controls"><div><label for="roomFilter">Room</label><select id="roomFilter"><option value="">All Rooms</option></select></div><div><label for="search">History Search</label><input id="search" placeholder="Student, ID, destination, room..."></div><button id="refreshLive" class="gray">Refresh</button></div><div id="message" class="message"></div></div>
+        <div class="adminLiveGrid" aria-label="Current campus hall passes">
         <div class="card"><h2>Students Out Right Now</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Left</th><th>Time Gone</th></tr></thead><tbody id="outBody"></tbody></table></div></div>
         <div class="card"><h2>Waiting</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Requested</th></tr></thead><tbody id="waitingBody"></tbody></table></div></div>
-        <div class="card"><h2>Recent Pass History</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Left</th><th>Returned</th><th>Status</th></tr></thead><tbody id="historyBody"></tbody></table></div></div>
+        </div>
+        <details class="card adminDisclosure" id="adminHistoryDisclosure"><summary>Recent Pass History</summary><div class="adminDisclosureBody"><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Left</th><th>Returned</th><th>Status</th></tr></thead><tbody id="historyBody"></tbody></table></div></div></details>
+        <div class="adminSafetyRow">
+        <div class="card"><div class="sectionHead"><div><h2 style="margin-bottom:4px">Campus Emergency Lock</h2><div class="muted">Blocks all new passes campus-wide and clears waiting requests. Students already out remain visible until returned.</div></div><button id="campusLockButton" class="gray">Campus Lock: OFF</button></div><div id="campusLockMessage" class="message"></div></div>
+        </div>
       </section>
 
       <section id="managePanel" class="panel">
@@ -164,7 +203,12 @@
           <div class="actions" style="margin-top:12px"><button id="rsToggleMode" class="purple" disabled>Enable Room Scheduling</button></div>
           <div id="rsModeMessage" class="message"></div>
         </div>
-        <div class="card">
+        <div class="roomScheduleNav"><label for="rsSectionSelect">Manage</label><select id="rsSectionSelect" aria-label="Choose scheduling section">
+          <option value="classrooms">Classroom Schedules</option>
+          <option value="special">Special Days</option>
+          <option value="advanced">Advanced / Migration</option>
+        </select></div>
+        <div id="rsSectionClassrooms">        <div class="card">
           <h2>Assign Primary & Special Schedules</h2>
           <div class="muted">A master schedule can be assigned to any number of rooms. Select rooms below; Grade level is not required.</div>
           <div class="actions" style="margin:12px 0">
@@ -180,7 +224,8 @@
           <div id="rsAssignMessage" class="message"></div>
           <div class="tableWrap" style="margin-top:12px"><table><thead><tr><th>Room</th><th>Primary</th><th>Minimum</th><th>Rally</th><th>Other Assigned Days</th></tr></thead><tbody id="rsRoomTable"></tbody></table></div>
         </div>
-        <div class="card">
+        </div>
+        <div id="rsSectionSpecial" class="hidden">        <div class="card">
           <h2>Special-Day Calendar</h2>
           <div class="muted">No entries are needed for ordinary days. Assign special-day schedules to every active room before using a day type for the entire school.</div>
           <div class="formGrid" style="margin-top:12px">
@@ -206,6 +251,12 @@
         </div>
 
         <div class="card">
+          <h2>Configured Special Days</h2>
+          <div class="muted">These dates are used only when Room Scheduling is enabled and Automatic Scheduling is on.</div>
+          <div class="tableWrap" style="margin-top:12px"><table><thead><tr><th>Date</th><th>Day Type</th><th>Note</th><th>Action</th></tr></thead><tbody id="rsExceptionsBody"></tbody></table></div>
+        </div>
+        </div>
+        <div id="rsSectionAdvanced" class="hidden">        <div class="card">
           <h2>Bring Existing Special Dates Forward</h2>
           <div class="muted">The original calendar is retained. Choose an existing special schedule to copy its future dates into the new calendar preview. Normal-day dates need no copying.</div>
           <div class="formGrid" style="margin-top:12px">
@@ -214,10 +265,6 @@
           </div>
           <div id="rsLegacyImportMessage" class="message"></div>
         </div>
-        <div class="card">
-          <h2>Configured Special Days</h2>
-          <div class="muted">These dates are used only when Room Scheduling is enabled and Automatic Scheduling is on.</div>
-          <div class="tableWrap" style="margin-top:12px"><table><thead><tr><th>Date</th><th>Day Type</th><th>Note</th><th>Action</th></tr></thead><tbody id="rsExceptionsBody"></tbody></table></div>
         </div>
       </section>
 
@@ -313,10 +360,13 @@
             <div><label for="campusReportDestination">Destination</label><select id="campusReportDestination"><option value="">All Destinations</option></select></div>
             <div><label for="campusReportStart">Start Date</label><input id="campusReportStart" type="date"></div>
             <div><label for="campusReportEnd">End Date</label><input id="campusReportEnd" type="date"></div>
-            <div><label for="longPassMinutes">Long Pass ≥ minutes</label><input id="longPassMinutes" type="number" min="1" max="240" value="10"></div>
-            <div><label for="frequentPassCount">Frequent ≥ passes</label><input id="frequentPassCount" type="number" min="1" max="1000" value="5"></div>
           </div>
-          <div class="checkRow" style="margin-top:12px"><label><input id="campusIncludeTestData" type="checkbox">Include test data</label></div>
+          <details class="reportDisclosure"><summary>Advanced Report Filters</summary>
+            <div class="formGrid" style="padding:12px 0">            <div><label for="longPassMinutes">Long Pass ≥ minutes</label><input id="longPassMinutes" type="number" min="1" max="240" value="10"></div>
+            <div><label for="frequentPassCount">Frequent ≥ passes</label><input id="frequentPassCount" type="number" min="1" max="1000" value="5"></div>
+            </div>
+                      <div class="checkRow" style="margin-top:12px"><label><input id="campusIncludeTestData" type="checkbox">Include test data</label></div>
+          </details>
           <div class="actions" style="margin-top:12px"><button id="generateCampusReport" class="green">Generate Report</button><button id="downloadCampusReport" class="gray" disabled>Download Report CSV</button><button id="printCampusStudentDetail" class="gray hidden" disabled>Print Student Detail</button></div>
           <div id="reportsMessage" class="message"></div>
         </div>
@@ -327,11 +377,11 @@
           <div id="reportSecondaryWrap" class="card hidden"><h2 id="reportSecondaryTitle"></h2><div class="tableWrap"><table><thead id="reportSecondaryHead"></thead><tbody id="reportSecondaryBody"></tbody></table></div></div>
         </div>
 
-        <div class="card">
+        <details class="card adminDisclosure"><summary>Backup &amp; Export</summary><div class="adminDisclosureBody">
           <div class="sectionHead"><div><h2 style="margin-bottom:4px">Backup & Export</h2><div class="muted">Exports never include PIN hashes, staff session hashes, rate-limit fingerprints, or Supabase secrets.</div></div></div>
           <div class="actions" style="margin-top:12px"><button id="exportStudents" class="gray">Export Students CSV</button><button id="exportPasses" class="gray">Export Pass History CSV</button><button id="exportConfiguration" class="gray">Export Rooms / Teachers / Settings JSON</button><button id="exportAudit" class="gray">Export Audit Log CSV</button><button id="downloadFullBackup" class="purple">Download Full Backup JSON</button></div>
           <div id="backupMessage" class="message"></div>
-        </div>
+        </div></details>
       </section>
 
       <section id="auditPanel" class="panel">
@@ -684,8 +734,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function currentLinksRoom(){return management.rooms.find(r=>r.id===$('roomLinksRoomId').value)||null}
     function emailRoomTeacher(teacherId){const room=currentLinksRoom(),teacher=management.teachers.find(t=>t.id===teacherId);if(!room||!teacher||!teacher.email){setMsg('roomLinksMessage','That teacher does not have an email address on file.',true);return}const subject=`${adminAccess.selectedSchool?.name||'Hall Pass'} — ${room.room}`,body=`Hi ${teacher.name},\n\n${setupMessageForRoom(room)}\n\nThank you.`;window.location.href=`mailto:${teacher.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`}
     async function login(){const pin=$('adminPin').value.trim(),b=$('loginButton');if(!pin){setMsg('loginMessage','Enter the Admin PIN.',true);return;}b.disabled=true;b.textContent='UNLOCKING...';try{const r=await hallpassApi.call('adminLogin',[pin]);if(!r.success){setMsg('loginMessage',r.message,true);return;}unlocked=true;applyAdminContext(r);if(r.selectedSchool?.key&&!hallpassApi.schoolKey)setSchoolInUrl(r.selectedSchool.key);$('loginCard').classList.add('hidden');$('dashboard').classList.remove('hidden');$('adminName').textContent=r.admin.name;await Promise.all([refreshLive(),refreshManagement()]);}catch(e){setMsg('loginMessage',e.message,true)}finally{b.disabled=false;b.textContent='Unlock Campus Dashboard'}}
-    async function refreshLive(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('message','Refreshing...');try{const r=await hallpassApi.call('adminState',[$('roomFilter').value,$('search').value.trim()]);if(!r.success){setMsg('message',r.message,true);return;}lastState=r;applyAdminContext(r);renderLive(r);setMsg('message','Updated.')}catch(e){setMsg('message',e.message,true)}finally{if(button)button.disabled=false}}
-    function renderLive(r){$('statRooms').textContent=r.campusStats.activeRooms;$('statOut').textContent=r.campusStats.out;$('statWaiting').textContent=r.campusStats.waiting;const campusButton=$('campusLockButton');if(campusButton){campusButton.textContent=r.campusEmergencyLock?'Campus Lock: ON':'Campus Lock: OFF';campusButton.classList.toggle('green',r.campusEmergencyLock);campusButton.classList.toggle('red',!r.campusEmergencyLock);}const sel=$('roomFilter'),cur=sel.value;sel.innerHTML='<option value="">All Rooms</option>'+r.rooms.map(x=>`<option value="${esc(x.key)}">${esc(x.room)}${x.emergencyLock?' — LOCKED':''}</option>`).join('');sel.value=cur;
+    async function refreshLive(button){if(!unlocked)return;if(button)button.disabled=true;if(button)setMsg('message','Refreshing...');try{const r=await hallpassApi.call('adminState',[$('roomFilter').value,$('search').value.trim()]);if(!r.success){setMsg('message',r.message,true);return;}lastState=r;applyAdminContext(r);renderLive(r);setMsg('message','')}catch(e){setMsg('message',e.message,true)}finally{if(button)button.disabled=false}}
+    function renderLive(r){$('statRooms').textContent=r.campusStats.activeRooms;$('statOut').textContent=r.campusStats.out;$('statWaiting').textContent=r.campusStats.waiting;const campusButton=$('campusLockButton');if(campusButton){campusButton.textContent=r.campusEmergencyLock?'Campus Lock: ON':'Campus Lock: OFF';campusButton.classList.toggle('red',r.campusEmergencyLock);campusButton.classList.toggle('gray',!r.campusEmergencyLock);}const sel=$('roomFilter'),cur=sel.value;sel.innerHTML='<option value="">All Rooms</option>'+r.rooms.map(x=>`<option value="${esc(x.key)}">${esc(x.room)}${x.emergencyLock?' — LOCKED':''}</option>`).join('');sel.value=cur;
       $('outBody').innerHTML=r.out.length?r.out.map(x=>`<tr><td><span class="roomTag">${esc(x.roomKey.toUpperCase())}</span></td><td>${esc(x.name)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${fmt(x.leaveTime)}</td><td data-left="${esc(x.leaveTime)}">${elapsed(x.leaveTime)}</td></tr>`).join(''):'<tr><td colspan="5">No students currently out.</td></tr>';
       $('waitingBody').innerHTML=r.waiting.length?r.waiting.map(x=>`<tr><td><span class="roomTag">${esc(x.roomKey.toUpperCase())}</span></td><td>${esc(x.name)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${fmt(x.requested)}</td></tr>`).join(''):'<tr><td colspan="4">No students waiting.</td></tr>';
       $('historyBody').innerHTML=r.history.length?r.history.map(x=>`<tr><td><span class="roomTag">${esc(x.roomKey.toUpperCase())}</span></td><td>${esc(x.name)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${fmt(x.left)}</td><td>${fmt(x.returned)}</td><td>${esc(x.statusNote||'')}</td></tr>`).join(''):'<tr><td colspan="6">No matching pass history.</td></tr>';}
@@ -722,9 +772,10 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         const first=group.rows[0],last=group.rows[group.rows.length-1];
         return `<tr><td><strong>${esc(group.name)}</strong></td><td>${group.rows.length}</td>
           <td>${esc(scheduleClock(first.startTime))} – ${esc(scheduleClock(last.endTime))}</td>
-          <td><div class="actions"><button class="small" data-edit-schedule="${index}">Edit Schedule</button>
-          <button class="small purple" data-copy-schedule="${index}">Duplicate</button>
-          <button class="small red" data-delete-schedule="${index}">Delete</button></div></td></tr>`;
+          <td><div class="actions"><button class="small" data-edit-schedule="${index}">Edit</button>
+          <select class="scheduleRowMenu" aria-label="More actions for ${esc(group.name)}" data-master-schedule-menu="${index}">
+            <option value="">More…</option><option value="duplicate">Duplicate</option><option value="delete">Delete</option>
+          </select></div></td></tr>`;
       }).join(''):'<tr><td colspan="4">No schedules yet. Select Add Schedule.</td></tr>';
     }
     function addSchedulePeriod(row={}) {
@@ -938,6 +989,22 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       finally { if (button) button.disabled = false; }
     }
 
+    function showRoomSchedulingSection(section) {
+      if (!['classrooms','special','advanced'].includes(section)) return;
+      $('rsSectionSelect').value=section;
+      for (const [part,id] of [['classrooms','rsSectionClassrooms'],['special','rsSectionSpecial'],['advanced','rsSectionAdvanced']]) {
+        $(id).classList.toggle('hidden',part!==section);
+      }
+    }
+    $('rsSectionSelect').addEventListener('change',event=>showRoomSchedulingSection(event.target.value));
+    $('masterScheduleBody').addEventListener('change',event=>{
+      const select=event.target.closest('[data-master-schedule-menu]');
+      if(!select)return;
+      const action=select.value,index=select.dataset.masterScheduleMenu;
+      select.value='';
+      if(action==='duplicate')openSchedule(index,true);
+      if(action==='delete')deleteSchedule(index);
+    });
     function rsDayTypes() {
       const unique = new Map();
       for (const x of (rsState?.assignments || [])) {
@@ -1024,6 +1091,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       $('rsRepeatStart').value='';$('rsRepeatEnd').value='';
       document.querySelectorAll('#rsWeekdays input').forEach(x=>x.checked=false);
       $('rsNote').value='';
+      showRoomSchedulingSection('special');
       rsPreviewSpecialDates();
       setMsg('rsLegacyImportMessage',dates.length+' original '+legacyName+' dates prepared for preview. Nothing has been saved yet; original calendar remains unchanged.');
     }
