@@ -140,15 +140,17 @@
     </div>
 
     <div id="dashboard" class="hidden">
+      <div id="teacherStatusDock" class="teacherStatusDock" aria-label="Current classroom pass status">
       <div class="statusGrid teacherPrimaryStatus">
         <div class="stat"><div class="statLabel">Period</div><div id="statPeriod" class="statValue">—</div></div>
         <div class="stat"><div class="statLabel">Pass Window</div><div id="statWindow" class="statValue">—</div></div>
         <div class="stat"><div class="statLabel">Students Out</div><div id="statOut" class="statValue">0</div></div>
       </div>
       <div class="teacherStatusDetails" aria-label="Additional schedule information">
-        <span>Schedule: <strong id="statSchedule">—</strong></span>
+        <span>Schedule: <strong id="statSchedule">—</strong> <span class="scheduleSourceLabel" id="statScheduleSource">Automatic · Room default</span></span>
         <span>Waiting: <strong id="statWaiting">0</strong></span>
         <span>Next change: <strong id="statNextChange">—</strong></span>
+      </div>
       </div>
 
       <div id="actionMessage" class="actionMessage" aria-live="polite"></div>
@@ -693,6 +695,13 @@
     function renderStatus(state) {
       const schedule = state.schedule;
       document.getElementById('statSchedule').textContent = schedule.schedule || '—';
+      const rawSource=String(state.settings?.['Schedule Source']||'Room Default').trim();
+      const isOverride=rawSource.toLowerCase().includes('teacher override');
+      const sourceLabel=isOverride?'Teacher override':'Automatic · '+(rawSource||'Room default');
+      const sourceElement=document.getElementById('statScheduleSource');
+      sourceElement.textContent=sourceLabel;
+      sourceElement.title='Source: '+rawSource;
+      sourceElement.classList.toggle('isOverride',isOverride);
       document.getElementById('statPeriod').textContent = schedule.period || '—';
       const locked=String(state.settings?.['Emergency Lock']||'').toLowerCase()==='yes';
       const windowStatus=document.getElementById('statWindow');
@@ -1106,10 +1115,16 @@
         .startTeacherOverridePass(teacherPin, studentId, destination, overrideDailyLimit, overrideNote);
     }
 
+    const teacherLiveSignatures={waiting:null,out:null};
     function renderWaiting(waiting) {
       const body = document.getElementById('waitingBody');
-      body.innerHTML = '';
-      if (!waiting.length) { body.innerHTML = '<tr><td colspan="5">No students waiting.</td></tr>'; return; }
+      const schedule=dashboardState?.schedule||{};
+      const signature=JSON.stringify([waiting,schedule.isOpen,schedule.period,schedule.testMode,
+        dashboardState?.settings?.['Emergency Lock'],dashboardState?.destinations]);
+      if(signature===teacherLiveSignatures.waiting)return;
+      teacherLiveSignatures.waiting=signature;
+      body.replaceChildren();
+      if (!waiting.length) { body.innerHTML = '<tr><td colspan="5" class="emptyState">Nobody is waiting for a hall pass.</td></tr>'; return; }
       waiting.forEach(function(student) {
         const row = document.createElement('tr');
         const destination = dashboardState && dashboardState.destinations
@@ -1133,7 +1148,7 @@
           <td>${escapeHtml(student.destination)}</td>
           <td>${formatTime(student.requested)}</td>
           <td><button class="${needsOverride ? 'purple' : 'green'} goButton" ${canStart ? '' : 'disabled'}>${needsOverride ? 'Override Go' : 'Go'}</button></td>
-          <td><button class="red cancelButton">Cancel</button></td>`;
+          <td><button class="gray cancelButton">Cancel</button></td>`;
         row.querySelector('.goButton').addEventListener('click', function() { startWaitingPass(student.requestId, needsOverride, this); });
         row.querySelector('.cancelButton').addEventListener('click', function() { cancelWaitingPass(student.requestId, this); });
         body.appendChild(row);
@@ -1174,6 +1189,7 @@
     }
 
     function cancelWaitingPass(requestId, button) {
+      if(!window.confirm('Remove this student from the waiting list?'))return;
       beginButtonAction(button, 'CANCELLING...');
       setActionMessage('Cancelling waiting request...', 'processing');
       google.script.run
@@ -1184,8 +1200,11 @@
 
     function renderOut(students) {
       const body = document.getElementById('outBody');
-      body.innerHTML = '';
-      if (!students.length) { body.innerHTML = '<tr><td colspan="5">No students currently out.</td></tr>'; return; }
+      const signature=JSON.stringify(students);
+      if(signature===teacherLiveSignatures.out)return;
+      teacherLiveSignatures.out=signature;
+      body.replaceChildren();
+      if (!students.length) { body.innerHTML = '<tr><td colspan="5" class="emptyState">All students are back in class.</td></tr>'; return; }
       students.forEach(function(student) {
         const row = document.createElement('tr');
         row.dataset.leaveTime = student.leaveTime;
@@ -1725,6 +1744,33 @@
     .reportDisclosure summary{font-size:14px;padding:11px 14px}
     .reportDisclosure .disclosureBody{padding:12px 14px}
     .reportDisclosure .reportControls{margin-bottom:0}
+
+    /* Final Teacher UI: sticky live status, readable source and calm empty states. */
+    .teacherStatusDock{position:sticky;top:0;z-index:8;background:#f4f6f8;padding:6px 0 8px;
+      border-bottom:1px solid #dce3ec;transition:box-shadow .15s,padding .15s}
+    .teacherStatusDock.isCompact{box-shadow:0 7px 16px rgba(19,43,73,.13);padding:4px 0 5px}
+    .teacherStatusDock .teacherPrimaryStatus{gap:8px}
+    .teacherStatusDock .teacherPrimaryStatus .stat{padding:9px 12px}
+    .teacherStatusDock .teacherPrimaryStatus .statValue{font-size:22px}
+    .teacherStatusDock.isCompact .teacherPrimaryStatus .stat{padding:6px 12px}
+    .teacherStatusDock.isCompact .teacherPrimaryStatus .statValue{font-size:19px;margin-top:2px}
+    .teacherStatusDock .teacherStatusDetails{margin-bottom:0;padding:8px 12px;font-size:13px}
+    .teacherStatusDock.isCompact .teacherStatusDetails{padding:5px 12px;font-size:12px}
+    .scheduleSourceLabel{display:inline-block;padding:3px 8px;margin-left:5px;border-radius:999px;
+      background:#e5eef9;color:#1b4f89;font-size:12px;font-weight:600;vertical-align:middle}
+    .scheduleSourceLabel.isOverride{background:#f2e6fa;color:#68379c}
+    .emptyState{padding:26px 12px!important;text-align:center;color:#526476;background:#f7fafc;
+      font-size:14px!important;font-weight:500;white-space:normal}
+    .teacherLiveGrid .goButton{background:#16863a;color:#fff}
+    .teacherLiveGrid .cancelButton{background:#edf1f5;color:#344457}
+    .teacherLiveGrid .returnButton{background:#1f5ea8;color:#fff}
+    @media(max-width:620px){
+      .teacherStatusDock .teacherPrimaryStatus .stat{padding:7px 5px}
+      .teacherStatusDock .teacherPrimaryStatus .statValue{font-size:19px}
+      .teacherStatusDock.isCompact .teacherPrimaryStatus .statValue{font-size:17px}
+      .teacherStatusDock .teacherStatusDetails{gap:4px 12px;padding:6px 8px}
+      .scheduleSourceLabel{font-size:11px;margin-left:0;margin-top:3px}
+    }
   </style></head><body>
         <h1>Student Pass Report: ${escapeHtml(report.studentName)}</h1>
         <div class="meta">${escapeHtml(meta)}</div>
@@ -1924,6 +1970,12 @@
       }
     });
 
+    function updateStickyTeacherStatus(){
+      const dock=document.getElementById('teacherStatusDock');
+      if(dock)dock.classList.toggle('isCompact',window.scrollY>160);
+    }
+    window.addEventListener('scroll',updateStickyTeacherStatus,{passive:true});
+    updateStickyTeacherStatus();
     setInterval(function() { if (unlocked) refreshDashboard(false); }, 3000);
     setInterval(function() { if (unlocked) updateTimers(); }, 1000);
 
