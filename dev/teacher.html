@@ -228,9 +228,12 @@
         <div class="card">
           <h2>Quick Controls</h2>
           <div class="controlGroup">
-            <h3>Schedule Mode</h3>
-            <div id="scheduleButtons" class="buttonRow"></div>
-            <div id="scheduleSourceHint" class="subtle">Bell times are managed by Campus Admin. A teacher choice applies only for today; Auto follows the school calendar or room default.</div>
+            <h3>Today's Bell Schedule</h3>
+            <div class="teacherScheduleChoice">
+              <div><label for="scheduleChoice">Schedule</label><select id="scheduleChoice"><option value="__AUTO__">Auto — Room Default</option></select></div>
+              <button id="applyScheduleChoice" type="button" class="primary">Apply for Today</button>
+            </div>
+            <div id="scheduleSourceHint" class="subtle">Auto follows the school's calendar or room default. Manual selections apply only to today.</div>
           </div>
 
           <div class="controlGroup">
@@ -685,8 +688,11 @@
       const schedule = state.schedule;
       document.getElementById('statSchedule').textContent = schedule.schedule || '—';
       document.getElementById('statPeriod').textContent = schedule.period || '—';
-      document.getElementById('statWindow').textContent =
-        String(state.settings?.['Emergency Lock'] || '').toLowerCase()==='yes' ? 'PAUSED' : (schedule.isOpen ? 'OPEN' : 'CLOSED');
+      const locked=String(state.settings?.['Emergency Lock']||'').toLowerCase()==='yes';
+      const windowStatus=document.getElementById('statWindow');
+      windowStatus.textContent=locked?'PAUSED':(schedule.isOpen?'OPEN':'CLOSED');
+      windowStatus.classList.toggle('passOpen',schedule.isOpen&&!locked);
+      windowStatus.classList.toggle('passClosed',!schedule.isOpen||locked);
       document.getElementById('statOut').textContent = state.out.length;
       document.getElementById('statWaiting').textContent = state.waiting.length;
       document.getElementById('statNextChange').textContent = schedule.nextChange ? formatTime(schedule.nextChange) : '—';
@@ -707,51 +713,42 @@
     }
 
     function renderScheduleChoices(schedules, selected) {
-      const holder = document.getElementById('scheduleButtons');
-      if (!holder) return;
-      const names = [];
-      (schedules || []).forEach(function(row) {
-        const name = String(row.schedule || '').trim();
-        if (name && !names.some(function(x) { return x.toLowerCase() === name.toLowerCase(); })) names.push(name);
-      });
-      holder.innerHTML = '';
-      const auto = document.createElement('button');
-      auto.type = 'button';
-      auto.className = 'primary scheduleButton';
-      auto.dataset.schedule = '__AUTO__';
-      auto.textContent = 'Auto';
-      auto.addEventListener('click', function() { changeSchedule('__AUTO__', auto); });
-      holder.appendChild(auto);
-      if (!names.length) {
-        const note = document.createElement('span');
-        note.className = 'subtle';
-        note.textContent = 'No master schedules have been configured by Admin.';
-        holder.appendChild(note);
-        return;
+      const select=document.getElementById('scheduleChoice');
+      if(!select)return;
+      const names=[];
+      for(const row of schedules||[]){
+        const name=String(row.schedule||'').trim();
+        if(name&&!names.some(x=>x.toLowerCase()===name.toLowerCase()))names.push(name);
       }
-      names.forEach(function(name) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'primary scheduleButton';
-        button.dataset.schedule = name;
-        button.textContent = name;
-        button.addEventListener('click', function() { changeSchedule(name, button); });
-        holder.appendChild(button);
-      });
+      const previous=select.value;
+      select.replaceChildren();
+      const auto=document.createElement('option');
+      auto.value='__AUTO__';auto.textContent='Auto — Room Default';select.appendChild(auto);
+      for(const name of names){
+        const option=document.createElement('option');
+        option.value=name;option.textContent=name;select.appendChild(option);
+      }
+      if([...select.options].some(opt=>opt.value===previous))select.value=previous;
+      else select.value='__AUTO__';
     }
+    document.getElementById('applyScheduleChoice').addEventListener('click',function(){
+      const name=document.getElementById('scheduleChoice').value;
+      if(!name){setActionMessage('Choose a schedule.', 'error');return}
+      changeSchedule(name,this);
+    });
 
     function renderQuickControls(state) {
       const scheduleSource = String(state.settings['Schedule Source'] || 'Room Default');
       const isTeacherOverride = scheduleSource.toLowerCase() === 'teacher override';
       const effectiveSchedule = String((state.schedule && state.schedule.schedule) || state.settings["Today's Schedule"] || '').trim();
-      document.querySelectorAll('.scheduleButton').forEach(function(button) {
-        const isAuto = button.dataset.schedule === '__AUTO__';
-        button.classList.toggle('active', isAuto ? !isTeacherOverride : (isTeacherOverride && String(button.dataset.schedule).toLowerCase() === String(state.settings["Today's Schedule"] || '').toLowerCase()));
-        if (isAuto) {
-          button.textContent = !isTeacherOverride && effectiveSchedule ? 'Auto — ' + effectiveSchedule : 'Auto';
-          button.title = !isTeacherOverride && effectiveSchedule ? 'Automatic schedule is currently using ' + effectiveSchedule : 'Return to the automatic school calendar or room default';
-        }
-      });
+      const scheduleChoice=document.getElementById('scheduleChoice');
+      if(scheduleChoice&&document.activeElement!==scheduleChoice){
+        const manual=String(state.settings["Today's Schedule"]||'').trim();
+        const actual=isTeacherOverride
+          ? [...scheduleChoice.options].find(x=>x.value.toLowerCase()===manual.toLowerCase())?.value
+          : '__AUTO__';
+        if(actual)scheduleChoice.value=actual;
+      }
       const sourceHint = document.getElementById('scheduleSourceHint');
       if (sourceHint) {
         if (isTeacherOverride) {
@@ -1687,7 +1684,13 @@
     .teacherPrimaryStatus{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
     .teacherStatusDetails{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;padding:10px 14px 13px;margin:0 0 12px;border-radius:0 0 10px 10px;background:#fff;border:1px solid #e0e6ed;color:#566576;font-size:14px}
     .teacherStatusDetails strong{color:#1c344e}
-    #statWindow{color:#166437}
+    #statWindow.passOpen{color:#166437}
+    #statWindow.passClosed{color:#b3261e}
+    .teacherScheduleChoice{display:grid;grid-template-columns:minmax(220px,1fr) auto;align-items:end;gap:12px;margin:10px 0}
+    .teacherScheduleChoice label{font-size:13px;color:#526278}
+    .teacherScheduleChoice button{min-height:42px}
+    @media(max-width:580px){.teacherScheduleChoice{grid-template-columns:minmax(0,1fr)}}
+
     .teacherLiveGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px}
     .teacherLiveGrid>.card{min-width:0;margin-bottom:0;height:100%}
     .teacherLiveGrid .tableWrap{overflow-x:auto}
