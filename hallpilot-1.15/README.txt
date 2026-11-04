@@ -220,3 +220,16 @@ No production admin file or production branding was changed.
 Validated 5 groups/12 tabs/0 missing panels, all element lookups, valid
 inline JS, restored assets and all existing actions still in markup.
 Interactive logged-in browser review is still required.
+
+
+TEACHER PAGE UI CLEANUP (DEV ONLY)
+----------------------------------
+Teacher dashboard's Live Passes / Controls / Reports buttons are replaced
+by a single Page dropdown. Sections, reports, and action workflows remain.
+Emergency / Lockdown card and the room lockdown toggle have been removed
+from the Teacher page. Existing server-side lock protection remains active;
+while an administrator has locked passes, the Teacher page indicates PAUSED
+and blocks starting new passes. Admin emergency-lock controls remain.
+The change is limited to dev/teacher.html and was not applied to production.
+Static verification confirmed dropdown options, all three target panels,
+JavaScript syntax, the safety checks, and the production page was intact.
