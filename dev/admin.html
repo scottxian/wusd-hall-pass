@@ -48,21 +48,12 @@
     .scheduleEditorRow label{font-size:13px;font-weight:600}
     .scheduleEditorRow .removePeriod{align-self:end;min-height:38px}
     @media(max-width:600px){.scheduleEditorRow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.scheduleEditorRow .periodField{grid-column:1 / -1}.scheduleEditorRow .removePeriod{grid-column:1 / -1;justify-self:start}}
-    /* 1.15 DEV: calmer, grouped admin navigation and scan-friendly room list. */
-    .adminNavigation{margin:0 0 20px;border-bottom:1px solid #d8e0e9}
-    .navGroups{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-    .navGroupButton{background:transparent;color:#415267;padding:12px 16px;border-radius:9px 9px 0 0;border-bottom:3px solid transparent}
-    .navGroupButton:hover{background:#e9eef4}
-    .navGroupButton.active{color:#194f8d;background:#fff;border-bottom-color:#1f5ea8}
-    .tabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 2px;margin:0;min-height:54px}
-    .tabs .tabButton{display:none;background:transparent;color:#44576b;font-size:14px;padding:9px 14px;font-weight:600;border-radius:999px}
-    .tabs .tabButton:hover{background:#e7eef5}
-    .tabs .tabButton.active{background:#dceaf9;color:#154b86}
-    .tabs[data-group="campus"] .tabButton[data-nav-parent="campus"],
-    .tabs[data-group="people"] .tabButton[data-nav-parent="people"],
-    .tabs[data-group="scheduling"] .tabButton[data-nav-parent="scheduling"],
-    .tabs[data-group="reports"] .tabButton[data-nav-parent="reports"],
-    .tabs[data-group="settings"] .tabButton[data-nav-parent="settings"]{display:inline-flex}
+    /* 1.15 DEV: one native, grouped dropdown for all Admin pages. */
+    .adminPageBar{display:flex;align-items:center;gap:12px;margin:0 0 18px;padding:4px 0}
+    .adminPageBar label{margin:0;font-size:15px;font-weight:700;color:#415267;white-space:nowrap}
+    .adminPageBar select{width:min(460px,100%);min-height:44px;padding:9px 12px;background:#fff;color:#153f6d;border:1px solid #a7b5c4;border-radius:9px;font-size:16px;font-weight:600}
+    .adminPageBar select:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
+    @media(max-width:600px){.adminPageBar{align-items:stretch}.adminPageBar select{flex:1;min-width:0}}
     .schoolBar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 16px;margin-bottom:14px;background:#fff;border:1px solid #e1e6ec;border-radius:10px}
     .schoolBar .muted{display:block;margin-bottom:4px}
     .schoolBar strong{font-size:14px}
@@ -107,29 +98,33 @@
     <div id="dashboard" class="hidden">
       <div class="schoolBar"><div><span class="muted">Organization</span><strong id="organizationLabel">—</strong></div>
           <div class="schoolPicker"><label for="schoolSelector">School</label><select id="schoolSelector"></select></div></div>
-      <nav class="adminNavigation" aria-label="Administration sections">
-        <div class="navGroups" role="group" aria-label="Main sections">
-          <button type="button" class="navGroupButton active" data-nav-group="campus" aria-pressed="true">Campus</button>
-          <button type="button" class="navGroupButton" data-nav-group="people" aria-pressed="false">People & Rooms</button>
-          <button type="button" class="navGroupButton" data-nav-group="scheduling" aria-pressed="false">Scheduling</button>
-          <button type="button" class="navGroupButton" data-nav-group="reports" aria-pressed="false">Reports</button>
-          <button type="button" class="navGroupButton" data-nav-group="settings" aria-pressed="false">Settings</button>
-        </div>
-        <div class="tabs" id="adminSubnav" data-group="campus" role="group" aria-label="Pages in selected section">
-          <button type="button" class="tabButton active" data-panel="livePanel" data-nav-parent="campus" aria-current="page">Overview</button>
-          <button type="button" class="tabButton" data-panel="managePanel" data-nav-parent="people">Rooms</button>
-          <button type="button" class="tabButton" data-panel="teachersPanel" data-nav-parent="people">Teachers</button>
-          <button type="button" class="tabButton" data-panel="studentsPanel" data-nav-parent="people">Students</button>
-          <button type="button" class="tabButton" data-panel="destinationsPanel" data-nav-parent="people">Destinations</button>
-          <button type="button" class="tabButton" data-panel="schedulePanel" data-nav-parent="scheduling">Bell Schedules</button>
-          <button type="button" class="tabButton" data-panel="roomSchedulePanel" data-nav-parent="scheduling">Room Scheduling</button>
-          <button type="button" class="tabButton" data-panel="calendarPanel" data-nav-parent="scheduling">Legacy Calendar</button>
-          <button type="button" class="tabButton" data-panel="reportsPanel" data-nav-parent="reports">Pass Reports & Backup</button>
-          <button type="button" class="tabButton" data-panel="auditPanel" data-nav-parent="reports">Audit Log</button>
-          <button type="button" class="tabButton" data-panel="securityPanel" data-nav-parent="settings">Security</button>
-          <button type="button" class="tabButton" data-panel="orgPanel" data-nav-parent="settings">Organization & Schools</button>
-        </div>
-      </nav>
+      <div class="adminPageBar">
+        <label for="adminPageSelect">Page</label>
+        <select id="adminPageSelect" aria-label="Choose an administration page">
+          <optgroup label="Campus">
+            <option value="livePanel" selected>Campus Overview</option>
+          </optgroup>
+          <optgroup label="People &amp; Rooms">
+            <option value="managePanel">Rooms</option>
+            <option value="teachersPanel">Teachers</option>
+            <option value="studentsPanel">Students</option>
+            <option value="destinationsPanel">Destinations</option>
+          </optgroup>
+          <optgroup label="Scheduling">
+            <option value="schedulePanel">Bell Schedules</option>
+            <option value="roomSchedulePanel">Room Scheduling</option>
+            <option value="calendarPanel">Legacy Calendar</option>
+          </optgroup>
+          <optgroup label="Reports">
+            <option value="reportsPanel">Pass Reports &amp; Backup</option>
+            <option value="auditPanel">Audit Log</option>
+          </optgroup>
+          <optgroup label="Settings">
+            <option value="securityPanel">Security</option>
+            <option value="orgPanel">Organization &amp; Schools</option>
+          </optgroup>
+        </select>
+      </div>
 
       <section id="livePanel" class="panel active">
         <div class="grid" style="margin-bottom:16px"><div class="stat"><div class="label">Active Rooms</div><div id="statRooms" class="value">0</div></div><div class="stat"><div class="label">Students Out</div><div id="statOut" class="value">0</div></div><div class="stat"><div class="label">Waiting</div><div id="statWaiting" class="value">0</div></div></div>
@@ -1432,7 +1427,22 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('refreshAudit').addEventListener('click',e=>refreshAudit(e.currentTarget));$('auditRoomFilter').addEventListener('change',()=>refreshAudit());$('auditSearch').addEventListener('keydown',e=>{if(e.key==='Enter')refreshAudit()});$('loginButton').addEventListener('click',login);$('adminPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('refreshLive').addEventListener('click',e=>refreshLive(e.currentTarget));$('roomFilter').addEventListener('change',()=>refreshLive());$('search').addEventListener('keydown',e=>{if(e.key==='Enter')refreshLive()});$('refreshManage').addEventListener('click',e=>refreshManagement(e.currentTarget));$('refreshSchedules').addEventListener('click',e=>refreshManagement(e.currentTarget));$('addScheduleButton').addEventListener('click',()=>openSchedule());$('saveScheduleButton').addEventListener('click',saveSchedule);$('confirmScheduleReplace').addEventListener('click',confirmScheduleReplacement);$('addSchedulePeriodButton').addEventListener('click',()=>addSchedulePeriod());$('schedulePeriodBody').addEventListener('click',e=>{const b=e.target.closest('[data-remove-period]');if(b)b.closest('.scheduleEditorRow').remove()});$('onboardRoomButton').addEventListener('click',openOnboardingWizard);$('addRoomButton').addEventListener('click',()=>openRoom());$('deleteRoomFromModalButton').addEventListener('click',()=>deleteRoom($('roomEditId').value));$('addTeacherButton').addEventListener('click',()=>openTeacher());$('saveRoomButton').addEventListener('click',saveRoom);$('saveTeacherButton').addEventListener('click',saveTeacher);
     $('onboardBackButton').addEventListener('click',onboardingBack);$('onboardNextButton').addEventListener('click',onboardingNext);$('onboardCreateButton').addEventListener('click',createOnboardedRoom);$('copyStudentLink').addEventListener('click',()=>copyTextValue($('roomStudentLink').value,'Student link copied.'));$('copyTeacherLink').addEventListener('click',()=>copyTextValue($('roomTeacherLink').value,'Teacher link copied.'));$('copySetupMessage').addEventListener('click',()=>{const room=currentLinksRoom();if(room)copyTextValue(setupMessageForRoom(room),'Setup message copied.')});$('openStudentLink').addEventListener('click',()=>window.open($('roomStudentLink').value,'_blank','noopener'));$('openTeacherLink').addEventListener('click',()=>window.open($('roomTeacherLink').value,'_blank','noopener'));document.querySelectorAll('input[name="onboardTeacherMode"]').forEach(x=>x.addEventListener('change',toggleOnboardingTeacherMode));$('onboardCloneRoom').addEventListener('change',()=>loadOnboardingDestinations($('onboardCloneRoom').value));$('onboardRoomName').addEventListener('blur',()=>{if(!$('onboardRoomKey').value.trim())$('onboardRoomKey').value=$('onboardRoomName').value.trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')});
     $('schoolSelector').addEventListener('change',switchSchool);$('addSchoolButton').addEventListener('click',()=>openSchool());$('refreshOrganization').addEventListener('click',e=>refreshOrganization(e.currentTarget));$('saveSchoolButton').addEventListener('click',saveSchool);
-    document.addEventListener('click',e=>{const nav=e.target.closest('[data-nav-group]');if(nav){const group=nav.dataset.navGroup;const selected=document.querySelector('.tabButton.active[data-nav-parent="'+group+'"]')||document.querySelector('.tabButton[data-nav-parent="'+group+'"]');if(selected)selected.click();return}const tab=e.target.closest('[data-panel]');if(tab){const group=tab.dataset.navParent||'campus';$('adminSubnav').dataset.group=group;document.querySelectorAll('.navGroupButton').forEach(b=>{const active=b.dataset.navGroup===group;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});document.querySelectorAll('.tabButton').forEach(b=>{if(b===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});document.querySelectorAll('.tabButton').forEach(x=>x.classList.toggle('active',x===tab));document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('active',x.id===tab.dataset.panel));if(['managePanel','teachersPanel','schedulePanel'].includes(tab.dataset.panel))refreshManagement();if(tab.dataset.panel==='studentsPanel')refreshStudents();if(tab.dataset.panel==='destinationsPanel')refreshDestinations();if(tab.dataset.panel==='securityPanel')refreshSecurity();if(tab.dataset.panel==='calendarPanel')refreshCalendar();if(tab.dataset.panel==='roomSchedulePanel')refreshRoomScheduling();if(tab.dataset.panel==='reportsPanel')refreshReportOptions();if(tab.dataset.panel==='auditPanel'){refreshManagement().then(()=>refreshAudit())}if(tab.dataset.panel==='orgPanel')refreshOrganization();return}const sch=e.target.closest('[data-edit-school]');if(sch){openSchool(sch.dataset.editSchool);return}const es=e.target.closest('[data-edit-schedule]');if(es){openSchedule(es.dataset.editSchedule);return}const cp=e.target.closest('[data-copy-schedule]');if(cp){openSchedule(cp.dataset.copySchedule,true);return}const ds=e.target.closest('[data-delete-schedule]');if(ds){deleteSchedule(ds.dataset.deleteSchedule);return}const rl=e.target.closest('[data-room-links]');if(rl){openRoomLinks(rl.dataset.roomLinks);return}const er=e.target.closest('[data-edit-room]');if(er){openRoom(er.dataset.editRoom);return}const ert=e.target.closest('[data-email-room-teacher]');if(ert){emailRoomTeacher(ert.dataset.emailRoomTeacher);return}const aet=e.target.closest('[data-edit-teacher-from-links]');if(aet){hideModal('roomLinksModal');openTeacher(aet.dataset.editTeacherFromLinks);return}const dr=e.target.closest('[data-delete-room]');if(dr){deleteRoom(dr.dataset.deleteRoom);return}const et=e.target.closest('[data-edit-teacher]');if(et){openTeacher(et.dataset.editTeacher);return}const est=e.target.closest('[data-edit-student]');if(est){openStudent(est.dataset.editStudent);return}const edest=e.target.closest('[data-edit-destination]');if(edest){openDestination(edest.dataset.editDestination);return}const clr=e.target.closest('[data-clear-lockout]');if(clr){clearLockout(clr.dataset.scope,clr.dataset.hash);return}const ecal=e.target.closest('[data-edit-calendar]');if(ecal){editCalendar(ecal.dataset.editCalendar);return}const dcal=e.target.closest('[data-delete-calendar]');if(dcal){deleteCalendar(dcal.dataset.deleteCalendar);return}const dbatch=e.target.closest('[data-delete-calendar-batch]');if(dbatch){deleteCalendarBatch(dbatch.dataset.deleteCalendarBatch);return}const cl=e.target.closest('[data-close]');if(cl)hideModal(cl.dataset.close)});
+    function openAdminPage(panelId){
+      if(!document.getElementById(panelId)?.classList.contains('panel'))return;
+      $('adminPageSelect').value=panelId;
+      document.querySelectorAll('.panel').forEach(panel=>panel.classList.toggle('active',panel.id===panelId));
+      if(['managePanel','teachersPanel','schedulePanel'].includes(panelId))refreshManagement();
+      if(panelId==='studentsPanel')refreshStudents();
+      if(panelId==='destinationsPanel')refreshDestinations();
+      if(panelId==='securityPanel')refreshSecurity();
+      if(panelId==='calendarPanel')refreshCalendar();
+      if(panelId==='roomSchedulePanel')refreshRoomScheduling();
+      if(panelId==='reportsPanel')refreshReportOptions();
+      if(panelId==='auditPanel')refreshManagement().then(()=>refreshAudit());
+      if(panelId==='orgPanel')refreshOrganization();
+    }
+    $('adminPageSelect').addEventListener('change',e=>openAdminPage(e.target.value));
+        document.addEventListener('click',e=>{const sch=e.target.closest('[data-edit-school]');if(sch){openSchool(sch.dataset.editSchool);return}const es=e.target.closest('[data-edit-schedule]');if(es){openSchedule(es.dataset.editSchedule);return}const cp=e.target.closest('[data-copy-schedule]');if(cp){openSchedule(cp.dataset.copySchedule,true);return}const ds=e.target.closest('[data-delete-schedule]');if(ds){deleteSchedule(ds.dataset.deleteSchedule);return}const rl=e.target.closest('[data-room-links]');if(rl){openRoomLinks(rl.dataset.roomLinks);return}const er=e.target.closest('[data-edit-room]');if(er){openRoom(er.dataset.editRoom);return}const ert=e.target.closest('[data-email-room-teacher]');if(ert){emailRoomTeacher(ert.dataset.emailRoomTeacher);return}const aet=e.target.closest('[data-edit-teacher-from-links]');if(aet){hideModal('roomLinksModal');openTeacher(aet.dataset.editTeacherFromLinks);return}const dr=e.target.closest('[data-delete-room]');if(dr){deleteRoom(dr.dataset.deleteRoom);return}const et=e.target.closest('[data-edit-teacher]');if(et){openTeacher(et.dataset.editTeacher);return}const est=e.target.closest('[data-edit-student]');if(est){openStudent(est.dataset.editStudent);return}const edest=e.target.closest('[data-edit-destination]');if(edest){openDestination(edest.dataset.editDestination);return}const clr=e.target.closest('[data-clear-lockout]');if(clr){clearLockout(clr.dataset.scope,clr.dataset.hash);return}const ecal=e.target.closest('[data-edit-calendar]');if(ecal){editCalendar(ecal.dataset.editCalendar);return}const dcal=e.target.closest('[data-delete-calendar]');if(dcal){deleteCalendar(dcal.dataset.deleteCalendar);return}const dbatch=e.target.closest('[data-delete-calendar-batch]');if(dbatch){deleteCalendarBatch(dbatch.dataset.deleteCalendarBatch);return}const cl=e.target.closest('[data-close]');if(cl)hideModal(cl.dataset.close)});
     updateHallpassAdminTitle();
     setInterval(()=>document.querySelectorAll('[data-left]').forEach(x=>x.textContent=elapsed(x.dataset.left)),1000);setInterval(()=>{if(unlocked && $('livePanel').classList.contains('active'))refreshLive()},5000);
   </script>
