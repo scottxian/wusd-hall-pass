@@ -233,3 +233,48 @@ and blocks starting new passes. Admin emergency-lock controls remain.
 The change is limited to dev/teacher.html and was not applied to production.
 Static verification confirmed dropdown options, all three target panels,
 JavaScript syntax, the safety checks, and the production page was intact.
+
+
+ADMIN + TEACHER INTERFACE CONSOLIDATION (DEV ONLY, NOV 2026)
+----------------------------------------------------------
+Both Admin Campus Overview and Teacher Live Passes now show Students Out
+and Waiting side by side on wider screens, stacking on narrow screens.
+Both grids render existing live state with no change to database/API logic.
+
+Teacher:
+- Three principal statuses: Period, Pass Window, Students Out.
+  Schedule name, waiting count, and next change in a secondary line.
+- Accurate green OPEN vs red CLOSED/PAUSED pass-window styling.
+- Rarely needed Teacher Override Pass and Today totals collapsed.
+- Daily schedule selection changed from multiple buttons to a single
+  dropdown plus Apply for Today; Auto returns to the room schedule.
+- Quick Controls retain restroom and waiting toggles. Test Mode, queue
+  clearing, and backup are under Advanced Controls.
+- Pass Settings, Student Restroom Access, and Room Destinations have
+  independent collapsible panels.
+- Advanced report options are collapsible. Reports retain all form IDs
+  and generated-print/download workflows.
+- Teacher emergency-lock toggle remains removed; administrator lock
+  protections still block passes and display PAUSED.
+
+Admin:
+- Campus live Students Out / Waiting grids; recent history collapsed.
+  Campus emergency lock remains accessible to Admin with red only when ON.
+- Room Scheduling now has a Manage dropdown: Classroom Schedules,
+  Special Days, Advanced / Migration. Existing settings, assignments,
+  exceptions, legacy dates, and preview remain intact.
+- Bell schedule rows offer Edit and a compact More dropdown for
+  Duplicate/Delete; assignments and atomic delete workflows remain.
+- Advanced report thresholds and Backup & Export are collapsed.
+- Nonessential green 'Updated' messages no longer flash every live poll.
+- Grid and tables wrap where practical; narrow screens stack columns.
+
+VALIDATION
+----------
+24 static/interface and scheduling checks passed, including
+22 synthetic scheduling regressions, full balanced HTML structure,
+unique HTML IDs, successful parsing of all inline JS, referenced
+element IDs present, and all UI actions preserved.
+Production admin.html and teacher.html were verified unchanged.
+Both dev/admin.html and dev/teacher.html were copied into main
+for GitHub Pages dev testing; browser visual testing remains pending.
