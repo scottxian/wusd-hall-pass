@@ -23,9 +23,11 @@
     .stat { background: #eef2f5; border-radius: 10px; padding: 14px; }
     .statLabel { color: #555; font-size: 13px; }
     .statValue { margin-top: 4px; font-size: 25px; font-weight: bold; }
-    .tabBar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-    .tabButton { flex: 1 1 180px; background: #dfe5ea; color: #222; border: none; border-radius: 9px; padding: 13px 16px; font-size: 17px; font-weight: bold; cursor: pointer; }
-    .tabButton.activeTab { background: #1f5ea8; color: white; }
+    .teacherPageNav { display:flex;align-items:center;gap:12px;margin:0 0 18px }
+    .teacherPageNav label { margin:0;font-size:15px;font-weight:700;white-space:nowrap;color:#415267 }
+    .teacherPageNav select { width:min(440px,100%);min-height:44px;border:1px solid #a7b5c4;border-radius:9px;background:#fff;color:#153f6d;font-size:16px;font-weight:600;padding:9px 12px }
+    .teacherPageNav select:focus-visible { outline:3px solid #7aa7d8;outline-offset:2px }
+    @media(max-width:600px) { .teacherPageNav select { flex:1;min-width:0 } }
     .tabPanel { display: none; }
     .tabPanel.activePanel { display: block; }
     button { border: none; border-radius: 8px; padding: 11px 16px; font-size: 16px; font-weight: bold; cursor: pointer; transition: opacity .15s, transform .05s; }
@@ -67,8 +69,6 @@
     .outWarning { background: #fff3cd; }
     .outDanger { background: #f8d7da; }
     .reportFlag { display:inline-block; padding:3px 7px; border-radius:999px; background:#fff3cd; color:#6d5100; font-size:12px; font-weight:bold; margin-right:4px; }
-    .emergencyCard { border:3px solid #b3261e; background:#fff7f6; }
-    .emergencyOn { outline:4px solid #ffd54f; outline-offset:2px; }
     .subtle { color: #666; font-size: 13px; margin-top: 5px; }
     .overrideBox { border: 2px solid #d8c4e3; background: #faf6fc; }
     .reportSummaryGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; }
@@ -105,7 +105,7 @@
       .card { padding: 14px; }
       .statValue { font-size: 21px; }
       th, td { font-size: 13px; padding: 7px; }
-      button, .tabButton { font-size: 14px; }
+      button { font-size: 14px; }
     }
     .fieldHint { font-weight: 600; font-size: 0.82em; opacity: 0.72; }
 
@@ -151,10 +151,13 @@
 
       <div id="actionMessage" class="actionMessage" aria-live="polite"></div>
 
-      <div class="tabBar">
-        <button class="tabButton activeTab" data-tab="live" onclick="showTab('live')">Live Passes</button>
-        <button class="tabButton" data-tab="controls" onclick="showTab('controls')">Controls</button>
-        <button class="tabButton" data-tab="reports" onclick="showTab('reports')">Reports</button>
+      <div class="teacherPageNav">
+        <label for="teacherPageSelect">Page</label>
+        <select id="teacherPageSelect" aria-label="Choose teacher dashboard page">
+          <option value="live">Live Passes</option>
+          <option value="controls">Controls &amp; Settings</option>
+          <option value="reports">Reports</option>
+        </select>
       </div>
 
       <section id="tab-live" class="tabPanel activePanel">
@@ -221,14 +224,6 @@
             <h3>Schedule Mode</h3>
             <div id="scheduleButtons" class="buttonRow"></div>
             <div id="scheduleSourceHint" class="subtle">Bell times are managed by Campus Admin. A teacher choice applies only for today; Auto follows the school calendar or room default.</div>
-          </div>
-
-          <div class="controlGroup emergencyCard">
-            <h3>Emergency / Lockdown</h3>
-            <div class="buttonRow">
-              <button id="emergencyLockButton" class="red" onclick="toggleEmergencyLock(this)">Emergency Lock</button>
-            </div>
-            <div class="subtle">Blocks all new student requests and clears the current waiting list. Students already out remain listed until returned.</div>
           </div>
 
           <div class="controlGroup">
@@ -512,13 +507,16 @@
     let restroomRosterRefreshRunning = false;
 
     function showTab(name) {
-      document.querySelectorAll('.tabButton').forEach(function(button) {
-        button.classList.toggle('activeTab', button.dataset.tab === name);
-      });
+      if (!['live','controls','reports'].includes(name)) return;
+      const pageSelect=document.getElementById('teacherPageSelect');
+      if(pageSelect) pageSelect.value=name;
       document.querySelectorAll('.tabPanel').forEach(function(panel) {
         panel.classList.toggle('activePanel', panel.id === 'tab-' + name);
       });
     }
+    document.getElementById('teacherPageSelect').addEventListener('change',function(event){
+      showTab(event.target.value);
+    });
 
     function beginButtonAction(button, busyText) {
       if (!button) return;
@@ -670,10 +668,12 @@
       document.getElementById('statOut').textContent = state.out.length;
       document.getElementById('statWaiting').textContent = state.waiting.length;
       document.getElementById('statNextChange').textContent = schedule.nextChange ? formatTime(schedule.nextChange) : '—';
-      document.getElementById('headerStatus').textContent =
-        (schedule.schedule || '') + ' | ' +
-        (schedule.period ? 'Period ' + schedule.period : schedule.reason) + ' | ' +
-        (schedule.isOpen ? 'Pass Window Open' : 'Pass Window Closed');
+      const emergencyLocked = String(state.settings?.['Emergency Lock'] || '').toLowerCase()==='yes';
+      document.getElementById('headerStatus').textContent = emergencyLocked
+        ? 'Passes paused by administrator'
+        : (schedule.schedule || '') + ' | ' +
+          (schedule.period ? 'Period ' + schedule.period : schedule.reason) + ' | ' +
+          (schedule.isOpen ? 'Pass Window Open' : 'Pass Window Closed');
     }
 
     function renderStats(stats) {
@@ -746,15 +746,11 @@
       const testMode = String(state.settings['Test Mode'] || '').toLowerCase() === 'yes';
       const waitingEnabled = String(state.settings['Waiting List Enabled'] || '').toLowerCase() === 'yes';
       const emergencyLock = String(state.settings['Emergency Lock'] || '').toLowerCase() === 'yes';
-      const emergencyButton = document.getElementById('emergencyLockButton');
-      emergencyButton.textContent = emergencyLock ? 'Emergency Lock: ON' : 'Emergency Lock: OFF';
-      emergencyButton.classList.toggle('emergencyOn', emergencyLock);
-
       const manualOverrideButton = document.getElementById('manualOverrideButton');
       if (manualOverrideButton) {
         manualOverrideButton.disabled = emergencyLock;
         manualOverrideButton.title = emergencyLock
-          ? 'Turn off Emergency Lock before starting a new pass.'
+          ? 'Passes are paused by the administrator. Contact an administrator to reopen.'
           : '';
       }
       const testButton = document.getElementById('testModeButton');
@@ -785,18 +781,6 @@
         .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
         .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
         .updateDestinationFromDashboard(teacherPin, 'Restroom', { enabled: enabled });
-    }
-
-    function toggleEmergencyLock(button) {
-      const current = String(dashboardState.settings['Emergency Lock'] || '').toLowerCase() === 'yes';
-      const turnOn = !current;
-      if (turnOn && !window.confirm('Lock this room?\nNew passes stop, and the waiting list clears.')) return;
-      beginButtonAction(button, turnOn ? 'LOCKING...' : 'UNLOCKING...');
-      setActionMessage(turnOn ? 'Locking student pass requests...' : 'Reopening student pass requests...', 'processing');
-      google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
-        .setEmergencyLockFromDashboard(teacherPin, turnOn);
     }
 
     function backupPassLog(button) {
@@ -1061,7 +1045,7 @@
       );
 
       if (emergencyLock) {
-        setActionMessage('Turn off Emergency Lock before starting a new pass.', 'error');
+        setActionMessage('Passes are paused by the administrator. Contact an administrator to reopen.', 'error');
         return;
       }
 
