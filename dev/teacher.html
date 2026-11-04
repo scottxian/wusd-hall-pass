@@ -140,13 +140,15 @@
     </div>
 
     <div id="dashboard" class="hidden">
-      <div class="statusGrid">
-        <div class="stat"><div class="statLabel">Schedule</div><div id="statSchedule" class="statValue">—</div></div>
+      <div class="statusGrid teacherPrimaryStatus">
         <div class="stat"><div class="statLabel">Period</div><div id="statPeriod" class="statValue">—</div></div>
         <div class="stat"><div class="statLabel">Pass Window</div><div id="statWindow" class="statValue">—</div></div>
         <div class="stat"><div class="statLabel">Students Out</div><div id="statOut" class="statValue">0</div></div>
-        <div class="stat"><div class="statLabel">Waiting</div><div id="statWaiting" class="statValue">0</div></div>
-        <div class="stat"><div class="statLabel">Next Change</div><div id="statNextChange" class="statValue">—</div></div>
+      </div>
+      <div class="teacherStatusDetails" aria-label="Additional schedule information">
+        <span>Schedule: <strong id="statSchedule">—</strong></span>
+        <span>Waiting: <strong id="statWaiting">0</strong></span>
+        <span>Next change: <strong id="statNextChange">—</strong></span>
       </div>
 
       <div id="actionMessage" class="actionMessage" aria-live="polite"></div>
@@ -161,8 +163,31 @@
       </div>
 
       <section id="tab-live" class="tabPanel activePanel">
-        <div class="card overrideBox">
-          <h2>Teacher Override Pass</h2>
+        <div class="teacherLiveGrid" aria-label="Current hall pass activity">
+        <div class="card">
+          <h2>Students Out</h2>
+          <div class="tableWrap">
+            <table>
+              <thead><tr><th>Student</th><th>Destination</th><th>Left</th><th>Time Gone</th><th>Return</th></tr></thead>
+              <tbody id="outBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Waiting List</h2>
+          <div class="tableWrap">
+            <table>
+              <thead><tr><th>Student</th><th>Destination</th><th>Requested</th><th>Go</th><th>Cancel</th></tr></thead>
+              <tbody id="waitingBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        </div>
+<details class="card teacherDisclosure overrideDisclosure"><summary>Teacher Override Pass</summary><div class="disclosureBody">
+
+          
           <p>Use this to let one student leave during restricted minutes, bypass a pass limit, or make a deliberate exception for a student whose restroom access is turned off.</p>
           <div class="controlGrid">
             <div>
@@ -183,30 +208,11 @@
           </div>
           <button id="manualOverrideButton" class="purple" onclick="startManualOverride(this)">Start Override Pass</button>
           <div class="subtle">Destination capacity still applies. Any time or daily-limit override is recorded in the pass log and reports.</div>
-        </div>
+        
+</div></details>
+<details class="card teacherDisclosure todayDisclosure"><summary>Today</summary><div class="disclosureBody">
 
-        <div class="card">
-          <h2>Waiting List</h2>
-          <div class="tableWrap">
-            <table>
-              <thead><tr><th>Student</th><th>Destination</th><th>Requested</th><th>Go</th><th>Cancel</th></tr></thead>
-              <tbody id="waitingBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>Students Out</h2>
-          <div class="tableWrap">
-            <table>
-              <thead><tr><th>Student</th><th>Destination</th><th>Left</th><th>Time Gone</th><th>Return</th></tr></thead>
-              <tbody id="outBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>Today</h2>
+          
           <div class="statusGrid">
             <div class="stat"><div class="statLabel">Passes Today</div><div id="passesToday" class="statValue">0</div></div>
             <div class="stat"><div class="statLabel">Restroom Passes</div><div id="restroomToday" class="statValue">0</div></div>
@@ -214,16 +220,20 @@
             <div class="stat"><div class="statLabel">Average Completed Pass</div><div id="averageTime" class="statValue">0:00</div></div>
             <div class="stat"><div class="statLabel">Longest Completed Pass</div><div id="longestTime" class="statValue">0:00</div></div>
           </div>
-        </div>
+        
+</div></details>
       </section>
 
       <section id="tab-controls" class="tabPanel">
         <div class="card">
           <h2>Quick Controls</h2>
           <div class="controlGroup">
-            <h3>Schedule Mode</h3>
-            <div id="scheduleButtons" class="buttonRow"></div>
-            <div id="scheduleSourceHint" class="subtle">Bell times are managed by Campus Admin. A teacher choice applies only for today; Auto follows the school calendar or room default.</div>
+            <h3>Today's Bell Schedule</h3>
+            <div class="teacherScheduleChoice">
+              <div><label for="scheduleChoice">Schedule</label><select id="scheduleChoice"><option value="__AUTO__">Auto — Room Default</option></select></div>
+              <button id="applyScheduleChoice" type="button" class="primary">Apply for Today</button>
+            </div>
+            <div id="scheduleSourceHint" class="subtle">Auto follows the school's calendar or room default. Manual selections apply only to today.</div>
           </div>
 
           <div class="controlGroup">
@@ -235,19 +245,28 @@
           </div>
 
           <div class="controlGroup">
+            <h3>Waiting List</h3>
+            <div class="buttonRow"><button id="waitingButton" class="primary" onclick="toggleWaitingList(this)">Waiting List</button></div>
+          </div>
+          <details class="teacherDisclosure insetDisclosure">
+            <summary>Advanced Controls</summary>
+            <div class="disclosureBody">
+          <div class="controlGroup">
             <h3>System</h3>
             <div class="buttonRow">
               <button id="testModeButton" class="purple" onclick="toggleTestMode(this)">Test Mode</button>
-              <button id="waitingButton" class="primary" onclick="toggleWaitingList(this)">Waiting List</button>
               <button class="red" onclick="clearQueue(this)">Clear Waiting List</button>
               <button class="gray" onclick="refreshDashboard(true, this)">Refresh</button>
               <button class="gray" onclick="backupPassLog(this)">Backup Pass Log</button>
             </div>
           </div>
+            </div>
+          </details>
         </div>
 
-        <div class="card">
-          <h2>Pass Settings</h2>
+<details class="card teacherDisclosure settingsDisclosure"><summary>Pass Settings</summary><div class="disclosureBody">
+
+          
           <div class="controlGrid">
             <div><label for="openDelay">Open After Start <span class="fieldHint">(0 = immediately)</span></label><input id="openDelay" type="number" min="0" max="30"></div>
             <div><label for="closeEarly">Close Before End <span class="fieldHint">(0 = period end)</span></label><input id="closeEarly" type="number" min="0" max="30"></div>
@@ -259,10 +278,12 @@
             <div class="checkboxLabel"><label><input id="clearAtEnd" type="checkbox">Clear Queue at Period End</label></div>
           </div>
           <button class="primary" onclick="savePassSettings(this)">Save Pass Settings</button>
-        </div>
+        
+</div></details>
 
-        <div class="card">
-          <h2>Student Restroom Access — This Room</h2>
+<details class="card teacherDisclosure "><summary>Student Restroom Access — This Room</summary><div class="disclosureBody">
+
+          
           <p>These student access changes apply only to this room. Turn restroom access off here for an individual student; other rooms keep their own setting. School-wide student records are managed by an administrator.</p>
           <div>
             <label for="restroomStudentSearch">Find Student</label>
@@ -279,10 +300,12 @@
             </table>
           </div>
           <div class="subtle">Turning access off blocks student restroom requests. You can still use Teacher Override Pass when an exception is necessary.</div>
-        </div>
+        
+</div></details>
 
-        <div class="card">
-          <h2>Room Destinations</h2>
+<details class="card teacherDisclosure "><summary>Room Destinations</summary><div class="disclosureBody">
+
+          
           <p>Campus Admin manages destination names and default behavior. For this room, choose whether each destination is available and optionally override the default Max Out. Leave the override blank to use the school default.</p>
           <div class="tableWrap">
             <table>
@@ -291,7 +314,8 @@
             </table>
           </div>
           <div class="subtle">Destination name, teacher approval, hall-pass behavior, and display order are controlled by Campus Admin.</div>
-        </div>
+        
+</div></details>
 
       </section>
 
@@ -311,11 +335,17 @@
             </div>
             <div><label for="reportStart">Start Date</label><input id="reportStart" type="date"></div>
             <div><label for="reportEnd">End Date</label><input id="reportEnd" type="date"></div>
+          </div>
+          <details class="teacherDisclosure reportDisclosure">
+            <summary>Advanced Report Options</summary><div class="disclosureBody">
+              <div class="reportControls">
             <div class="checkboxLabel"><label><input id="includeTestData" type="checkbox">Include Test Data</label></div>
             <div id="reportAutoExpandWrap" class="checkboxLabel"><label><input id="autoExpandAllDetails" type="checkbox">Auto-expand all student details</label></div>
             <div id="frequentPassWrap"><label for="flagPassCount">Flag Total Passes ≥</label><input id="flagPassCount" type="number" min="1" value="5"></div>
             <div id="frequentTimeWrap"><label for="flagAverageMinutes">Flag Average Minutes ≥</label><input id="flagAverageMinutes" type="number" min="1" value="8"></div>
-          </div>
+              </div>
+            </div>
+          </details>
           <div class="buttonRow">
             <button class="primary" onclick="generateReport(this)">Generate Report</button>
             <button id="printReportButton" class="gray" onclick="printReport()" disabled>Print Report</button>
@@ -664,8 +694,11 @@
       const schedule = state.schedule;
       document.getElementById('statSchedule').textContent = schedule.schedule || '—';
       document.getElementById('statPeriod').textContent = schedule.period || '—';
-      document.getElementById('statWindow').textContent =
-        String(state.settings?.['Emergency Lock'] || '').toLowerCase()==='yes' ? 'PAUSED' : (schedule.isOpen ? 'OPEN' : 'CLOSED');
+      const locked=String(state.settings?.['Emergency Lock']||'').toLowerCase()==='yes';
+      const windowStatus=document.getElementById('statWindow');
+      windowStatus.textContent=locked?'PAUSED':(schedule.isOpen?'OPEN':'CLOSED');
+      windowStatus.classList.toggle('passOpen',schedule.isOpen&&!locked);
+      windowStatus.classList.toggle('passClosed',!schedule.isOpen||locked);
       document.getElementById('statOut').textContent = state.out.length;
       document.getElementById('statWaiting').textContent = state.waiting.length;
       document.getElementById('statNextChange').textContent = schedule.nextChange ? formatTime(schedule.nextChange) : '—';
@@ -686,51 +719,42 @@
     }
 
     function renderScheduleChoices(schedules, selected) {
-      const holder = document.getElementById('scheduleButtons');
-      if (!holder) return;
-      const names = [];
-      (schedules || []).forEach(function(row) {
-        const name = String(row.schedule || '').trim();
-        if (name && !names.some(function(x) { return x.toLowerCase() === name.toLowerCase(); })) names.push(name);
-      });
-      holder.innerHTML = '';
-      const auto = document.createElement('button');
-      auto.type = 'button';
-      auto.className = 'primary scheduleButton';
-      auto.dataset.schedule = '__AUTO__';
-      auto.textContent = 'Auto';
-      auto.addEventListener('click', function() { changeSchedule('__AUTO__', auto); });
-      holder.appendChild(auto);
-      if (!names.length) {
-        const note = document.createElement('span');
-        note.className = 'subtle';
-        note.textContent = 'No master schedules have been configured by Admin.';
-        holder.appendChild(note);
-        return;
+      const select=document.getElementById('scheduleChoice');
+      if(!select)return;
+      const names=[];
+      for(const row of schedules||[]){
+        const name=String(row.schedule||'').trim();
+        if(name&&!names.some(x=>x.toLowerCase()===name.toLowerCase()))names.push(name);
       }
-      names.forEach(function(name) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'primary scheduleButton';
-        button.dataset.schedule = name;
-        button.textContent = name;
-        button.addEventListener('click', function() { changeSchedule(name, button); });
-        holder.appendChild(button);
-      });
+      const previous=select.value;
+      select.replaceChildren();
+      const auto=document.createElement('option');
+      auto.value='__AUTO__';auto.textContent='Auto — Room Default';select.appendChild(auto);
+      for(const name of names){
+        const option=document.createElement('option');
+        option.value=name;option.textContent=name;select.appendChild(option);
+      }
+      if([...select.options].some(opt=>opt.value===previous))select.value=previous;
+      else select.value='__AUTO__';
     }
+    document.getElementById('applyScheduleChoice').addEventListener('click',function(){
+      const name=document.getElementById('scheduleChoice').value;
+      if(!name){setActionMessage('Choose a schedule.', 'error');return}
+      changeSchedule(name,this);
+    });
 
     function renderQuickControls(state) {
       const scheduleSource = String(state.settings['Schedule Source'] || 'Room Default');
       const isTeacherOverride = scheduleSource.toLowerCase() === 'teacher override';
       const effectiveSchedule = String((state.schedule && state.schedule.schedule) || state.settings["Today's Schedule"] || '').trim();
-      document.querySelectorAll('.scheduleButton').forEach(function(button) {
-        const isAuto = button.dataset.schedule === '__AUTO__';
-        button.classList.toggle('active', isAuto ? !isTeacherOverride : (isTeacherOverride && String(button.dataset.schedule).toLowerCase() === String(state.settings["Today's Schedule"] || '').toLowerCase()));
-        if (isAuto) {
-          button.textContent = !isTeacherOverride && effectiveSchedule ? 'Auto — ' + effectiveSchedule : 'Auto';
-          button.title = !isTeacherOverride && effectiveSchedule ? 'Automatic schedule is currently using ' + effectiveSchedule : 'Return to the automatic school calendar or room default';
-        }
-      });
+      const scheduleChoice=document.getElementById('scheduleChoice');
+      if(scheduleChoice&&document.activeElement!==scheduleChoice){
+        const manual=String(state.settings["Today's Schedule"]||'').trim();
+        const actual=isTeacherOverride
+          ? [...scheduleChoice.options].find(x=>x.value.toLowerCase()===manual.toLowerCase())?.value
+          : '__AUTO__';
+        if(actual)scheduleChoice.value=actual;
+      }
       const sourceHint = document.getElementById('scheduleSourceHint');
       if (sourceHint) {
         if (isTeacherOverride) {
@@ -1662,7 +1686,46 @@
 
       const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(report.studentName)} - Hall Pass Report</title><style>
         body{font-family:Arial,sans-serif;color:#111;margin:28px;font-size:12px}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;margin-bottom:18px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 18px}.stat{border:1px solid #ccc;border-radius:6px;padding:8px}.label{font-size:10px;color:#555;text-transform:uppercase}.value{font-size:17px;font-weight:bold;margin-top:3px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:6px;text-align:left;white-space:nowrap}th{background:#eee}@media print{body{margin:0}}
-      </style></head><body>
+        /* Teacher DEV interface: essential status and two live lists first. */
+    .teacherPrimaryStatus{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
+    .teacherStatusDetails{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;padding:10px 14px 13px;margin:0 0 12px;border-radius:0 0 10px 10px;background:#fff;border:1px solid #e0e6ed;color:#566576;font-size:14px}
+    .teacherStatusDetails strong{color:#1c344e}
+    #statWindow.passOpen{color:#166437}
+    #statWindow.passClosed{color:#b3261e}
+    .teacherScheduleChoice{display:grid;grid-template-columns:minmax(220px,1fr) auto;align-items:end;gap:12px;margin:10px 0}
+    .teacherScheduleChoice label{font-size:13px;color:#526278}
+    .teacherScheduleChoice button{min-height:42px}
+    @media(max-width:580px){.teacherScheduleChoice{grid-template-columns:minmax(0,1fr)}}
+
+    .teacherLiveGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px}
+    .teacherLiveGrid>.card{min-width:0;margin-bottom:0;height:100%}
+    .teacherLiveGrid .tableWrap{overflow-x:auto}
+    .teacherLiveGrid table{table-layout:auto}
+    .teacherLiveGrid th,.teacherLiveGrid td{white-space:normal;overflow-wrap:anywhere;font-size:13px;padding:9px 7px}
+    .teacherLiveGrid button{font-size:13px;padding:8px 10px;min-height:36px}
+    .teacherDisclosure{padding:0;overflow:hidden}
+    .teacherDisclosure summary{margin:0;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;font-size:17px;font-weight:700;cursor:pointer;color:#244e75}
+    .teacherDisclosure summary::-webkit-details-marker{display:none}
+    .teacherDisclosure summary::after{content:"⌄";font-size:22px;font-weight:400}
+    .teacherDisclosure[open] summary::after{content:"⌃"}
+    .teacherDisclosure[open] summary{border-bottom:1px solid #e0e6ed}
+    .teacherDisclosure .disclosureBody{padding:17px 18px}
+    .teacherDisclosure.insetDisclosure{margin:14px 0;background:#f6f8fa;border:1px solid #dce4ec;border-radius:9px}
+    .teacherDisclosure.insetDisclosure .disclosureBody{padding:12px 16px}
+    .teacherDisclosure.insetDisclosure .controlGroup{margin:0}
+    .teacherDisclosure:focus-within{outline-offset:2px}
+    .teacherDisclosure summary:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
+    @media(max-width:1100px){.teacherLiveGrid{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:620px){.teacherPrimaryStatus{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+      .teacherPrimaryStatus .stat{padding:10px 6px}.teacherPrimaryStatus .statValue{font-size:20px}
+      .teacherPrimaryStatus .statLabel{font-size:11px}
+      .teacherStatusDetails{font-size:13px;gap:6px 14px}
+    }
+    .reportDisclosure{margin:4px 0 16px;border:1px solid #dce4ec;border-radius:9px;background:#f8fafc}
+    .reportDisclosure summary{font-size:14px;padding:11px 14px}
+    .reportDisclosure .disclosureBody{padding:12px 14px}
+    .reportDisclosure .reportControls{margin-bottom:0}
+  </style></head><body>
         <h1>Student Pass Report: ${escapeHtml(report.studentName)}</h1>
         <div class="meta">${escapeHtml(meta)}</div>
         <div class="summary">
