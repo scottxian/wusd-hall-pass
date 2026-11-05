@@ -14,6 +14,10 @@
     .header { background: #263238; color: white; padding: 18px 20px; }
     .header h1 { margin: 0 0 6px; font-size: 28px; }
     .headerStatus { font-size: 17px; }
+    /* Status belongs to the live dashboard, not a repeated header subtitle.
+       Keep #headerStatus in the DOM for existing updates and lock awareness. */
+    .hp-page-teacher .hp-brand-middle #headerStatus { display: none; }
+    .hp-page-teacher .hp-brand-middle > .header h1 { margin-bottom: 0; }
     .container { max-width: 1350px; margin: auto; padding: 18px; }
     .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
     h2 { margin-top: 0; }
