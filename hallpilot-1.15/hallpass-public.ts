@@ -235,18 +235,21 @@ async function getSettings(admin, roomId) {
   return data || null
 }
 
-async function getDestinations(admin, roomId) {
-  const { data, error } = await admin.from('destinations').select('*').eq('room_id', roomId).order('sort_order').order('name')
-  if (error) throw error
-  return (data || []).map(d => ({
-    id: d.id,
-    name: d.name,
-    enabled: Boolean(d.enabled),
-    maxOut: Number(d.max_out || 0),
-    maxPerDay: Number(d.max_per_day || 0),
-    teacherApproval: Boolean(d.teacher_approval),
-    countsAsHallPass: Boolean(d.counts_as_hall_pass),
-    sortOrder: Number(d.sort_order || 0)
+async function getDestinations(admin, roomId, schoolId) {
+  const [destQ, catalogQ]=await Promise.all([
+    admin.from('destinations').select('*').eq('room_id',roomId).order('sort_order').order('name'),
+    admin.from('destination_catalog').select('id,enabled_schoolwide').eq('school_id',schoolId)
+  ])
+  if(destQ.error)throw destQ.error
+  if(catalogQ.error)throw catalogQ.error
+  const catalog=new Map((catalogQ.data||[]).map(c=>[String(c.id),c]))
+  return (destQ.data||[]).map(d=>({
+    id:d.id,name:d.name,
+    enabled:Boolean(d.enabled && d.room_enabled!==false &&
+      catalog.get(String(d.catalog_id))?.enabled_schoolwide!==false),
+    maxOut:Number(d.max_out||0),maxPerDay:Number(d.max_per_day||0),
+    teacherApproval:Boolean(d.teacher_approval),
+    countsAsHallPass:Boolean(d.counts_as_hall_pass),sortOrder:Number(d.sort_order||0)
   }))
 }
 
@@ -435,7 +438,7 @@ async function loadContext(admin, orgKey, schoolKey, roomKey) {
   const room = await getRoom(admin, orgKey, schoolKey, roomKey)
   if (!room) return null
   const [settings, destinations, schedules, system] = await Promise.all([
-    getSettings(admin, room.id), getDestinations(admin, room.id), getSchedules(admin, room.school_id), getSchoolSettings(admin, room.school_id)
+    getSettings(admin, room.id), getDestinations(admin, room.id, room.school_id), getSchedules(admin, room.school_id), getSchoolSettings(admin, room.school_id)
   ])
   if (!settings) throw new Error('Room settings are missing.')
   const today = localDateKey(new Date(), room.timezone || room.school?.timezone || 'America/Los_Angeles')
