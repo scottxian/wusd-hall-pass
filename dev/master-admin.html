@@ -257,6 +257,18 @@
       .adminMessagePanel{gap:8px}
       .adminGlobalMessage{font-size:12px;padding:4px 6px}
     }
+    /* In Master Admin, school selection belongs ONLY in the navigation row.
+       Hide the selected school's brand block in the upper header; it changes
+       when the Master Admin switches schools. Page remains the rightmost item. */
+    html.hp-page-admin .hp-brand-school{display:none!important}
+    @media(max-width:820px){
+      .adminStatusDock .adminOrgInfo{grid-column:1/-1}
+      .adminStatusDock .adminPageBar{grid-column:2}
+    }
+    @media(max-width:520px){
+      .adminStatusDock .adminOrgInfo{grid-column:1}
+      .adminStatusDock .adminPageBar{grid-column:1}
+    }
     /* Central messages replace duplicate top-level section messages only.
        Detailed previews, forms, and modal feedback remain local. */
     #dashboard #message,
