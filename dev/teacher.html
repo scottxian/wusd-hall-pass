@@ -27,17 +27,21 @@
     .stat { background: #eef2f5; border-radius: 10px; padding: 14px; }
     .statLabel { color: #555; font-size: 13px; }
     .statValue { margin-top: 4px; font-size: 25px; font-weight: bold; }
-    /* One physical schedule/navigation bar: compact status left, page switcher right. */
-    .teacherStatusDock .teacherStatusDetails{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:14px;row-gap:8px;flex-wrap:initial}
-    .teacherScheduleMeta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 18px;min-width:0}
-    .teacherScheduleMetaItem{display:inline-flex;align-items:center;gap:4px;min-width:0}
-    .teacherStatusDetails .teacherPageNav{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0;padding:0;min-width:0}
+    /* Dashboard counts centered; schedule, next bell, and page occupy equal columns. */
+    .teacherStatusDock .teacherPrimaryStatus .stat{text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .teacherStatusDock .teacherStatusDetails{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:8px 12px}
+    .teacherStatusDetails .teacherScheduleMetaItem{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 6px;min-width:0;text-align:center}
+    .teacherStatusDetails .teacherPageNav{display:flex;align-items:center;justify-content:center;gap:8px;margin:0;padding:0;min-width:0}
     .teacherStatusDetails .teacherPageNav label{margin:0;font-size:12px;font-weight:600;white-space:nowrap;color:#526476}
     .teacherStatusDetails .teacherPageNav select{width:190px;max-width:100%;min-width:0;min-height:32px;height:32px;padding:5px 10px;border:1px solid #b7c3d0;border-radius:7px;background:#fff;color:#214665;font-size:13px;font-weight:600}
     .teacherStatusDetails .teacherPageNav select:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
-    @media(max-width:900px){
+    @media(max-width:820px){
+      .teacherStatusDock .teacherStatusDetails{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .teacherStatusDetails .teacherPageNav{grid-column:1/-1}
+    }
+    @media(max-width:480px){
       .teacherStatusDock .teacherStatusDetails{grid-template-columns:minmax(0,1fr)}
-      .teacherStatusDetails .teacherPageNav{justify-content:flex-start}
+      .teacherStatusDetails .teacherPageNav{grid-column:auto}
     }
     @media(max-width:380px){.teacherStatusDetails .teacherPageNav select{width:155px}}
     .tabPanel { display: none; }
@@ -280,10 +284,8 @@
         <div class="stat"><div class="statLabel">Waiting</div><div id="statWaiting" class="statValue">0</div></div>
       </div>
       <div class="teacherStatusDetails" aria-label="Schedule and navigation">
-        <div class="teacherScheduleMeta">
-          <span class="teacherScheduleMetaItem">Schedule: <strong id="statSchedule">—</strong> <span class="scheduleSourceLabel" id="statScheduleSource" title="Schedule source">Automatic</span></span>
-          <span class="teacherScheduleMetaItem">Next change: <strong id="statNextChange">—</strong></span>
-        </div>
+        <span class="teacherScheduleMetaItem">Schedule: <strong id="statSchedule">—</strong> <span class="scheduleSourceLabel" id="statScheduleSource" title="Schedule source">Automatic</span></span>
+        <span class="teacherScheduleMetaItem">Next change: <strong id="statNextChange">—</strong></span>
         <div class="teacherPageNav">
           <label for="teacherPageSelect">Page</label>
           <select id="teacherPageSelect" aria-label="Choose teacher dashboard page">
