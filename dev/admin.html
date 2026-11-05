@@ -969,7 +969,72 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
 
     async function setCampusLock(){const turnOn=!(lastState&&lastState.campusEmergencyLock);if(turnOn&&!window.confirm('Lock every room at this school?\nNew passes stop; waiting lists clear.'))return;const b=$('campusLockButton');b.disabled=true;setMsg('campusLockMessage',turnOn?'Locking campus...':'Unlocking campus...');try{const r=await hallpassApi.call('adminSetCampusLock',[turnOn]);if(!r.success){setMsg('campusLockMessage',r.message,true);return;}await Promise.all([refreshLive(),refreshSecurity()]);setMsg('campusLockMessage',r.message)}catch(e){setMsg('campusLockMessage',e.message,true)}finally{b.disabled=false}}
 
-    async function refreshStudents(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('studentsMessage','Refreshing...');try{const r=await hallpassApi.call('adminStudentsState',[{includeInactive:true}]);if(!r.success){setMsg('studentsMessage',r.message,true);return;}studentsState=r;renderStudents();HallPassStudentAutocomplete.refresh('studentSearch');HallPassStudentAutocomplete.refresh('search');setMsg('studentsMessage',`${r.rows.length} students loaded.`)}catch(e){setMsg('studentsMessage',e.message,true)}finally{if(button)button.disabled=false}}
+
+    let roomRuleRows=[];
+    function toggleAdminRuleLimit(){
+      $('restrictAdminLimitWrap').classList.toggle('hidden',$('restrictAdminType').value==='Blocked');
+    }
+    function refreshAdminRuleSelectors(){
+      const room=$('restrictAdminRoom'),student=$('restrictAdminStudent');
+      const oldRoom=room.value,oldStudent=student.value;
+      room.innerHTML='<option value="">Choose Room</option>'+ (management.rooms||[]).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.room)+'</option>').join('');
+      student.innerHTML='<option value="">Choose Student</option>'+ (studentsState.rows||[]).filter(x=>x.active).map(x=>'<option value="'+esc(x.studentId)+'">'+esc(x.name)+'</option>').join('');
+      if([...room.options].some(x=>x.value===oldRoom))room.value=oldRoom;
+      if([...student.options].some(x=>x.value===oldStudent))student.value=oldStudent;
+    }
+    async function reloadAdminRules(){
+      try{
+        const result=await hallpassApi.call('adminRestrictionsState',[]);
+        if(!result.success){setMsg('adminRuleMessage',result.message,true);return}
+        roomRuleRows=result.rows||[];
+        refreshAdminRuleSelectors();
+        $('adminRuleBody').innerHTML=roomRuleRows.length?roomRuleRows.map((x,i)=>
+          '<tr><td>'+esc(x.room)+'</td><td>'+esc(x.studentName)+'</td><td>'+
+          esc(x.type==='Blocked'?'No Restroom Passes':x.limit+' per '+x.type.toLowerCase())+
+          '</td><td><button class="small" data-editrule="'+i+'">Edit</button> '+
+          '<button class="small gray" data-removerule="'+i+'">Remove</button></td></tr>'
+        ).join(''):'<tr><td colspan="4" class="emptyState">No classroom exceptions. All students follow their room default.</td></tr>';
+        setMsg('adminRuleMessage','');
+      }catch(e){setMsg('adminRuleMessage',e.message,true)}
+    }
+    async function saveAdminRule(){
+      const room=$('restrictAdminRoom').value,student=$('restrictAdminStudent').value,
+        type=$('restrictAdminType').value,limit=type==='Blocked'?null:Number($('restrictAdminLimit').value);
+      if(!room||!student){setMsg('adminRuleMessage','Choose a room and student.',true);return}
+      if(type!=='Blocked'&&(!Number.isInteger(limit)||limit<1||limit>100)){setMsg('adminRuleMessage','Enter 1–100 passes.',true);return}
+      const button=$('saveAdminRule');button.disabled=true;
+      try{
+        const r=await hallpassApi.call('adminSaveRoomRestriction',[room,student,type,limit]);
+        if(!r.success){setMsg('adminRuleMessage',r.message,true);return}
+        await reloadAdminRules();setMsg('adminRuleMessage',r.message);
+      }catch(e){setMsg('adminRuleMessage',e.message,true)}
+      finally{button.disabled=false}
+    }
+    async function removeAdminRule(i){
+      const row=roomRuleRows[i];if(!row)return;
+      if(!window.confirm('Return this student to the room default?'))return;
+      try{
+        const r=await hallpassApi.call('adminRemoveRoomRestriction',[row.roomId,row.studentNumber]);
+        if(!r.success){setMsg('adminRuleMessage',r.message,true);return}
+        await reloadAdminRules();setMsg('adminRuleMessage',r.message);
+      }catch(e){setMsg('adminRuleMessage',e.message,true)}
+    }
+    $('adminRuleBody').addEventListener('click',event=>{
+      const edit=event.target.closest('[data-editrule]'),remove=event.target.closest('[data-removerule]');
+      if(edit){
+        const row=roomRuleRows[Number(edit.dataset.editrule)];
+        if(!row)return;
+        $('restrictAdminRoom').value=row.roomId;
+        $('restrictAdminStudent').value=String(row.studentNumber);
+        $('restrictAdminType').value=row.type;
+        $('restrictAdminLimit').value=String(row.limit||1);
+        toggleAdminRuleLimit();
+      }
+      if(remove)removeAdminRule(Number(remove.dataset.removerule));
+    });
+    $('saveAdminRule').addEventListener('click',saveAdminRule);
+    $('reloadAdminRules').addEventListener('click',reloadAdminRules);
+    async function refreshStudents(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('studentsMessage','Refreshing...');try{const r=await hallpassApi.call('adminStudentsState',[{includeInactive:true}]);if(!r.success){setMsg('studentsMessage',r.message,true);return;}studentsState=r;renderStudents();reloadAdminRules();HallPassStudentAutocomplete.refresh('studentSearch');HallPassStudentAutocomplete.refresh('search');setMsg('studentsMessage',`${r.rows.length} students loaded.`)}catch(e){setMsg('studentsMessage',e.message,true)}finally{if(button)button.disabled=false}}
     function visibleStudents(){const term=$('studentSearch').value.trim().toLowerCase(),status=$('studentStatusFilter').value;return (studentsState.rows||[]).filter(x=>(status==='all'||(status==='active'&&x.active)||(status==='inactive'&&!x.active))&&(!term||(`${x.studentId} ${x.name}`).toLowerCase().includes(term)))}
     function renderStudents(){const rows=visibleStudents();$('studentsBody').innerHTML=rows.length?rows.map(x=>`<tr class="${x.active?'':'inactive'}"><td>${esc(x.studentId)}</td><td><strong>${esc(x.name)}</strong></td><td>${x.active?'Active':'Disabled'}</td><td>${x.restroomAllowed?'Allowed':'Disabled'}</td><td><button class="small" data-edit-student="${esc(x.id)}">Edit</button></td></tr>`).join(''):'<tr><td colspan="5">No students found.</td></tr>'}
     function openStudent(id=''){const x=(studentsState.rows||[]).find(s=>s.id===id);$('studentEditUuid').value=x?.id||'';$('studentModalTitle').textContent=x?'Edit Student':'Add Student';$('studentIdInput').value=x?.studentId||'';$('studentNameInput').value=x?.name||'';$('studentActiveInput').value=String(x?.active!==false);$('studentRestroomInput').value=String(x?.restroomAllowed!==false);setMsg('studentModalMessage','');showModal('studentModal')}
