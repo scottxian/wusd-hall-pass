@@ -209,7 +209,7 @@
     .teacherToggleGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
     .teacherToggleGrid button{min-width:140px}
     .teacherToggleGrid button.green{background:#16863a;color:#fff}
-    .teacherToggleGrid button.gray{background:#e2e8ee;color:#283c53}
+    .teacherToggleGrid button.red{background:#b3261e;color:#fff}
     .restrictionCard .sectionHead{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}
     .restrictionEditor{padding:16px;margin:12px 0 18px;border:1px solid #dce5ef;border-radius:10px;background:#f8fafc}
     .restrictionSearch{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:end}
@@ -878,7 +878,7 @@
       button.textContent=adminClosed?'Closed by Admin':(on?'Open':'Closed');
       button.disabled=adminClosed;
       button.classList.toggle('green',on);
-      button.classList.toggle('gray',!on);
+      button.classList.toggle('red',!on);
       button.setAttribute('aria-pressed',String(on));
       const waitingEnabled=String(state.settings['Waiting List Enabled']||'').toLowerCase()==='yes';
       const emergencyLock = String(state.settings['Emergency Lock'] || '').toLowerCase() === 'yes';
@@ -892,7 +892,7 @@
       const waitingButton = document.getElementById('waitingButton');
       waitingButton.textContent=waitingEnabled?'On':'Off';
       waitingButton.classList.toggle('green',waitingEnabled);
-      waitingButton.classList.toggle('gray',!waitingEnabled);
+      waitingButton.classList.toggle('red',!waitingEnabled);
       waitingButton.setAttribute('aria-pressed',String(waitingEnabled));
     }
 
