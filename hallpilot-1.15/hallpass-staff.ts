@@ -1159,7 +1159,7 @@ async function handleAction(admin, body, fingerprintHash) {
   }
 
   if (action === 'addDestinationFromDashboard') {
-    return fail('Destinations are created by Campus Admin. Teachers can only enable them for this room or set a Max Out override.')
+    return fail('Destination configuration is managed by Campus Admin.')
   }
 
   if (action === 'saveScheduleRowFromDashboard' || action === 'deleteScheduleRowFromDashboard') {
