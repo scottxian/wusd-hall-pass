@@ -67,9 +67,16 @@
     input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; vertical-align: middle; margin-right: 5px; }
     .checkboxLabel { padding-top: 28px; }
     /* Reserved dashboard message strip: never shifts the content when alerts come/go. */
+    /* A full-width invisible positioning row and a separately bounded panel:
+       this prevents the visible message area from stretching across the dashboard. */
     .teacherMessageDock {
-      display:flex;align-items:center;gap:12px;height:46px;min-height:46px;
-      width:min(100%,760px);margin:0 auto 14px;padding:5px 12px;
+      display:flex;justify-content:center;align-items:center;
+      width:100%;min-height:46px;margin:0 0 14px;
+    }
+    .teacherMessagePanel {
+      display:flex;align-items:center;gap:12px;
+      box-sizing:border-box;width:100%;max-width:720px;
+      height:46px;min-height:46px;padding:5px 12px;
       background:#fff;border:1px solid #dce4ec;border-radius:10px;
     }
     .teacherMessageHeading {
@@ -91,7 +98,7 @@
     .actionMessage.closed { color:#8d1d18;background:#fff0ef;border-color:#e3a3a8; }
     .actionMessage.error { color:#8d1d18;background:#f8d7da;border-color:#e3a3a8; }
     @media(max-width:540px) {
-      .teacherMessageDock{gap:8px;padding:5px 8px}
+      .teacherMessagePanel{gap:8px;padding:5px 8px}
       .actionMessage{font-size:12px;padding:4px 6px}
     }
     .message { min-height: 26px; margin-top: 10px; font-size: 16px; font-weight: bold; }
@@ -373,8 +380,10 @@
       </div>
 
       <div class="teacherMessageDock" aria-label="Dashboard messages">
-        <h3 class="teacherMessageHeading">Messages:</h3>
-        <div id="actionMessage" class="actionMessage" role="status" aria-live="polite" aria-atomic="true"></div>
+        <div class="teacherMessagePanel" style="width:100%;max-width:720px;margin-inline:auto">
+          <h3 class="teacherMessageHeading">Messages:</h3>
+          <div id="actionMessage" class="actionMessage" role="status" aria-live="polite" aria-atomic="true"></div>
+        </div>
       </div>
 
       <section id="tab-live" class="tabPanel activePanel">
