@@ -25,7 +25,7 @@
     .hidden { display: none !important; }
     .statusGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
     .stat { background: #eef2f5; border-radius: 10px; padding: 14px; }
-    .statLabel { color: #555; font-size: 13px; }
+    .statLabel { color: #222; font-size: 14px; font-weight: 700; line-height: 1.3; }
     .statValue { margin-top: 4px; font-size: 25px; font-weight: bold; }
     /* Dashboard counts centered; schedule, next bell, and page occupy equal columns. */
     .teacherStatusDock .teacherPrimaryStatus .stat{text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
@@ -199,7 +199,6 @@
     @media(max-width:690px){.teacherLiveGrid{grid-template-columns:minmax(0,1fr)}}
     @media(max-width:620px){.teacherPrimaryStatus{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
       .teacherPrimaryStatus .stat{padding:10px 6px}.teacherPrimaryStatus .statValue{font-size:20px}
-      .teacherPrimaryStatus .statLabel{font-size:11px}
       .teacherStatusDetails{font-size:13px;gap:6px 14px}
     }
     .reportDisclosure{margin:4px 0 16px;border:1px solid #dce4ec;border-radius:9px;background:#f8fafc}
@@ -351,9 +350,15 @@
       font-weight:700;
       color:var(--teacher-heading-color);
     }
-    /* Schedule, Next Change, Page are a separate consistent metadata row. */
-    .teacherStatusDetails .teacherMetaLabel {
-      font-size:13px;font-weight:700;line-height:1.3;color:#1c344e;
+    /* Shared status/header-label treatment across Live Passes, Controls and Reports:
+       Period, Pass Window, Students Out, Waiting, Schedule, Next Change, Page,
+       and the Today summary labels all match other form/table labels. */
+    .container .statLabel,
+    .container .teacherStatusDetails .teacherMetaLabel {
+      font-size:var(--teacher-field-label-size);
+      line-height:1.3;
+      font-weight:700;
+      color:var(--teacher-heading-color);
     }
 </style>
 <link rel="stylesheet" href="branding.css">
