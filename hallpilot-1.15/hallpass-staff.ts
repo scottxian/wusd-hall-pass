@@ -1329,7 +1329,7 @@ async function adminManagementState(admin, school, access) {
     admin.from('organization_settings').select('*').eq('organization_id',access.organization.id).maybeSingle(),
     admin.from('school_settings').select('*').eq('school_id',school.id).maybeSingle(),
     admin.from('teacher_schools').select('teacher_id,school_id,access_level').eq('school_id',school.id),
-    admin.from('room_settings').select('room_id,restroom_pass_limit,restroom_limit_period')
+    admin.from('room_settings').select('room_id,restroom_pass_limit,restroom_limit_period,passes_open_after_start,passes_close_before_end,long_pass_warning,very_long_pass_warning,buzzer_enabled,clear_queue_at_period_end,test_mode')
   ])
   for (const q of [roomsQ,teachersQ,linksQ,schedulesQ,organizationSettingsQ,schoolSettingsQ,membershipsQ,roomSettingsQ]) if (q.error) throw q.error
   const roomIds = new Set((roomsQ.data || []).map(r=>String(r.id)))
@@ -1351,6 +1351,13 @@ async function adminManagementState(admin, school, access) {
       active: r.active, emergencyLock: r.emergency_lock, createdAt: r.created_at,
       restroomLimit:roomSettingsQ.data?.find(x=>x.room_id===r.id)?.restroom_pass_limit??0,
       restroomPeriod:roomSettingsQ.data?.find(x=>x.room_id===r.id)?.restroom_limit_period||'Day',
+      passOpenDelay:roomSettingsQ.data?.find(x=>x.room_id===r.id)?.passes_open_after_start??10,
+      passCloseEarly:roomSettingsQ.data?.find(x=>x.room_id===r.id)?.passes_close_before_end??10,
+      longPassWarning:roomSettingsQ.data?.find(x=>x.room_id===r.id)?.long_pass_warning??5,
+      veryLongPassWarning:roomSettingsQ.data?.find(x=>x.room_id===r.id)?.very_long_pass_warning??10,
+      buzzerEnabled:roomSettingsQ.data?.find(x=>x.room_id===r.id)?.buzzer_enabled!==false,
+      clearQueueAtEnd:roomSettingsQ.data?.find(x=>x.room_id===r.id)?.clear_queue_at_period_end!==false,
+      testMode:roomSettingsQ.data?.find(x=>x.room_id===r.id)?.test_mode===true,
       teacherIds: links.filter(x => x.room_id === r.id).map(x => x.teacher_id)
     })),
     teachers: visibleTeachers.map(t => ({
@@ -1632,11 +1639,39 @@ async function adminOnboardRoom(admin, authTeacher, school, data) {
   }
 }
 
+function validateRoomAdvancedSettings(data){
+  const patch={}
+  const numbers=[
+    ['passOpenDelay','passes_open_after_start',0,30],
+    ['passCloseEarly','passes_close_before_end',0,30],
+    ['longPassWarning','long_pass_warning',1,120],
+    ['veryLongPassWarning','very_long_pass_warning',1,120]
+  ]
+  for(const [field,column,min,max] of numbers){
+    if(!Object.hasOwn(data,field))continue
+    const n=Number(data[field])
+    if(!Number.isInteger(n)||n<min||n>max)
+      throw new Error(field+' must be a whole number from '+min+' to '+max+'.')
+    patch[column]=n
+  }
+  for(const [field,column] of [
+    ['buzzerEnabled','buzzer_enabled'],
+    ['clearQueueAtEnd','clear_queue_at_period_end'],
+    ['testMode','test_mode']
+  ]){
+    if(!Object.hasOwn(data,field))continue
+    if(typeof data[field]!=='boolean')throw new Error(field+' must be on or off.')
+    patch[column]=data[field]
+  }
+  return patch
+}
+
 async function adminCreateRoom(admin, authTeacher, school, data) {
   data = data || {}
   const roomKey = cleanRoomKey(data.key)
   const roomName = String(data.room || '').trim()
   const timezone = String(data.timezone || 'America/Los_Angeles').trim() || 'America/Los_Angeles'
+  const advancedSettings=validateRoomAdvancedSettings(data)
   if (!roomKey || !/^[a-z0-9_-]+$/.test(roomKey)) return fail('Room key may use lowercase letters, numbers, underscores, and hyphens only.')
   if (!roomName) return fail('Room name is required.')
 
@@ -1667,6 +1702,11 @@ async function adminCreateRoom(admin, authTeacher, school, data) {
         restroom_pass_limit:limit,restroom_limit_period:period
       }).eq('room_id',room.id)
       if(settingsError)throw settingsError
+    }
+    if(Object.keys(advancedSettings).length){
+      const {error:advancedError}=await admin.from('room_settings')
+        .update(advancedSettings).eq('room_id',room.id)
+      if(advancedError)throw advancedError
     }
 
     const teacherIds = Array.isArray(data.teacherIds) ? data.teacherIds : []
@@ -1722,6 +1762,7 @@ async function adminDeleteRoom(admin, authTeacher, school, roomId) {
 async function adminUpdateRoom(admin, authTeacher, school, roomId, data) {
   roomId = String(roomId || '').trim(); data = data || {}
   if (!roomId) return fail('Room is required.')
+  const advancedSettings=validateRoomAdvancedSettings(data)
 
   const existingQ = await admin.from('rooms').select('id,room_key,room_name').eq('id', roomId).eq('school_id', school.id).maybeSingle()
   if (existingQ.error) throw existingQ.error
@@ -1754,6 +1795,12 @@ async function adminUpdateRoom(admin, authTeacher, school, roomId, data) {
     }).eq('room_id',roomId)
     if(settingsError)throw settingsError
     await writeAudit(admin,authTeacher.id,'ADMIN_UPDATE_ROOM_RESTROOM_DEFAULT',roomId,{limit,period},school.id)
+  }
+  if(Object.keys(advancedSettings).length){
+    const {error:advancedError}=await admin.from('room_settings').update(advancedSettings).eq('room_id',roomId)
+    if(advancedError)throw advancedError
+    await writeAudit(admin,authTeacher.id,'ADMIN_UPDATE_ROOM_ADVANCED_SETTINGS',roomId,
+      {updatedFields:Object.keys(advancedSettings)},school.id)
   }
   if (Array.isArray(data.teacherIds)) {
     let ids = [...new Set(data.teacherIds.map(x => String(x || '').trim()).filter(Boolean))]
