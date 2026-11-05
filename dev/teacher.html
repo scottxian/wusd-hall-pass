@@ -23,11 +23,12 @@
     .stat { background: #eef2f5; border-radius: 10px; padding: 14px; }
     .statLabel { color: #555; font-size: 13px; }
     .statValue { margin-top: 4px; font-size: 25px; font-weight: bold; }
-    .teacherPageNav { display:flex;align-items:center;gap:12px;margin:0 0 18px }
-    .teacherPageNav label { margin:0;font-size:15px;font-weight:700;white-space:nowrap;color:#415267 }
-    .teacherPageNav select { width:min(440px,100%);min-height:44px;border:1px solid #a7b5c4;border-radius:9px;background:#fff;color:#153f6d;font-size:16px;font-weight:600;padding:9px 12px }
-    .teacherPageNav select:focus-visible { outline:3px solid #7aa7d8;outline-offset:2px }
-    @media(max-width:600px) { .teacherPageNav select { flex:1;min-width:0 } }
+    /* Compact page switcher: aligned right, consistent with Admin. */
+    .teacherPageNav{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin:0 0 16px;padding:2px 0}
+    .teacherPageNav label{margin:0;font-size:13px;font-weight:600;white-space:nowrap;color:#526476}
+    .teacherPageNav select{width:260px;max-width:100%;flex:0 1 260px;min-width:0;min-height:38px;padding:7px 12px;border:1px solid #b7c3d0;border-radius:8px;background:#fff;color:#214665;font-size:14px;font-weight:600}
+    .teacherPageNav select:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
+    @media(max-width:480px){.teacherPageNav select{flex:1;width:auto}}
     .tabPanel { display: none; }
     .tabPanel.activePanel { display: block; }
     button { border: none; border-radius: 8px; padding: 11px 16px; font-size: 16px; font-weight: bold; cursor: pointer; transition: opacity .15s, transform .05s; }
