@@ -197,6 +197,21 @@
     .teacherToday .statValue{font-size:20px}
     @media(max-width:800px){.teacherToday .statusGrid{grid-template-columns:repeat(3,minmax(100px,1fr))}}
     @media(max-width:520px){.teacherToday .statusGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+    .teacherToggleGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .teacherToggleGrid button{min-width:140px}
+    .teacherToggleGrid button.green{background:#16863a;color:#fff}
+    .teacherToggleGrid button.gray{background:#e2e8ee;color:#283c53}
+    .restrictionCard .sectionHead{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}
+    .restrictionEditor{padding:16px;margin:12px 0 18px;border:1px solid #dce5ef;border-radius:10px;background:#f8fafc}
+    .restrictionSearch{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:end}
+    .restrictionSearch button{min-height:42px}
+    .restrictionActions{display:flex;gap:8px;flex-wrap:wrap}
+    .restrictionCard .tableWrap{overflow-x:auto}
+    .restrictionCard th,.restrictionCard td{white-space:normal}
+    .restrictionCard .smallAction{font-size:13px;padding:8px 10px}
+    .restrictionCard .removeRestriction{background:#e9eff5;color:#36495d}
+    @media(max-width:530px){.teacherToggleGrid,.restrictionSearch{grid-template-columns:minmax(0,1fr)}}
 </style>
 <link rel="stylesheet" href="branding.css">
 </head>
@@ -302,97 +317,67 @@
 
       <section id="tab-controls" class="tabPanel">
         <div class="card">
-          <h2>Quick Controls</h2>
+          <h2>Classroom Controls</h2>
           <div class="controlGroup">
             <h3>Today's Bell Schedule</h3>
             <div class="teacherScheduleChoice">
-              <div><label for="scheduleChoice">Schedule</label><select id="scheduleChoice"><option value="__AUTO__">Auto — Room Default</option></select></div>
-              <button id="applyScheduleChoice" type="button" class="primary">Apply for Today</button>
+              <div><label for="scheduleChoice">Approved Schedule</label>
+                <select id="scheduleChoice"><option value="__AUTO__">Auto — Room Default</option></select></div>
+              <button id="applyScheduleChoice" class="primary" type="button">Apply for Today</button>
             </div>
-            <div id="scheduleSourceHint" class="subtle">Auto follows the school's calendar or room default. Manual selections apply only to today.</div>
+            <div id="scheduleSourceHint" class="subtle">Auto follows the school calendar or room default.</div>
           </div>
-
-          <div class="controlGroup">
-            <h3>Restroom</h3>
-            <div class="buttonRow">
-              <button id="restroomOpen" class="green" onclick="setRestroom(true, this)">Open Restroom</button>
-              <button id="restroomClosed" class="red" onclick="setRestroom(false, this)">Close Restroom</button>
+          <div class="teacherToggleGrid">
+            <div><h3>Restroom</h3>
+              <button id="restroomToggle" type="button" class="green" onclick="toggleRestroom(this)">Open</button>
+              <div class="subtle">Only this room. Admin controls schoolwide availability.</div>
             </div>
-          </div>
-
-          <div class="controlGroup">
-            <h3>Waiting List</h3>
-            <div class="buttonRow"><button id="waitingButton" class="primary" onclick="toggleWaitingList(this)">Waiting List</button></div>
-          </div>
-          <details class="teacherDisclosure insetDisclosure">
-            <summary>Advanced Controls</summary>
-            <div class="disclosureBody">
-          <div class="controlGroup">
-            <h3>System</h3>
-            <div class="buttonRow">
-              <button id="testModeButton" class="purple" onclick="toggleTestMode(this)">Test Mode</button>
-              <button class="red" onclick="clearQueue(this)">Clear Waiting List</button>
-              <button class="gray" onclick="refreshDashboard(true, this)">Refresh</button>
-              <button class="gray" onclick="backupPassLog(this)">Backup Pass Log</button>
+            <div><h3>Waiting List</h3>
+              <button id="waitingButton" type="button" class="green" onclick="toggleWaitingList(this)">On</button>
+              <div class="subtle">Turn new waiting requests on or off.</div>
             </div>
           </div>
-            </div>
-          </details>
         </div>
-
-<details class="card teacherDisclosure settingsDisclosure"><summary>Pass Settings</summary><div class="disclosureBody">
-
-          
-          <div class="controlGrid">
-            <div><label for="openDelay">Open After Start <span class="fieldHint">(0 = immediately)</span></label><input id="openDelay" type="number" min="0" max="30"></div>
-            <div><label for="closeEarly">Close Before End <span class="fieldHint">(0 = period end)</span></label><input id="closeEarly" type="number" min="0" max="30"></div>
-            <div><label for="longWarning">Long Pass Warning</label><input id="longWarning" type="number" min="1" max="120"></div>
-            <div><label for="veryLongWarning">Very Long Pass Warning</label><input id="veryLongWarning" type="number" min="1" max="120"></div>
-            <div><label for="restroomLimit">Restroom Pass Limit <span class="fieldHint">(0 = no limit)</span></label><input id="restroomLimit" type="number" min="0" max="100" value="0"></div>
-            <div><label for="restroomLimitPeriod">Restroom Limit Period</label><select id="restroomLimitPeriod"><option value="Day">Per Day</option><option value="Week">Per Week</option><option value="Month">Per Month</option></select></div>
-            <div class="checkboxLabel"><label><input id="buzzer" type="checkbox">Buzzer Enabled</label></div>
-            <div class="checkboxLabel"><label><input id="clearAtEnd" type="checkbox">Clear Queue at Period End</label></div>
+        <div class="card restrictionCard">
+          <div class="sectionHead">
+            <div><h2>Student Restroom Restrictions</h2>
+            <p class="subtle">Only students who differ from this room's default appear here. Changes apply to this room only.</p></div>
+            <button id="addRestrictionButton" class="primary" type="button" onclick="openRestrictionEditor()">Add Restriction</button>
           </div>
-          <button class="primary" onclick="savePassSettings(this)">Save Pass Settings</button>
-        
-</div></details>
-
-<details class="card teacherDisclosure "><summary>Student Restroom Access — This Room</summary><div class="disclosureBody">
-
-          
-          <p>These student access changes apply only to this room. Turn restroom access off here for an individual student; other rooms keep their own setting. School-wide student records are managed by an administrator.</p>
-          <div>
-            <label for="restroomStudentSearch">Find Student</label>
-            <div class="studentSearchRow">
-              <input id="restroomStudentSearch" type="text" placeholder="Search by student name or ID" autocomplete="off">
-              <button id="restroomStudentSearchButton" type="button" class="primary">Search</button>
+          <div id="restrictionEditor" class="restrictionEditor hidden">
+            <h3 id="restrictionEditorTitle">Add Restriction</h3>
+            <div class="restrictionSearch">
+              <div><label for="restrictionSearchText">Find Student</label>
+                <input id="restrictionSearchText" autocomplete="off" placeholder="Search by name or student ID"></div>
+              <button id="restrictionSearchButton" class="gray" type="button" onclick="searchRestrictionStudents(this)">Search</button>
             </div>
-            <div id="restroomStudentSearchStatus" class="searchStatus" aria-live="polite"></div>
+            <div id="restrictionSearchStatus" class="searchStatus" aria-live="polite"></div>
+            <div class="controlGrid">
+              <div><label for="restrictionStudentSelect">Student</label>
+                <select id="restrictionStudentSelect"><option value="">Search and select a student</option></select></div>
+              <div><label for="restrictionType">Restriction</label>
+                <select id="restrictionType" onchange="renderRestrictionLimit()">
+                  <option value="Period">Per Period</option>
+                  <option value="Day">Per Day</option>
+                  <option value="Week">Per Week</option>
+                  <option value="Month">Per Month</option>
+                  <option value="Blocked">No Restroom Passes</option>
+                </select></div>
+              <div id="restrictionLimitWrap"><label for="restrictionLimit">Number Allowed</label>
+                <input id="restrictionLimit" type="number" min="1" max="100" step="1" value="1"></div>
+            </div>
+            <div class="restrictionActions">
+              <button id="saveRestrictionButton" type="button" class="primary" onclick="saveRestriction(this)">Save Restriction</button>
+              <button type="button" class="gray" onclick="closeRestrictionEditor()">Cancel</button>
+            </div>
           </div>
-          <div class="tableWrap">
-            <table>
-              <thead><tr><th>Student</th><th>Student ID</th><th>Restroom Allowed</th><th>Save</th></tr></thead>
-              <tbody id="restroomAccessBody"></tbody>
-            </table>
-          </div>
-          <div class="subtle">Turning access off blocks student restroom requests. You can still use Teacher Override Pass when an exception is necessary.</div>
-        
-</div></details>
-
-<details class="card teacherDisclosure "><summary>Room Destinations</summary><div class="disclosureBody">
-
-          
-          <p>Campus Admin manages destination names and default behavior. For this room, choose whether each destination is available and optionally override the default Max Out. Leave the override blank to use the school default.</p>
-          <div class="tableWrap">
-            <table>
-              <thead><tr><th>Destination</th><th>Schoolwide</th><th>Enabled in This Room</th><th>Default Max Out</th><th>Max Out Override</th><th>Effective Max Out</th><th>Save</th></tr></thead>
-              <tbody id="destinationBody"></tbody>
-            </table>
-          </div>
-          <div class="subtle">Destination name, teacher approval, hall-pass behavior, and display order are controlled by Campus Admin.</div>
-        
-</div></details>
-
+          <div id="restrictionMessage" class="searchStatus" aria-live="polite"></div>
+          <div class="tableWrap"><table>
+            <thead><tr><th>Student</th><th>Restroom Restriction</th><th>Actions</th></tr></thead>
+            <tbody id="restrictionBody"><tr><td colspan="3">Loading restrictions…</td></tr></tbody>
+          </table></div>
+          <p class="subtle">Remove means Return to Room Default. Schoolwide restrictions can only be changed by an administrator.</p>
+        </div>
       </section>
 
       <section id="tab-reports" class="tabPanel">
