@@ -66,11 +66,33 @@
     input, select { width: 100%; min-height: 42px; padding: 9px 10px; border: 2px solid #bbb; border-radius: 7px; font-size: 16px; background: white; }
     input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; vertical-align: middle; margin-right: 5px; }
     .checkboxLabel { padding-top: 28px; }
-    .actionMessage { display: none; padding: 13px 16px; border-radius: 10px; margin-bottom: 15px; font-size: 18px; font-weight: bold; text-align: center; }
-    .actionMessage.show { display: block; }
-    .actionMessage.processing { display: block; color: #6d5100; background: #fff3cd; border: 1px solid #e6cf7d; }
-    .actionMessage.success { display: block; color: #105b26; background: #d9f0df; border: 1px solid #9dd2aa; }
-    .actionMessage.error { display: block; color: #8d1d18; background: #f8d7da; border: 1px solid #e3a3a8; }
+    /* Reserved dashboard message strip: never shifts the content when alerts come/go. */
+    .teacherMessageDock {
+      display:flex;align-items:center;gap:12px;height:46px;min-height:46px;
+      margin:0 0 14px;padding:5px 12px;background:#fff;
+      border:1px solid #dce4ec;border-radius:10px;
+    }
+    .teacherMessageHeading {
+      flex:0 0 auto;color:#3f5368;font-size:13px;font-weight:700;
+    }
+    .actionMessage {
+      display:flex;flex:1 1 auto;align-items:center;justify-content:center;
+      min-width:0;height:34px;max-height:34px;overflow-y:auto;
+      padding:5px 10px;border:1px solid transparent;border-radius:7px;
+      font-size:14px;line-height:1.3;font-weight:600;text-align:center;
+    }
+    .actionMessage:empty::before {
+      content:"No new messages";color:#64748b;font-weight:400;
+    }
+    .actionMessage.processing { color:#6d5100;background:#fff3cd;border-color:#e6cf7d; }
+    .actionMessage.success { color:#105b26;background:#d9f0df;border-color:#9dd2aa; }
+    .actionMessage.closed { color:#8d1d18;background:#fff0ef;border-color:#e3a3a8; }
+    .actionMessage.error { color:#8d1d18;background:#f8d7da;border-color:#e3a3a8; }
+    @media(max-width:540px) {
+      .teacherMessageDock{gap:8px;padding:5px 8px}
+      .teacherMessageHeading{font-size:12px}
+      .actionMessage{font-size:12px;padding:4px 6px}
+    }
     .message { min-height: 26px; margin-top: 10px; font-size: 16px; font-weight: bold; }
     .message.error { color: #b3261e; }
     .message.warning { color: #8a6500; }
@@ -349,7 +371,10 @@
       </div>
       </div>
 
-      <div id="actionMessage" class="actionMessage" aria-live="polite"></div>
+      <div class="teacherMessageDock" aria-label="Dashboard messages">
+        <span class="teacherMessageHeading">Messages</span>
+        <div id="actionMessage" class="actionMessage" role="status" aria-live="polite" aria-atomic="true"></div>
+      </div>
 
       <section id="tab-live" class="tabPanel activePanel">
         <div class="card teacherToday"><h2>Today</h2><div class="statusGrid">
@@ -723,11 +748,15 @@
     function setActionMessage(text, type) {
       const message = document.getElementById('actionMessage');
       if (actionMessageTimer) { clearTimeout(actionMessageTimer); actionMessageTimer = null; }
-      message.textContent = text || '';
+      const content = String(text || '');
+      message.textContent = content;
       message.className = 'actionMessage';
-      if (!text) return;
-      message.classList.add('show');
-      if (type) message.classList.add(type);
+      if (!content) return;
+      // A completed "close" action is successful, but its state is not "open".
+      const isClosedState = type === 'success' &&
+        (/restroom (?:requests|passes) (?:are |have been )?closed/i.test(content) ||
+         /waiting list (?:is |has been )?(?:off|disabled|turned off)/i.test(content));
+      message.classList.add(isClosedState ? 'closed' : (type || ''));
       if (type === 'success') {
         actionMessageTimer = setTimeout(function() { setActionMessage('', ''); }, 3500);
       }
