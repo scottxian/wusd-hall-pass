@@ -49,11 +49,12 @@
     .scheduleEditorRow .removePeriod{align-self:end;min-height:38px}
     @media(max-width:600px){.scheduleEditorRow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.scheduleEditorRow .periodField{grid-column:1 / -1}.scheduleEditorRow .removePeriod{grid-column:1 / -1;justify-self:start}}
     /* 1.15 DEV: one native, grouped dropdown for all Admin pages. */
-    .adminPageBar{display:flex;align-items:center;gap:12px;margin:0 0 18px;padding:4px 0}
-    .adminPageBar label{margin:0;font-size:15px;font-weight:700;color:#415267;white-space:nowrap}
-    .adminPageBar select{width:min(460px,100%);min-height:44px;padding:9px 12px;background:#fff;color:#153f6d;border:1px solid #a7b5c4;border-radius:9px;font-size:16px;font-weight:600}
+    /* Compact page switcher: aligned right, consistent with Teacher. */
+    .adminPageBar{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin:0 0 16px;padding:2px 0}
+    .adminPageBar label{margin:0;font-size:13px;font-weight:600;color:#526476;white-space:nowrap}
+    .adminPageBar select{width:260px;max-width:100%;flex:0 1 260px;min-width:0;min-height:38px;padding:7px 12px;background:#fff;color:#214665;border:1px solid #b7c3d0;border-radius:8px;font-size:14px;font-weight:600}
     .adminPageBar select:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
-    @media(max-width:600px){.adminPageBar{align-items:stretch}.adminPageBar select{flex:1;min-width:0}}
+    @media(max-width:480px){.adminPageBar select{flex:1;width:auto}}
     .schoolBar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 16px;margin-bottom:14px;background:#fff;border:1px solid #e1e6ec;border-radius:10px}
     .schoolBar .muted{display:block;margin-bottom:4px}
     .schoolBar strong{font-size:14px}
