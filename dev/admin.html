@@ -287,6 +287,25 @@
           <div id="studentsMessage" class="message"></div>
           <div class="tableWrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Default Restroom</th><th>Actions</th></tr></thead><tbody id="studentsBody"></tbody></table></div>
         </div>
+        <details class="card adminDisclosure" id="adminRestrictionPanel">
+          <summary>Classroom Restroom Restrictions</summary>
+          <div class="adminDisclosureBody">
+            <p class="muted">Review classroom exceptions. Other students use their room defaults.</p>
+            <div class="formGrid">
+              <div><label for="restrictAdminRoom">Room</label><select id="restrictAdminRoom"><option value="">Choose Room</option></select></div>
+              <div><label for="restrictAdminStudent">Student</label><select id="restrictAdminStudent"><option value="">Choose Student</option></select></div>
+              <div><label for="restrictAdminType">Rule</label><select id="restrictAdminType" onchange="toggleAdminRuleLimit()">
+                <option value="Day">Per Day</option><option value="Period">Per Period</option>
+                <option value="Week">Per Week</option><option value="Month">Per Month</option>
+                <option value="Blocked">No Restroom Passes</option></select></div>
+              <div id="restrictAdminLimitWrap"><label for="restrictAdminLimit">Maximum Passes</label><input id="restrictAdminLimit" type="number" min="1" max="100" value="1"></div>
+            </div>
+            <div class="buttonRow"><button id="saveAdminRule" class="green">Save Restriction</button><button id="reloadAdminRules" class="gray">Refresh List</button></div>
+            <div id="adminRuleMessage" class="message" role="status" aria-live="polite"></div>
+            <div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Rule</th><th>Actions</th></tr></thead>
+              <tbody id="adminRuleBody"></tbody></table></div>
+          </div>
+        </details>
       </section>
 
       <section id="destinationsPanel" class="panel">
