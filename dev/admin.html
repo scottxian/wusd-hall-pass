@@ -5,7 +5,7 @@
   <meta name="hallpass-version" content="1.15.0-dev">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hall Pilot Admin</title>
+  <title>Hall Pilot School Admin</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <style>
     *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#222}
@@ -271,17 +271,43 @@
     #dashboard #backupMessage,
     #dashboard #auditMessage,
     #dashboard #organizationMessage{display:none!important}
+    /* School Admin is scoped to the current school; hide organization
+       administration completely while preserving its backing DOM for code
+       paths shared with Master Admin. */
+    #dashboard #orgPanel{display:none!important}
+    .adminStatusDock .adminStatusDetails.schoolOnlyDetails{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+    .adminStatusDock .schoolOnlyDetails .schoolAdminIdentity{
+      display:flex;align-items:center;justify-content:center;
+      flex-wrap:wrap;gap:6px 8px;min-width:0;text-align:center;
+    }
+    .adminStatusDock .schoolOnlyDetails .schoolAdminIdentity strong{
+      color:#222;font-size:14px;line-height:1.3;font-weight:700;
+      overflow-wrap:anywhere;min-width:0;
+    }
+    .adminStatusDock .schoolOnlyDetails .adminPageBar{
+      grid-column:auto;
+    }
+    @media(max-width:620px){
+      .adminStatusDock .adminStatusDetails.schoolOnlyDetails{
+        grid-template-columns:minmax(0,1fr);
+      }
+      .adminStatusDock .schoolOnlyDetails .adminPageBar{
+        grid-column:auto;
+      }
+    }
 </style>
 <link rel="stylesheet" href="branding.css">
 </head>
 <body><div style="background:#f4c542;color:#222;padding:8px;text-align:center;font-weight:bold">HALL PILOT DEV · SAMPLE DATA</div>
   <!-- Hall Pass Admin v1.14.1 — canonical organization / school aware -->
-  <div class="header"><h1>Hall Pilot — Admin</h1><div id="adminName">Locked</div></div>
+  <div class="header"><h1>Hall Pilot — School Admin</h1><div id="adminName">Locked</div></div>
   <div class="container">
     <div id="loginCard" class="card">
       <h2>Admin Login</h2><label for="adminPin">Admin PIN</label>
       <input id="adminPin" type="password" inputmode="numeric" autocomplete="off" style="max-width:360px">
-      <div style="margin-top:10px"><button id="loginButton">Unlock Campus Dashboard</button></div><div id="loginMessage" class="message"></div>
+      <div style="margin-top:10px"><button id="loginButton">Unlock School Dashboard</button></div><div id="loginMessage" class="message"></div>
     </div>
 
     <div id="dashboard" class="hidden">
@@ -292,14 +318,10 @@
           <div class="stat"><div class="label">Students Out</div><div id="statOut" class="value">0</div></div>
           <div class="stat"><div class="label">Waiting</div><div id="statWaiting" class="value">0</div></div>
         </div>
-        <div class="schoolBar adminStatusDetails">
-          <div class="adminOrgInfo">
-            <span class="adminMetaLabel">Organization:</span>
-            <strong id="organizationLabel">—</strong>
-          </div>
-          <div class="schoolPicker">
-            <label for="schoolSelector" class="adminMetaLabel">School:</label>
-            <select id="schoolSelector"></select>
+        <div class="schoolBar adminStatusDetails schoolOnlyDetails">
+          <div class="schoolAdminIdentity">
+            <span class="adminMetaLabel">School:</span>
+            <strong id="schoolDisplayName">—</strong>
           </div>
           <div class="adminPageBar">
             <label for="adminPageSelect" class="adminMetaLabel">Page:</label>
@@ -324,10 +346,14 @@
           </optgroup>
           <optgroup label="Settings">
             <option value="securityPanel">Security</option>
-            <option value="orgPanel">Organization &amp; Schools</option>
           </optgroup>
         </select>
           </div>
+        </div>
+        <!-- Retained solely for existing scope/session bookkeeping; not UI controls. -->
+        <div class="hidden" aria-hidden="true">
+          <span id="organizationLabel"></span>
+          <select id="schoolSelector" tabindex="-1"></select>
         </div>
       </div>
       <div class="adminMessageDock" aria-label="Dashboard messages">
@@ -926,7 +952,7 @@
   <script>
     let rsState=null,rsPreviewData=null;
     let unlocked=false,lastState=null,management={rooms:[],teachers:[]},destinationsState={rows:[]},reportOptions=null,currentCampusReport=null,reportSortState={main:null,secondary:null},campusDrillStack=[],campusReportRequestId=0,bulkCalendarPreview=null,onboardingStep=1,onboardingDestinations=[],adminAccess={organization:null,schools:[],selectedSchool:null,organizationAdmin:false},organizationState={schools:[]};
-    window.HALLPASS_ADMIN_BUILD='1.15.0-dev';
+    window.HALLPASS_ADMIN_BUILD='1.15.0-dev-school';
     const $=id=>document.getElementById(id); const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     function fmt(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString([], {month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'});} function elapsed(v){const ms=Date.now()-new Date(v).getTime();if(!Number.isFinite(ms))return '—';const m=Math.max(0,Math.floor(ms/60000));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0');}
     const adminMessageTimers=new Map();
@@ -998,9 +1024,9 @@
     function studentUrl(key){return siteBase()+'?'+scopedQuery(key)} function teacherUrl(key){return siteBase()+'teacher.html?'+scopedQuery(key)}
     function updateHallpassAdminTitle(){
       const school=String(currentSchoolKey()||'').trim().replace(/[_-]+/g,' ').replace(/\b[a-z]/g,c=>c.toUpperCase());
-      document.title='Hall Pilot Admin' + (school ? ' - ' + school : '');
+      document.title='Hall Pilot School Admin' + (school ? ' - ' + school : '');
     }
-    function applyAdminContext(r){if(r?.organization)adminAccess.organization=r.organization;if(Array.isArray(r?.schools))adminAccess.schools=r.schools;if(r?.selectedSchool)adminAccess.selectedSchool=r.selectedSchool;if(typeof r?.organizationAdmin==='boolean')adminAccess.organizationAdmin=r.organizationAdmin;const org=adminAccess.organization;$('organizationLabel').textContent=org?`${org.name} (${org.key})`:'—';const select=$('schoolSelector');if(select){const selected=currentSchoolKey();const activeSchools=(adminAccess.schools||[]).filter(x=>x.active!==false);select.innerHTML=activeSchools.map(x=>`<option value="${esc(x.key)}">${esc(x.name)}</option>`).join('');if(selected&&[...select.options].some(o=>o.value===selected))select.value=selected;else if(activeSchools.length){select.value=activeSchools[0].key;}}if(org){$('organizationPanelName').textContent=org.name;$('organizationPanelKey').textContent='Organization key: '+org.key;}const add=$('addSchoolButton');if(add)add.classList.toggle('hidden',adminAccess.organizationAdmin!==true);updateHallpassAdminTitle();if(window.HallPilotBranding){window.HallPilotBranding.render({organizationKey:currentOrgKey(),schoolKey:currentSchoolKey(),schoolName:adminAccess.selectedSchool?.name||''})}}
+    function applyAdminContext(r){if(r?.organization)adminAccess.organization=r.organization;if(Array.isArray(r?.schools))adminAccess.schools=r.schools;if(r?.selectedSchool)adminAccess.selectedSchool=r.selectedSchool;if(typeof r?.organizationAdmin==='boolean')adminAccess.organizationAdmin=r.organizationAdmin;const org=adminAccess.organization;const displaySchool=$('schoolDisplayName');if(displaySchool){const current=adminAccess.selectedSchool;const match=(adminAccess.schools||[]).find(x=>x.key===currentSchoolKey());displaySchool.textContent=current?.name||match?.name||currentSchoolKey()||'—';}$('organizationLabel').textContent=org?`${org.name} (${org.key})`:'—';const select=$('schoolSelector');if(select){const selected=currentSchoolKey();const activeSchools=(adminAccess.schools||[]).filter(x=>x.active!==false);select.innerHTML=activeSchools.map(x=>`<option value="${esc(x.key)}">${esc(x.name)}</option>`).join('');if(selected&&[...select.options].some(o=>o.value===selected))select.value=selected;else if(activeSchools.length){select.value=activeSchools[0].key;}}if(org){$('organizationPanelName').textContent=org.name;$('organizationPanelKey').textContent='Organization key: '+org.key;}const add=$('addSchoolButton');if(add)add.classList.toggle('hidden',adminAccess.organizationAdmin!==true);updateHallpassAdminTitle();if(window.HallPilotBranding){window.HallPilotBranding.render({organizationKey:currentOrgKey(),schoolKey:currentSchoolKey(),schoolName:adminAccess.selectedSchool?.name||''})}}
     function setSchoolInUrl(key){const url=new URL(location.href);if(currentOrgKey())url.searchParams.set('org',currentOrgKey());else url.searchParams.delete('org');if(key)url.searchParams.set('school',key);else url.searchParams.delete('school');url.searchParams.delete('room');history.replaceState(null,'',url);updateHallpassAdminTitle();if(window.HallPilotBranding){window.HallPilotBranding.render({organizationKey:currentOrgKey(),schoolKey:key,schoolName:adminAccess.selectedSchool?.name||''})}}
     function teachersForRoom(room){return management.teachers.filter(t=>(room?.teacherIds||[]).includes(t.id))}
     function setupMessageForRoom(room){return `${adminAccess.organization?.name||'Hall Pass'}
@@ -1017,7 +1043,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function openRoomLinks(roomId){const room=management.rooms.find(r=>r.id===roomId);if(!room){setMsg('manageMessage','Room links could not be loaded.',true);return}$('roomLinksRoomId').value=room.id;$('roomLinksTitle').textContent=`Room Links — ${room.room}`;$('roomStudentLink').value=studentUrl(room.key);$('roomTeacherLink').value=teacherUrl(room.key);const teachers=teachersForRoom(room);$('roomLinksTeacherSummary').textContent=teachers.length?`Assigned to ${teachers.map(t=>t.name).join(', ')}`:'No teacher is currently assigned to this room.';$('roomSetupMessagePreview').textContent=setupMessageForRoom(room);$('roomTeacherEmails').innerHTML=teachers.length?teachers.map(t=>`<div class="teacherEmailRow"><div class="teacherEmailIdentity"><strong>${esc(t.name)}</strong><span>${t.email?esc(t.email):'No email address on file'}</span></div>${t.email?`<button class="small green" data-email-room-teacher="${esc(t.id)}">Email Teacher</button>`:`<button class="small gray" data-edit-teacher-from-links="${esc(t.id)}">Add Email</button>`}</div>`).join(''):'<div class="muted" style="padding:10px 0">Assign a teacher to this room before sending a setup email.</div>';setMsg('roomLinksMessage','');showModal('roomLinksModal')}
     function currentLinksRoom(){return management.rooms.find(r=>r.id===$('roomLinksRoomId').value)||null}
     function emailRoomTeacher(teacherId){const room=currentLinksRoom(),teacher=management.teachers.find(t=>t.id===teacherId);if(!room||!teacher||!teacher.email){setMsg('roomLinksMessage','That teacher does not have an email address on file.',true);return}const subject=`${adminAccess.selectedSchool?.name||'Hall Pass'} — ${room.room}`,body=`Hi ${teacher.name},\n\n${setupMessageForRoom(room)}\n\nThank you.`;window.location.href=`mailto:${teacher.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`}
-    async function login(){const pin=$('adminPin').value.trim(),b=$('loginButton');if(!pin){setMsg('loginMessage','Enter the Admin PIN.',true);return;}b.disabled=true;b.textContent='UNLOCKING...';try{const r=await hallpassApi.call('adminLogin',[pin]);if(!r.success){setMsg('loginMessage',r.message,true);return;}unlocked=true;applyAdminContext(r);if(r.selectedSchool?.key&&!hallpassApi.schoolKey)setSchoolInUrl(r.selectedSchool.key);$('loginCard').classList.add('hidden');$('dashboard').classList.remove('hidden');$('adminName').textContent=r.admin.name;await Promise.all([refreshLive(),refreshManagement()]);}catch(e){setMsg('loginMessage',e.message,true)}finally{b.disabled=false;b.textContent='Unlock Campus Dashboard'}}
+    async function login(){const pin=$('adminPin').value.trim(),b=$('loginButton');if(!pin){setMsg('loginMessage','Enter the Admin PIN.',true);return;}b.disabled=true;b.textContent='UNLOCKING...';try{const r=await hallpassApi.call('adminLogin',[pin]);if(!r.success){setMsg('loginMessage',r.message,true);return;}unlocked=true;applyAdminContext(r);if(r.selectedSchool?.key&&!hallpassApi.schoolKey)setSchoolInUrl(r.selectedSchool.key);$('loginCard').classList.add('hidden');$('dashboard').classList.remove('hidden');$('adminName').textContent=r.admin.name;await Promise.all([refreshLive(),refreshManagement()]);}catch(e){setMsg('loginMessage',e.message,true)}finally{b.disabled=false;b.textContent='Unlock School Dashboard'}}
     let adminLiveRefreshBusy=false;
     const adminLiveSignatures={out:null,waiting:null,history:null,rooms:null};
     async function refreshLive(button){if(!unlocked||adminLiveRefreshBusy)return;adminLiveRefreshBusy=true;if(button)button.disabled=true;if(button)setMsg('message','Refreshing...');try{const r=await hallpassApi.call('adminState',[$('roomFilter').value,$('search').value.trim()]);if(!r.success){setMsg('message',r.message,true);return;}lastState=r;applyAdminContext(r);renderLive(r);setMsg('message','')}catch(e){setMsg('message',e.message,true)}finally{adminLiveRefreshBusy=false;if(button)button.disabled=false}}
@@ -1875,6 +1901,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('onboardBackButton').addEventListener('click',onboardingBack);$('onboardNextButton').addEventListener('click',onboardingNext);$('onboardCreateButton').addEventListener('click',createOnboardedRoom);$('copyStudentLink').addEventListener('click',()=>copyTextValue($('roomStudentLink').value,'Student link copied.'));$('copyTeacherLink').addEventListener('click',()=>copyTextValue($('roomTeacherLink').value,'Teacher link copied.'));$('copySetupMessage').addEventListener('click',()=>{const room=currentLinksRoom();if(room)copyTextValue(setupMessageForRoom(room),'Setup message copied.')});$('openStudentLink').addEventListener('click',()=>window.open($('roomStudentLink').value,'_blank','noopener'));$('openTeacherLink').addEventListener('click',()=>window.open($('roomTeacherLink').value,'_blank','noopener'));document.querySelectorAll('input[name="onboardTeacherMode"]').forEach(x=>x.addEventListener('change',toggleOnboardingTeacherMode));$('onboardCloneRoom').addEventListener('change',()=>loadOnboardingDestinations($('onboardCloneRoom').value));$('onboardRoomName').addEventListener('blur',()=>{if(!$('onboardRoomKey').value.trim())$('onboardRoomKey').value=$('onboardRoomName').value.trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')});
     $('schoolSelector').addEventListener('change',switchSchool);$('addSchoolButton').addEventListener('click',()=>openSchool());$('refreshOrganization').addEventListener('click',e=>refreshOrganization(e.currentTarget));$('saveSchoolButton').addEventListener('click',saveSchool);
     function openAdminPage(panelId){
+      // School-only UI cannot open the organization-management panel.
+      if(panelId==='orgPanel')return;
       if(!document.getElementById(panelId)?.classList.contains('panel'))return;
       $('adminPageSelect').value=panelId;
       document.querySelectorAll('.panel').forEach(panel=>panel.classList.toggle('active',panel.id===panelId));
