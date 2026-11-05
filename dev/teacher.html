@@ -66,29 +66,30 @@
     input, select { width: 100%; min-height: 42px; padding: 9px 10px; border: 2px solid #bbb; border-radius: 7px; font-size: 16px; background: white; }
     input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; vertical-align: middle; margin-right: 5px; }
     .checkboxLabel { padding-top: 28px; }
-    /* Reserved dashboard message strip: never shifts the content when alerts come/go. */
-    /* A full-width invisible positioning row and a separately bounded panel:
-       this prevents the visible message area from stretching across the dashboard. */
+    /* One full-width message bar with its heading and text centered as a group.
+       Keep a reserved height so updates do not move the active dashboard. */
     .teacherMessageDock {
       display:flex;justify-content:center;align-items:center;
-      width:100%;min-height:46px;margin:0 0 14px;
-    }
-    .teacherMessagePanel {
-      display:flex;align-items:center;gap:12px;
-      box-sizing:border-box;width:100%;max-width:720px;
-      height:46px;min-height:46px;padding:5px 12px;
+      box-sizing:border-box;width:100%;height:46px;min-height:46px;
+      margin:0 0 14px;padding:5px 12px;
       background:#fff;border:1px solid #dce4ec;border-radius:10px;
     }
+    .teacherMessagePanel {
+      display:flex;justify-content:center;align-items:center;
+      gap:16px;min-width:0;max-width:100%;
+      width:max-content;height:34px;padding:0;
+    }
     .teacherMessageHeading {
-      flex:0 0 auto;margin:0;color:#222;
+      flex:0 0 auto;margin:0;
       font-size:var(--teacher-subheading-size,16px);
-      line-height:1.35;font-weight:700;
+      line-height:1.35;font-weight:700;color:#222;
     }
     .actionMessage {
-      display:flex;flex:1 1 auto;align-items:center;justify-content:center;
-      min-width:0;height:34px;max-height:34px;overflow-y:auto;
+      display:flex;flex:0 1 auto;align-items:center;justify-content:center;
+      min-width:0;max-width:850px;height:34px;max-height:34px;overflow-y:auto;
       padding:5px 10px;border:1px solid transparent;border-radius:7px;
       font-size:14px;line-height:1.3;font-weight:600;text-align:center;
+      overflow-wrap:anywhere;
     }
     .actionMessage:empty::before {
       content:"No new messages";color:#64748b;font-weight:400;
@@ -98,7 +99,7 @@
     .actionMessage.closed { color:#8d1d18;background:#fff0ef;border-color:#e3a3a8; }
     .actionMessage.error { color:#8d1d18;background:#f8d7da;border-color:#e3a3a8; }
     @media(max-width:540px) {
-      .teacherMessagePanel{gap:8px;padding:5px 8px}
+      .teacherMessagePanel{gap:8px}
       .actionMessage{font-size:12px;padding:4px 6px}
     }
     .message { min-height: 26px; margin-top: 10px; font-size: 16px; font-weight: bold; }
@@ -311,32 +312,47 @@
       #classroomControlStrip .teacherScheduleChoice{flex-wrap:wrap}
       #classroomControlStrip #scheduleChoice{width:clamp(145px,46vw,220px)}
     }
-    /* Unified teacher dashboard typography:
-       section headings (cards + main disclosure) = 20px;
-       subheadings (editors, report options, drilldowns) = 16px.
-       Keep the branded app title and data labels on their own scale. */
+    /* Teacher dashboard typography shared by all three pages.
+       Branded page identity, status values, and buttons intentionally keep
+       their own visual styles. */
     .container {
       --teacher-heading-size: 20px;
       --teacher-subheading-size: 16px;
+      --teacher-field-label-size: 14px;
+      --teacher-heading-color: #222;
     }
+    /* Level 1: main card and main expandable-section headings. */
     .container h2,
     .container .teacherDisclosure.overrideDisclosure > summary {
-      font-size: var(--teacher-heading-size);
-      line-height: 1.3;
-      font-weight: 700;
+      font-size:var(--teacher-heading-size);
+      line-height:1.3;
+      font-weight:700;
+      color:var(--teacher-heading-color);
     }
-    /* Match Override Pass heading to the black section headings. */
-    .container .teacherDisclosure.overrideDisclosure > summary { color: #222; }
-    /* Schedule, Next Change, and Page are bold navigation labels. */
-    .teacherStatusDetails .teacherMetaLabel { font-size:13px; font-weight:700; line-height:1.3; color:#1c344e; }
-    .container h2 { margin-top: 0; margin-bottom: 12px; }
-    .container h2.reportTitle { margin-bottom: 4px; }
+    .container h2{margin-top:0;margin-bottom:12px}
+    .container h2.reportTitle{margin-bottom:4px}
+    /* Level 2: editor, advanced-option, message and student-detail headings. */
     .container h3,
     .container .teacherDisclosure.reportDisclosure > summary,
     .container .reportDrilldownTitle {
-      font-size: var(--teacher-subheading-size);
-      line-height: 1.35;
-      font-weight: 700;
+      font-size:var(--teacher-subheading-size);
+      line-height:1.35;
+      font-weight:700;
+      color:var(--teacher-heading-color);
+    }
+    /* Form labels, compact classroom-control labels, and table column titles
+       use the same treatment across Live, Controls and Reports. */
+    .container label:not(.teacherMetaLabel),
+    .container .compactControlLabel,
+    .container table thead th {
+      font-size:var(--teacher-field-label-size);
+      line-height:1.3;
+      font-weight:700;
+      color:var(--teacher-heading-color);
+    }
+    /* Schedule, Next Change, Page are a separate consistent metadata row. */
+    .teacherStatusDetails .teacherMetaLabel {
+      font-size:13px;font-weight:700;line-height:1.3;color:#1c344e;
     }
 </style>
 <link rel="stylesheet" href="branding.css">
@@ -380,7 +396,7 @@
       </div>
 
       <div class="teacherMessageDock" aria-label="Dashboard messages">
-        <div class="teacherMessagePanel" style="width:100%;max-width:720px;margin-inline:auto">
+        <div class="teacherMessagePanel">
           <h3 class="teacherMessageHeading">Messages:</h3>
           <div id="actionMessage" class="actionMessage" role="status" aria-live="polite" aria-atomic="true"></div>
         </div>
