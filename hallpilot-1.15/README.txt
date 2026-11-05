@@ -357,3 +357,72 @@ Verification:
 - DEV GitHub Pages pages match the staging branch, DEV Edge Function is
   ACTIVE; root LIVE HTML/API files and LIVE database remain untouched.
 - Authenticated, interactive browser acceptance testing is still required.
+
+
+NOVEMBER 5, 2026 — DEVELOPMENT RESTROOM RESTRICTIONS & TEACHER CLEANUP
+-------------------------------------------------------------------
+Status: Implemented in DEV; production NOT migrated or changed.
+  DEV HTML: /dev/teacher.html, /dev/admin.html, /dev/api-shim.js
+  DEV Supabase: hqupogtzyepdobrcunuq
+  DEV hallpass-staff Edge Function v9; hallpass-public v3.
+  Static HTML/JS/IDs and 22 prior scheduling regressions passed.
+  DB rollback-based tests passed for Period/Month/Blocked limits,
+  per-room separation, global block precedence, and room/schoolwide
+  destination closures. Authenticated browser tests remain pending.
+
+TEACHER
+- Live Passes: Today summary at top; Students Out and Waiting side by
+  side above 690px, stacked below; Teacher Override at bottom.
+- Fixed old CSS accidentally located in the printable report's style.
+- Restroom and Waiting List each use one Open/Closed or On/Off toggle.
+- Removed Test Mode, pass-log backup, clear-all waiting list, room
+  destination configuration, and roomwide pass settings from Teacher.
+- Student Restroom Restrictions shows ONLY individual exceptions;
+  search schoolwide roster to add; edit / Remove to Room Default.
+- Choices: X per Period/Day/Week/Month (X 1-100), No Restroom Passes.
+- Teachers can edit restrictions ONLY for rooms their credentials allow.
+  Shared room users see the same exceptions. Other rooms are independent.
+- Existing schoolwide block cannot be undone by a teacher restriction.
+- Each restriction add, edit, delete and restroom toggle is audited.
+
+ADMIN
+- Room editor configures the default restroom allowance (0 = unlimited)
+  per Day/Week/Month. Individual Per Period limits live in exceptions.
+- Advanced Room Pass Settings: open/close windows, long/very long
+  warnings, buzzer, clear waiting at period end, Admin-only Test Mode.
+- Students page has a collapsible cross-room restroom restriction
+  editor and audit-backed add/edit/delete controls.
+- Schoolwide Restroom Allowed/Disabled remains on student record.
+
+DATABASE (DEV ONLY)
+- New public.student_restroom_restrictions keyed by (room_id, student_id).
+  Columns: restriction_type ('Period','Day','Week','Month','Blocked'),
+  pass_limit, updated_by, created_at, updated_at. Foreign keys reference
+  rooms, students, teachers. RLS enabled. No anon/authenticated access;
+  service_role is used by Edge Functions after checking staff scope.
+- Existing room_students restroom_allowed=false rows were copied as
+  Blocked exceptions; old room boolean remains as compatibility guard.
+- New private hallpilot_private.restroom_status helper evaluates global
+  school block, room exception, legacy block, then room default; counts
+  restroom passes in THIS room and THIS reset window, excluding test data.
+  Period count is per period label per local day; weeks reset Monday;
+  months reset on the first in room-local timezone.
+- Replaced DEV public.hp_request_pass_v2, hp_start_pass_v2,
+  hp_teacher_override_v2 to enforce the same rules at pass-start time.
+- Database pass-start functions now also require room_enabled and
+  destination_catalog.enabled_schoolwide, preventing bypasses when
+  teachers or administrators close a destination.
+- Edge staff/public destination display checks the same effective state.
+- Existing passes, rooms, users, and pass history not reset or replaced.
+
+PRODUCTION ROLLOUT (NOT YET PERFORMED)
+1. Back up LIVE database; inspect production RPC definitions and compare
+   with DEV, including any production-specific changes.
+2. Stage versioned additive SQL migration and rollback/recovery plan.
+3. Install table, constraints, indexes and helper in LIVE first.
+4. Convert legacy room-level blocks, verify count rules in transaction.
+5. Deploy compatible production RPCs and Edge Functions.
+6. Release frontend after testing; enable scheduling separately.
+7. Test with D4 and a small room cohort; keep previous frontend ready.
+Do NOT copy DEV sample users/students/passes to production.
+Do NOT deploy these database function definitions blindly over LIVE.
