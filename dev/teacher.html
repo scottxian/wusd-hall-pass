@@ -756,7 +756,8 @@
       const isClosedState = type === 'success' &&
         (/restroom (?:requests|passes) (?:are |have been )?closed/i.test(content) ||
          /waiting list (?:is |has been )?(?:off|disabled|turned off)/i.test(content));
-      message.classList.add(isClosedState ? 'closed' : (type || ''));
+      const tone = isClosedState ? 'closed' : type;
+      if (tone) message.classList.add(tone);
       if (type === 'success') {
         actionMessageTimer = setTimeout(function() { setActionMessage('', ''); }, 3500);
       }
