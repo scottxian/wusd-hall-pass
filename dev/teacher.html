@@ -651,6 +651,7 @@
           document.getElementById('loginCard').classList.add('hidden');
           document.getElementById('dashboard').classList.remove('hidden');
           renderState(result, true);
+          loadTeacherRestrictions();
           applyReportPreset();
           setActionMessage('Dashboard ready.', 'success');
         })
@@ -930,6 +931,130 @@
         (student && (student.id ?? student.studentId ?? student.student_id ?? student.studentNumber ?? student.student_number)) || ''
       ).trim();
     }
+
+
+    let restrictionRows=[];
+    function renderRestrictionLimit(){
+      document.getElementById('restrictionLimitWrap').classList.toggle('hidden',
+        document.getElementById('restrictionType').value==='Blocked');
+    }
+    function openRestrictionEditor(row=null){
+      const editor=document.getElementById('restrictionEditor');
+      editor.classList.remove('hidden');
+      document.getElementById('restrictionEditorTitle').textContent=row?'Edit Restriction':'Add Restriction';
+      const select=document.getElementById('restrictionStudentSelect');
+      select.replaceChildren(new Option('Search and select a student',''));
+      document.getElementById('restrictionSearchText').value=row?row.name:'';
+      document.getElementById('restrictionSearchStatus').textContent='';
+      if(row){
+        select.add(new Option(row.name+' ('+row.studentNumber+')',row.studentNumber));
+        select.value=row.studentNumber;
+      }
+      document.getElementById('restrictionType').value=row?row.type:'Day';
+      document.getElementById('restrictionLimit').value=row?.limit?String(row.limit):'1';
+      renderRestrictionLimit();
+      editor.scrollIntoView({block:'nearest',behavior:'smooth'});
+    }
+    function closeRestrictionEditor(){
+      document.getElementById('restrictionEditor').classList.add('hidden');
+    }
+    function renderRestrictionRows(rows){
+      restrictionRows=Array.isArray(rows)?rows:[];
+      const body=document.getElementById('restrictionBody');
+      body.replaceChildren();
+      if(!restrictionRows.length){
+        body.innerHTML='<tr><td colspan="3" class="emptyState">No individual restrictions. Everyone follows this room’s default.</td></tr>';
+        return;
+      }
+      for(const row of restrictionRows){
+        const tr=document.createElement('tr');
+        const label=row.type==='Blocked'?'No restroom passes':row.limit+' per '+row.type.toLowerCase();
+        tr.innerHTML='<td><strong>'+escapeHtml(row.name)+'</strong></td>'+
+          '<td>'+escapeHtml(label)+'</td>'+
+          '<td><div class="buttonRow"><button type="button" class="gray smallAction editRestriction">Edit</button>'+
+          '<button type="button" class="smallAction removeRestriction">Remove</button></div></td>';
+        tr.querySelector('.editRestriction').addEventListener('click',()=>openRestrictionEditor(row));
+        tr.querySelector('.removeRestriction').addEventListener('click',()=>removeRestriction(row));
+        body.appendChild(tr);
+      }
+    }
+    function loadTeacherRestrictions(){
+      if(!unlocked)return;
+      google.script.run.withSuccessHandler(result=>{
+        if(!result?.success){
+          document.getElementById('restrictionMessage').textContent=result?.message||'Could not load restrictions.';
+          return;
+        }
+        renderRestrictionRows(result.rows||[]);
+        document.getElementById('restrictionMessage').textContent='';
+      }).withFailureHandler(error=>{
+        document.getElementById('restrictionMessage').textContent=error?.message||'Could not load restrictions.';
+      }).getTeacherRestrictions(teacherPin);
+    }
+    function searchRestrictionStudents(button){
+      const query=document.getElementById('restrictionSearchText').value.trim();
+      if(query.length<2){
+        document.getElementById('restrictionSearchStatus').textContent='Enter at least two characters.';
+        return;
+      }
+      beginButtonAction(button,'SEARCHING...');
+      google.script.run.withSuccessHandler(result=>{
+        finishButtonAction(button);
+        const select=document.getElementById('restrictionStudentSelect');
+        select.replaceChildren(new Option('Select a student',''));
+        if(!result?.success){
+          document.getElementById('restrictionSearchStatus').textContent=result?.message||'Search failed.';
+          return;
+        }
+        for(const student of result.rows||[]){
+          const option=new Option(student.name+' ('+student.studentNumber+')'+
+            (student.schoolBlocked?' — Schoolwide restriction':''),student.studentNumber);
+          option.disabled=student.schoolBlocked;
+          select.add(option);
+        }
+        document.getElementById('restrictionSearchStatus').textContent=(result.rows||[]).length+
+          ' matching students. Select one below.';
+      }).withFailureHandler(error=>{
+        finishButtonAction(button);
+        document.getElementById('restrictionSearchStatus').textContent=error?.message||'Search failed.';
+      }).searchTeacherRestrictionStudents(teacherPin,query);
+    }
+    function saveRestriction(button){
+      const studentNumber=document.getElementById('restrictionStudentSelect').value;
+      const type=document.getElementById('restrictionType').value;
+      const limit=type==='Blocked'?null:Number(document.getElementById('restrictionLimit').value);
+      if(!studentNumber){setActionMessage('Select a student first.','error');return}
+      if(type!=='Blocked'&&(!Number.isInteger(limit)||limit<1||limit>100)){
+        setActionMessage('Enter a limit between 1 and 100 passes.','error');return;
+      }
+      beginButtonAction(button,'SAVING...');
+      google.script.run.withSuccessHandler(result=>{
+        finishButtonAction(button);
+        if(!result?.success){setActionMessage(result?.message||'Could not save restriction.','error');return}
+        closeRestrictionEditor();
+        loadTeacherRestrictions();
+        setActionMessage(result.message||'Restriction saved.','success');
+      }).withFailureHandler(error=>{
+        finishButtonAction(button);
+        setActionMessage(error?.message||'Could not save restriction.','error');
+      }).saveTeacherRestriction(teacherPin,studentNumber,type,limit);
+    }
+    function removeRestriction(row){
+      if(!window.confirm('Return '+row.name+' to this room’s default restroom policy?'))return;
+      google.script.run.withSuccessHandler(result=>{
+        if(!result?.success){setActionMessage(result?.message||'Could not remove restriction.','error');return}
+        loadTeacherRestrictions();
+        setActionMessage(result.message,'success');
+      }).withFailureHandler(error=>{
+        setActionMessage(error?.message||'Could not remove restriction.','error');
+      }).removeTeacherRestriction(teacherPin,row.studentNumber);
+    }
+    document.getElementById('restrictionSearchText').addEventListener('keydown',event=>{
+      if(event.key==='Enter'){
+        event.preventDefault();
+        searchRestrictionStudents(document.getElementById('restrictionSearchButton'));
+      }
+    });
 
     function renderOverrideDestinations(destinations) {
       const select = document.getElementById('overrideDestination');
