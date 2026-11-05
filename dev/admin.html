@@ -297,37 +297,30 @@
         grid-column:1;
       }
     }
-    /* School Admin: one navigation/message line beneath campus totals.
-       Middle content stays centered; Page occupies the rightmost column. */
+    /* School Admin: one row, messages left and page selector right. */
     .adminStatusDock .adminStatusDetails.schoolOnlyDetails{
-      grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) minmax(245px,1fr);
+      grid-template-columns:minmax(0,1fr) auto;
       min-height:50px;
     }
-    .adminStatusDock .schoolOnlyDetails .adminStatusSpacer{grid-column:1}
     .adminStatusDock .schoolOnlyDetails .adminMessageDock{
-      grid-column:2;
-      display:flex;align-items:center;justify-content:center;
+      grid-column:1;
+      display:flex;align-items:center;justify-content:flex-start;
       width:100%;min-width:0;height:34px;min-height:34px;
       margin:0;padding:0;background:transparent;border:0;border-radius:0;
     }
     .adminStatusDock .schoolOnlyDetails .adminMessagePanel{
-      width:max-content;max-width:100%;min-width:0;
+      justify-content:flex-start;width:max-content;max-width:100%;min-width:0;
     }
-    .adminStatusDock .schoolOnlyDetails .adminPageBar{grid-column:3}
-    @media(max-width:820px){
-      .adminStatusDock .adminStatusDetails.schoolOnlyDetails{
-        grid-template-columns:minmax(0,1fr) auto;
-      }
-      .adminStatusDock .schoolOnlyDetails .adminStatusSpacer{display:none}
-      .adminStatusDock .schoolOnlyDetails .adminMessageDock{grid-column:1}
-      .adminStatusDock .schoolOnlyDetails .adminPageBar{grid-column:2}
+    .adminStatusDock .schoolOnlyDetails .adminPageBar{
+      grid-column:2;justify-content:flex-end;width:auto;
     }
     @media(max-width:620px){
       .adminStatusDock .adminStatusDetails.schoolOnlyDetails{
         grid-template-columns:minmax(0,1fr);
       }
-      .adminStatusDock .schoolOnlyDetails .adminMessageDock{grid-column:1}
-      .adminStatusDock .schoolOnlyDetails .adminPageBar{grid-column:1}
+      .adminStatusDock .schoolOnlyDetails .adminPageBar{
+        grid-column:1;justify-content:flex-end;width:100%;
+      }
     }
 </style>
 <link rel="stylesheet" href="branding.css">
@@ -351,7 +344,6 @@
           <div class="stat"><div class="label">Waiting</div><div id="statWaiting" class="value">0</div></div>
         </div>
         <div class="schoolBar adminStatusDetails schoolOnlyDetails">
-          <div class="adminStatusSpacer" aria-hidden="true"></div>
           <div class="adminMessageDock" aria-label="Dashboard messages">
             <div class="adminMessagePanel">
               <h3 class="adminMessageHeading">Messages:</h3>
