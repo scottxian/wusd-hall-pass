@@ -641,6 +641,9 @@
     }
     document.getElementById('teacherPageSelect').addEventListener('change',function(event){
       showTab(event.target.value);
+      // Switching from a longer page must not leave the new page scrolled
+      // past its schedule/status bar.
+      window.scrollTo(0,0);
     });
 
     function beginButtonAction(button, busyText) {
