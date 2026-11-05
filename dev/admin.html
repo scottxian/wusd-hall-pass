@@ -357,9 +357,9 @@
             <option value="livePanel" selected>Campus Overview</option>
           </optgroup>
           <optgroup label="People &amp; Rooms">
-            <option value="managePanel">Rooms</option>
-            <option value="teachersPanel">Teachers</option>
+            <option value="teachersPanel">Teachers &amp; Staff</option>
             <option value="studentsPanel">Students</option>
+            <option value="managePanel">Rooms</option>
             <option value="destinationsPanel">Destinations</option>
           </optgroup>
           <optgroup label="Scheduling">
@@ -406,7 +406,7 @@
 
       <section id="schedulePanel" class="panel">
         <div class="card">
-          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Master Bell Schedules</h2><div class="muted">Manage a complete schedule in one place. Edit its name, periods and bell times together, or duplicate it to make a variation.</div></div><div class="actions"><button id="addScheduleButton" class="green">Add Schedule</button><button id="refreshSchedules" class="gray">Refresh</button></div></div>
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Bell Schedules</h2><div class="muted">Manage a complete schedule in one place. Edit its name, periods and bell times together, or duplicate it to make a variation.</div></div><div class="actions"><button id="addScheduleButton" class="green">Add Schedule</button><button id="refreshSchedules" class="gray">Refresh</button></div></div>
           <div id="scheduleMessage" class="message"></div>
           <div class="tableWrap"><table><thead><tr><th>Schedule</th><th>Periods</th><th>Bell Times</th><th>Actions</th></tr></thead><tbody id="masterScheduleBody"></tbody></table></div>
         </div>
@@ -492,7 +492,7 @@
 
       <section id="studentsPanel" class="panel">
         <div class="card">
-          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Master Student List</h2><div class="muted">Every active student can use every active room. Disable students instead of deleting them so pass history remains intact.</div></div><div class="actions"><button id="addStudentButton" class="green">Add Student</button><button id="importStudentsButton" class="purple">Import CSV</button><button id="refreshStudents" class="gray">Refresh</button></div></div>
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Students</h2><div class="muted">Every active student can use every active room. Disable students instead of deleting them so pass history remains intact.</div></div><div class="actions"><button id="addStudentButton" class="green">Add Student</button><button id="importStudentsButton" class="purple">Import CSV</button><button id="refreshStudents" class="gray">Refresh</button></div></div>
           <div class="controls" style="margin-top:12px"><div><label for="studentSearch">Search</label><input id="studentSearch" placeholder="Student name or ID"></div><div><label for="studentStatusFilter">Status</label><select id="studentStatusFilter"><option value="all">All Students</option><option value="active">Active Only</option><option value="inactive">Disabled Only</option></select></div></div>
           <div id="studentsMessage" class="message"></div>
           <div class="tableWrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Default Restroom</th><th>Actions</th></tr></thead><tbody id="studentsBody"></tbody></table></div>
@@ -520,7 +520,7 @@
 
       <section id="destinationsPanel" class="panel">
         <div class="card">
-          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Master Destinations</h2><div class="muted">One canonical list for the entire school. Teachers only choose room availability and an optional Max Out override.</div></div><div class="actions"><button id="addDestinationButton" class="green">Add Destination</button><button id="refreshDestinations" class="gray">Refresh</button></div></div>
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Destinations</h2><div class="muted">One canonical list for the entire school. Teachers only choose room availability and an optional Max Out override.</div></div><div class="actions"><button id="addDestinationButton" class="green">Add Destination</button><button id="refreshDestinations" class="gray">Refresh</button></div></div>
           <div id="destinationsMessage" class="message"></div>
           <div class="tableWrap"><table><thead><tr><th>Destination</th><th>Schoolwide</th><th>Hall Pass</th><th>Teacher Approval</th><th>Default Max Out</th><th>Sort</th><th>Actions</th></tr></thead><tbody id="destinationsBody"></tbody></table></div>
           <div class="muted" style="margin-top:10px">Disable a destination instead of deleting it. Historical pass names remain unchanged.</div>
@@ -584,7 +584,7 @@
 
       <section id="securityPanel" class="panel">
         <div class="card">
-          <div class="sectionHead"><div><h2 style="margin-bottom:4px">PIN Security</h2><div class="muted">PIN policy is organization-wide; teacher lockouts remain school-scoped. Organization Admins can change policy and clear organization-wide attempt records.</div></div><button id="refreshSecurity" class="gray">Refresh</button></div>
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Security</h2><div class="muted">PIN policy is organization-wide; teacher lockouts remain school-scoped. Organization Admins can change policy and clear organization-wide attempt records.</div></div><button id="refreshSecurity" class="gray">Refresh</button></div>
           <div class="formGrid" style="margin-top:12px"><div><label for="pinMaxFailures">Attempts Before Lockout</label><input id="pinMaxFailures" type="number" min="3" max="10"></div><div><label for="pinWindowMinutes">Attempt Window (minutes)</label><input id="pinWindowMinutes" type="number" min="5" max="60"></div><div><label for="pinLockMinutes">Lockout Length (minutes)</label><input id="pinLockMinutes" type="number" min="1" max="120"></div><div><button id="saveSecurity" class="green">Save Security Settings</button></div></div>
           <div id="securityMessage" class="message"></div>
         </div>
@@ -593,7 +593,7 @@
 
       <section id="reportsPanel" class="panel">
         <div class="card">
-          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Campus Reports</h2><div class="muted">Analyze hall-pass use across the school. Reports are generated on demand and stay behind the Admin login.</div></div><button id="refreshReportOptions" class="gray">Refresh Filters</button></div>
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Pass Reports &amp; Backup</h2><div class="muted">Analyze hall-pass use across the school. Reports are generated on demand and stay behind the Admin login.</div></div><button id="refreshReportOptions" class="gray">Refresh Filters</button></div>
           <div class="formGrid" style="margin-top:12px">
             <div><label for="reportType">Report</label><select id="reportType"><option value="overview">Campus Overview</option><option value="students">Student Summary</option><option value="detail">Student Detail</option><option value="long">Long Passes</option><option value="frequent">Frequent Passes</option><option value="overrides">Teacher Overrides</option></select></div>
             <div><label for="campusReportRoom">Room</label><select id="campusReportRoom"><option value="">All Rooms</option></select></div>
@@ -627,7 +627,7 @@
 
       <section id="auditPanel" class="panel">
         <div class="card">
-          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Admin Audit Log</h2><div class="muted">Recent room, teacher, schedule, and PIN-management changes. PIN values and session tokens are never logged.</div></div><button id="refreshAudit" class="gray">Refresh</button></div>
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Audit Log</h2><div class="muted">Recent room, teacher, schedule, and PIN-management changes. PIN values and session tokens are never logged.</div></div><button id="refreshAudit" class="gray">Refresh</button></div>
           <div class="controls" style="margin-top:12px"><div><label for="auditRoomFilter">Room</label><select id="auditRoomFilter"><option value="">All Rooms</option></select></div><div><label for="auditSearch">Search</label><input id="auditSearch" placeholder="Action, teacher, room..."></div></div>
           <div id="auditMessage" class="message"></div>
           <div class="tableWrap"><table><thead><tr><th>When</th><th>Teacher/Admin</th><th>Room</th><th>Action</th><th>Details</th></tr></thead><tbody id="auditBody"></tbody></table></div>
