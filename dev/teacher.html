@@ -23,14 +23,17 @@
     .stat { background: #eef2f5; border-radius: 10px; padding: 14px; }
     .statLabel { color: #555; font-size: 13px; }
     .statValue { margin-top: 4px; font-size: 25px; font-weight: bold; }
-    /* The page selector lives in the right end of the sticky schedule bar. */
-    .teacherStatusDetails .teacherPageNav{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 0 auto;padding:0;flex:0 0 auto}
+    /* One physical schedule/navigation bar: compact status left, page switcher right. */
+    .teacherStatusDock .teacherStatusDetails{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:14px;row-gap:8px;flex-wrap:initial}
+    .teacherScheduleMeta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 18px;min-width:0}
+    .teacherScheduleMetaItem{display:inline-flex;align-items:center;gap:4px;min-width:0}
+    .teacherStatusDetails .teacherPageNav{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0;padding:0;min-width:0}
     .teacherStatusDetails .teacherPageNav label{margin:0;font-size:12px;font-weight:600;white-space:nowrap;color:#526476}
     .teacherStatusDetails .teacherPageNav select{width:190px;max-width:100%;min-width:0;min-height:32px;height:32px;padding:5px 10px;border:1px solid #b7c3d0;border-radius:7px;background:#fff;color:#214665;font-size:13px;font-weight:600}
     .teacherStatusDetails .teacherPageNav select:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
-    @media(max-width:720px){
-      .teacherStatusDetails .teacherPageNav{width:100%;justify-content:flex-end;margin-left:0}
-      .teacherStatusDetails .teacherPageNav select{width:190px}
+    @media(max-width:900px){
+      .teacherStatusDock .teacherStatusDetails{grid-template-columns:minmax(0,1fr)}
+      .teacherStatusDetails .teacherPageNav{justify-content:flex-start}
     }
     @media(max-width:380px){.teacherStatusDetails .teacherPageNav select{width:155px}}
     .tabPanel { display: none; }
@@ -176,7 +179,7 @@
     .teacherStatusDock.isCompact .teacherPrimaryStatus .statValue{font-size:19px;margin-top:2px}
     .teacherStatusDock .teacherStatusDetails{margin-bottom:0;padding:8px 12px;font-size:13px}
     .teacherStatusDock.isCompact .teacherStatusDetails{padding:5px 12px;font-size:12px}
-    .scheduleSourceLabel{display:inline-block;padding:3px 8px;margin-left:5px;border-radius:999px;
+    .scheduleSourceLabel{display:inline-block;padding:2px 7px;margin-left:3px;border-radius:999px;
       background:#e5eef9;color:#1b4f89;font-size:12px;font-weight:600;vertical-align:middle}
     .scheduleSourceLabel.isOverride{background:#f2e6fa;color:#68379c}
     .emptyState{padding:26px 12px!important;text-align:center;color:#526476;background:#f7fafc;
@@ -268,18 +271,20 @@
         <div class="stat"><div class="statLabel">Pass Window</div><div id="statWindow" class="statValue">—</div></div>
         <div class="stat"><div class="statLabel">Students Out</div><div id="statOut" class="statValue">0</div></div>
       </div>
-      <div class="teacherStatusDetails" aria-label="Additional schedule information">
-        <span>Schedule: <strong id="statSchedule">—</strong> <span class="scheduleSourceLabel" id="statScheduleSource">Automatic · Room default</span></span>
-        <span>Waiting: <strong id="statWaiting">0</strong></span>
-        <span>Next change: <strong id="statNextChange">—</strong></span>
-      <div class="teacherPageNav">
-        <label for="teacherPageSelect">Page</label>
-        <select id="teacherPageSelect" aria-label="Choose teacher dashboard page">
-          <option value="live">Live Passes</option>
-          <option value="controls">Controls &amp; Settings</option>
-          <option value="reports">Reports</option>
-        </select>
-      </div>
+      <div class="teacherStatusDetails" aria-label="Schedule and navigation">
+        <div class="teacherScheduleMeta">
+          <span class="teacherScheduleMetaItem">Schedule: <strong id="statSchedule">—</strong> <span class="scheduleSourceLabel" id="statScheduleSource" title="Schedule source">Automatic</span></span>
+          <span class="teacherScheduleMetaItem">Waiting: <strong id="statWaiting">0</strong></span>
+          <span class="teacherScheduleMetaItem">Next change: <strong id="statNextChange">—</strong></span>
+        </div>
+        <div class="teacherPageNav">
+          <label for="teacherPageSelect">Page</label>
+          <select id="teacherPageSelect" aria-label="Choose teacher dashboard page">
+            <option value="live">Live Passes</option>
+            <option value="controls">Controls &amp; Settings</option>
+            <option value="reports">Reports</option>
+          </select>
+        </div>
       </div>
       </div>
 
@@ -783,7 +788,7 @@
       document.getElementById('statSchedule').textContent = schedule.schedule || '—';
       const rawSource=String(state.settings?.['Schedule Source']||'Room Default').trim();
       const isOverride=rawSource.toLowerCase().includes('teacher override');
-      const sourceLabel=isOverride?'Teacher override':'Automatic · '+(rawSource||'Room default');
+      const sourceLabel=isOverride?'Teacher override':'Automatic';
       const sourceElement=document.getElementById('statScheduleSource');
       sourceElement.textContent=sourceLabel;
       sourceElement.title='Source: '+rawSource;
