@@ -1019,24 +1019,95 @@ async function handleAction(admin, body, fingerprintHash) {
     return data
   }
 
-  if (action === 'updateStudentRestroomAccessFromDashboard') {
-    const studentNumber = String(args[1] || '').trim()
-    const allowed = args[2] !== false
-    const { data: student, error: studentError } = await admin.from('students').select('id,name').eq('school_id', room.school_id).eq('student_number', studentNumber).maybeSingle()
-    if (studentError) throw studentError
-    if (!student) return fail('Student not found.')
-    const { error } = await admin.from('room_students').upsert({
-      room_id: room.id,
-      student_id: student.id,
-      restroom_allowed: allowed,
-      active: true
-    }, { onConflict: 'room_id,student_id' })
+  // Room-specific exceptions only: no full roster is returned for restriction management.
+  if (action === 'getTeacherRestrictions') {
+    const { data: entries, error } = await admin.from('student_restroom_restrictions')
+      .select('student_id,restriction_type,pass_limit,updated_at').eq('room_id',room.id).order('updated_at',{ascending:false})
     if (error) throw error
-    return { success: true, message: `${student.name}: Restroom passes ${allowed ? 'enabled.' : 'disabled.'}` }
+    if (!entries?.length) return {success:true,rows:[]}
+    const ids=entries.map(x=>x.student_id)
+    const {data:students,error:studentsError}=await admin.from('students')
+      .select('id,student_number,name').eq('school_id',room.school_id).in('id',ids)
+    if(studentsError)throw studentsError
+    const byId=new Map((students||[]).map(x=>[String(x.id),x]))
+    return {success:true,rows:entries.filter(x=>byId.has(String(x.student_id))).map(x=>({
+      studentNumber:byId.get(String(x.student_id)).student_number,
+      name:byId.get(String(x.student_id)).name,
+      type:x.restriction_type,
+      limit:x.pass_limit,
+      updatedAt:x.updated_at
+    }))}
+  }
+
+  if (action === 'searchTeacherRestrictionStudents') {
+    const q=String(args[1]||'').trim().replace(/[%_,()]/g,'').slice(0,80)
+    if(q.length<2)return {success:true,rows:[]}
+    const query=admin.from('students').select('student_number,name,restroom_allowed')
+      .eq('school_id',room.school_id).eq('active',true)
+      .or('name.ilike.%'+q+'%,student_number.ilike.%'+q+'%').order('name').limit(12)
+    const {data,error}=await query
+    if(error)throw error
+    return {success:true,rows:(data||[]).map(x=>({
+      studentNumber:x.student_number,name:x.name,
+      schoolBlocked:x.restroom_allowed===false
+    }))}
+  }
+
+  if (action === 'saveTeacherRestriction') {
+    const studentNumber=String(args[1]||'').trim()
+    const type=String(args[2]||'').trim()
+    const rawLimit=args[3]
+    if(!['Period','Day','Week','Month','Blocked'].includes(type))
+      return fail('Choose Per Period, Day, Week, Month, or No Restroom Passes.')
+    const limit=type==='Blocked'?null:Number(rawLimit)
+    if(type!=='Blocked'&&(!Number.isInteger(limit)||limit<1||limit>100))
+      return fail('Enter an allowed pass count between 1 and 100.')
+    const {data:student,error:studentError}=await admin.from('students')
+      .select('id,name,restroom_allowed').eq('school_id',room.school_id).eq('student_number',studentNumber)
+      .eq('active',true).maybeSingle()
+    if(studentError)throw studentError
+    if(!student)return fail('Student not found in this school.')
+    if(student.restroom_allowed===false)return fail('Schoolwide restroom restrictions are managed by Admin.')
+    const {error}=await admin.from('student_restroom_restrictions').upsert({
+      room_id:room.id,student_id:student.id,restriction_type:type,pass_limit:limit,
+      updated_by:auth.teacher.id,updated_at:new Date().toISOString()
+    },{onConflict:'room_id,student_id'})
+    if(error)throw error
+    // Clear the obsolete room-level boolean so the new numerical rule takes precedence.
+    const legacy=await admin.from('room_students').update({restroom_allowed:true})
+      .eq('room_id',room.id).eq('student_id',student.id)
+    if(legacy.error)throw legacy.error
+    await writeAudit(admin,auth.teacher.id,'student_restroom_restriction_saved',room.id,
+      {studentId:student.id,type,limit},room.school_id)
+    return {success:true,message:'Restriction saved for '+student.name+'.'}
+  }
+
+  if (action === 'removeTeacherRestriction') {
+    const studentNumber=String(args[1]||'').trim()
+    const {data:student,error:studentError}=await admin.from('students')
+      .select('id,name').eq('school_id',room.school_id).eq('student_number',studentNumber).maybeSingle()
+    if(studentError)throw studentError
+    if(!student)return fail('Student not found.')
+    const {error}=await admin.from('student_restroom_restrictions').delete()
+      .eq('room_id',room.id).eq('student_id',student.id)
+    if(error)throw error
+    const legacy=await admin.from('room_students').update({restroom_allowed:true})
+      .eq('room_id',room.id).eq('student_id',student.id)
+    if(legacy.error)throw legacy.error
+    await writeAudit(admin,auth.teacher.id,'student_restroom_restriction_removed',room.id,
+      {studentId:student.id},room.school_id)
+    return {success:true,message:student.name+' returned to the room default.'}
+  }
+
+  if (action === 'updateStudentRestroomAccessFromDashboard') {
+    return fail('Individual restroom settings now use Student Restrictions.')
   }
 
   if (action === 'updateSettingsFromDashboard') {
     const changes = args[1] || {}
+    const allowedKeys=new Set(["Today's Schedule",'Waiting List Enabled'])
+    if(Object.keys(changes).some(key=>!allowedKeys.has(key)))
+      return fail('These settings are managed by the campus administrator.')
     const patch = {}
     if (Object.hasOwn(changes, "Today's Schedule")) {
       const requested = String(changes["Today's Schedule"] || '').trim()
@@ -1053,19 +1124,8 @@ async function handleAction(admin, body, fingerprintHash) {
         patch.schedule_override_date = today
       }
     }
-    if (Object.hasOwn(changes, 'Test Mode')) patch.test_mode = boolYes(changes['Test Mode'])
-    if (Object.hasOwn(changes, 'Waiting List Enabled')) patch.waiting_list_enabled = boolYes(changes['Waiting List Enabled'])
-    if (Object.hasOwn(changes, 'Clear Queue at Period End')) patch.clear_queue_at_period_end = boolYes(changes['Clear Queue at Period End'])
-    if (Object.hasOwn(changes, 'Buzzer Enabled')) patch.buzzer_enabled = boolYes(changes['Buzzer Enabled'])
-    if (Object.hasOwn(changes, 'Passes Open After Start (Minutes)')) patch.passes_open_after_start = clampNumber(changes['Passes Open After Start (Minutes)'],0,30,10)
-    if (Object.hasOwn(changes, 'Passes Close Before End (Minutes)')) patch.passes_close_before_end = clampNumber(changes['Passes Close Before End (Minutes)'],0,30,10)
-    if (Object.hasOwn(changes, 'Long Pass Warning')) patch.long_pass_warning = clampNumber(changes['Long Pass Warning'],1,120,5)
-    if (Object.hasOwn(changes, 'Very Long Pass Warning')) patch.very_long_pass_warning = clampNumber(changes['Very Long Pass Warning'],1,120,10)
-    if (Object.hasOwn(changes, 'Restroom Pass Limit')) patch.restroom_pass_limit = clampNumber(changes['Restroom Pass Limit'],0,100,0)
-    if (Object.hasOwn(changes, 'Restroom Limit Period')) {
-      const match = ['Day','Week','Month'].find(x => normalize(x) === normalize(changes['Restroom Limit Period']))
-      if (match) patch.restroom_limit_period = match
-    }
+    if (Object.hasOwn(changes, 'Waiting List Enabled'))
+      patch.waiting_list_enabled=boolYes(changes['Waiting List Enabled'])
     if (Object.keys(patch).length) {
       const { error } = await admin.from('room_settings').update(patch).eq('room_id', room.id)
       if (error) throw error
@@ -1074,29 +1134,25 @@ async function handleAction(admin, body, fingerprintHash) {
   }
 
   if (action === 'updateDestinationFromDashboard') {
-    const name = String(args[1] || '').trim()
-    const changes = args[2] || {}
-    const { data: current, error: currentError } = await admin
-      .from('destinations')
-      .select('id,name,room_enabled,max_out_override')
-      .eq('room_id', room.id)
-      .ilike('name', name)
-      .maybeSingle()
-    if (currentError) throw currentError
-    if (!current) return fail('Destination not found.')
-
-    const patch = {}
-    if (Object.hasOwn(changes,'enabled')) patch.room_enabled = changes.enabled === true
-    if (Object.hasOwn(changes,'maxOutOverride')) {
-      const raw = changes.maxOutOverride
-      if (raw === null || String(raw ?? '').trim() === '') patch.max_out_override = null
-      else patch.max_out_override = Math.max(0, Math.round(Number(raw) || 0))
+    const name=String(args[1]||'').trim()
+    const changes=args[2]||{}
+    if(name.toLowerCase()!=='restroom'||Object.keys(changes).length!==1||typeof changes.enabled!=='boolean')
+      return fail('Teachers may only open or close Restroom requests for their room.')
+    const {data:current,error:readError}=await admin.from('destinations')
+      .select('id,catalog_id').eq('room_id',room.id).ilike('name','Restroom').maybeSingle()
+    if(readError)throw readError
+    if(!current)return fail('Restroom destination is not configured.')
+    if(changes.enabled){
+      const {data:catalog,error:catalogError}=await admin.from('destination_catalog')
+        .select('enabled_schoolwide').eq('id',current.catalog_id).maybeSingle()
+      if(catalogError)throw catalogError
+      if(catalog&&catalog.enabled_schoolwide===false)
+        return fail('Restroom is closed schoolwide by Admin.')
     }
-    if (!Object.keys(patch).length) return fail('No room destination changes were supplied.')
-
-    const { data, error } = await admin.from('destinations').update(patch).eq('id', current.id).select('name,enabled,max_out').single()
-    if (error) throw error
-    return { success: true, message: `${data.name} room settings updated.` }
+    const {error}=await admin.from('destinations').update({room_enabled:changes.enabled})
+      .eq('id',current.id)
+    if(error)throw error
+    return {success:true,message:changes.enabled?'Restroom requests are open.':'Restroom requests are closed.'}
   }
 
   if (action === 'addDestinationFromDashboard') {
@@ -1108,36 +1164,15 @@ async function handleAction(admin, body, fingerprintHash) {
   }
 
   if (action === 'clearWaitingListFromDashboard') {
-    const { data, error } = await admin.from('waiting_requests').select('id').eq('room_id', room.id).eq('status','WAITING')
-    if (error) throw error
-    const ids = (data||[]).map(x=>x.id)
-    if (ids.length) {
-      const u = await admin.from('waiting_requests').update({status:'CANCELLED',cancelled_by:'Teacher',cancelled_at:new Date().toISOString()}).in('id',ids)
-      if (u.error) throw u.error
-    }
-    return { success: true, message: `${ids.length} waiting request${ids.length===1?'':'s'} cleared.` }
+    return fail('This action is available to campus administrators only.')
   }
 
   if (action === 'setEmergencyLockFromDashboard') {
-    const turnOn = args[1] === true
-    const { error } = await admin.from('rooms').update({ emergency_lock: turnOn }).eq('id', room.id)
-    if (error) throw error
-    let cleared = 0
-    if (turnOn) {
-      const { data } = await admin.from('waiting_requests').select('id').eq('room_id',room.id).eq('status','WAITING')
-      const ids=(data||[]).map(x=>x.id)
-      cleared=ids.length
-      if (ids.length) await admin.from('waiting_requests').update({status:'CANCELLED',cancelled_by:'System',cancelled_at:new Date().toISOString()}).in('id',ids)
-    }
-    return { success: true, message: turnOn ? `Emergency Lock turned ON.${cleared ? ' Waiting list cleared.' : ''}` : 'Emergency Lock turned OFF.' }
+    return fail('This action is available to campus administrators only.')
   }
 
   if (action === 'backupPassLogFromDashboard') {
-    const { data: passes, error } = await admin.from('passes').select('*').eq('room_id', room.id).order('leave_at')
-    if (error) throw error
-    const { data: backup, error: backupError } = await admin.from('pass_backups').insert({ room_id: room.id, teacher_id: auth.teacher.id, snapshot: passes || [] }).select('id,created_at').single()
-    if (backupError) throw backupError
-    return { success: true, backupId: backup.id, message: `Pass Log backup created in the database (${new Date(backup.created_at).toLocaleString()}).` }
+    return fail('This action is available to campus administrators only.')
   }
 
   if (action === 'generatePassReport') return reportData(admin, room, args[1] || {})
