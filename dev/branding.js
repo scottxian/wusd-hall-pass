@@ -71,7 +71,7 @@
     // existing live OPEN/CLOSED/TEST bar stays below the entire brand header.
     const page = window.location.pathname.split('/').pop().toLowerCase();
     activePage = page === 'teacher.html' ? 'teacher' :
-      page === 'admin.html' ? 'admin' : 'student';
+      (page === 'admin.html' || page === 'master-admin.html') ? 'admin' : 'student';
     document.documentElement.classList.add('hp-page-' + activePage);
 
     if (activePage === 'student') {
@@ -86,7 +86,8 @@
         middle.appendChild(currentHeader);
         const heading = currentHeader.querySelector('h1');
         if (heading) heading.textContent = activePage === 'teacher'
-          ? 'Teacher Dashboard' : 'Campus Administration';
+          ? 'Teacher Dashboard' : page === 'master-admin.html'
+            ? 'Master Administration' : 'School Administration';
       }
     }
 
