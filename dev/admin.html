@@ -949,7 +949,7 @@
       target.className='adminGlobalMessage';
       adminGlobalMessageSource=value?source:'';
       if(!value)return;
-      const isClosed=type==='success'&&/\\b(?:closed|disabled|turned off)\\b/i.test(value);
+      const isClosed=type==='success'&&/\b(?:closed|disabled|turned off)\b/i.test(value);
       const tone=isClosed?'closed':type;
       if(tone)target.classList.add(tone);
       if(type==='success')adminGlobalMessageTimer=setTimeout(function(){
