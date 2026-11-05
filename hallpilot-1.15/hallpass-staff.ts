@@ -2036,6 +2036,76 @@ async function adminUpdateTeacher(admin, authTeacher, school, access, teacherId,
   return { success: true, message: `${q.data.name} updated.` }
 }
 
+async function adminRestrictionsState(admin,school){
+  const {data:rooms,error:roomError}=await admin.from('rooms').select('id,room_name,room_key')
+    .eq('school_id',school.id).order('room_name')
+  if(roomError)throw roomError
+  const roomMap=new Map((rooms||[]).map(x=>[x.id,x]))
+  if(!roomMap.size)return {success:true,rows:[]}
+  const {data:restrictions,error}=await admin.from('student_restroom_restrictions')
+    .select('room_id,student_id,restriction_type,pass_limit,updated_at')
+    .in('room_id',[...roomMap.keys()]).order('updated_at',{ascending:false})
+  if(error)throw error
+  if(!restrictions?.length)return {success:true,rows:[]}
+  const {data:students,error:studentError}=await admin.from('students')
+    .select('id,student_number,name').eq('school_id',school.id)
+    .in('id',[...new Set(restrictions.map(x=>x.student_id))])
+  if(studentError)throw studentError
+  const studentMap=new Map((students||[]).map(x=>[x.id,x]))
+  return {success:true,rows:restrictions.filter(x=>studentMap.has(x.student_id))
+    .map(x=>({
+      roomId:x.room_id,room:roomMap.get(x.room_id)?.room_name||'',
+      studentNumber:studentMap.get(x.student_id).student_number,
+      studentName:studentMap.get(x.student_id).name,
+      type:x.restriction_type,limit:x.pass_limit,updatedAt:x.updated_at
+    }))}
+}
+async function adminSaveRoomRestriction(admin,teacher,school,roomId,studentNumber,type,rawLimit){
+  const {data:room,error:roomError}=await admin.from('rooms').select('id')
+    .eq('id',String(roomId||'')).eq('school_id',school.id).maybeSingle()
+  if(roomError)throw roomError
+  if(!room)return fail('Room not found in this school.')
+  const {data:student,error:studentError}=await admin.from('students')
+    .select('id,name').eq('school_id',school.id).eq('student_number',String(studentNumber||'').trim())
+    .maybeSingle()
+  if(studentError)throw studentError
+  if(!student)return fail('Student not found.')
+  type=String(type||'')
+  if(!['Period','Day','Week','Month','Blocked'].includes(type))return fail('Invalid restriction.')
+  const limit=type==='Blocked'?null:Number(rawLimit)
+  if(type!=='Blocked'&&(!Number.isInteger(limit)||limit<1||limit>100))
+    return fail('Pass limit must be an integer between 1 and 100.')
+  const {error}=await admin.from('student_restroom_restrictions').upsert({
+    room_id:room.id,student_id:student.id,restriction_type:type,pass_limit:limit,
+    updated_by:teacher.id,updated_at:new Date().toISOString()
+  },{onConflict:'room_id,student_id'})
+  if(error)throw error
+  const legacy=await admin.from('room_students').update({restroom_allowed:true})
+    .eq('room_id',room.id).eq('student_id',student.id)
+  if(legacy.error)throw legacy.error
+  await writeAudit(admin,teacher.id,'ADMIN_SAVE_ROOM_RESTRICTION',room.id,
+    {studentId:student.id,type,limit},school.id)
+  return {success:true,message:'Restriction saved.'}
+}
+async function adminRemoveRoomRestriction(admin,teacher,school,roomId,studentNumber){
+  const {data:room,error:roomError}=await admin.from('rooms').select('id')
+    .eq('id',String(roomId||'')).eq('school_id',school.id).maybeSingle()
+  if(roomError)throw roomError
+  if(!room)return fail('Room not found.')
+  const {data:student,error:studentError}=await admin.from('students').select('id')
+    .eq('school_id',school.id).eq('student_number',String(studentNumber||'')).maybeSingle()
+  if(studentError)throw studentError
+  if(!student)return fail('Student not found.')
+  const {error}=await admin.from('student_restroom_restrictions').delete()
+    .eq('room_id',room.id).eq('student_id',student.id)
+  if(error)throw error
+  const legacy=await admin.from('room_students').update({restroom_allowed:true})
+    .eq('room_id',room.id).eq('student_id',student.id)
+  if(legacy.error)throw legacy.error
+  await writeAudit(admin,teacher.id,'ADMIN_REMOVE_ROOM_RESTRICTION',room.id,{studentId:student.id},school.id)
+  return {success:true,message:'Room restriction removed. Student follows the room default.'}
+}
+
 async function adminStudentsState(admin, school, options = {}) {
   const search = normalize(options.search || '')
   const includeInactive = options.includeInactive !== false
@@ -2838,6 +2908,9 @@ async function adminDashboard(admin, body, fingerprintHash) {
   if (body.action === 'adminCampusReport') return adminCampusReport(admin, school, args[0] || {})
   if (body.action === 'adminBackupDataset') return adminBackupDataset(admin, school, auth.access, args[0])
   if (body.action === 'adminAuditLog') return adminAuditLog(admin, school, args[0] || {})
+  if (body.action === 'adminRestrictionsState') return adminRestrictionsState(admin,school)
+  if (body.action === 'adminSaveRoomRestriction') return adminSaveRoomRestriction(admin,auth.teacher,school,args[0],args[1],args[2],args[3])
+  if (body.action === 'adminRemoveRoomRestriction') return adminRemoveRoomRestriction(admin,auth.teacher,school,args[0],args[1])
   if (body.action === 'adminStudentsState') return adminStudentsState(admin, school, args[0] || {})
   if (body.action === 'adminSaveStudent') return adminSaveStudent(admin, auth.teacher, school, args[0], args[1] || {})
   if (body.action === 'adminImportStudents') return adminImportStudents(admin, auth.teacher, school, args[0] || {})
