@@ -305,3 +305,55 @@ Browser end-to-end login and visual acceptance remain for user testing.
 Staged on hallpilot-1-15-room-scheduling; published dev/admin.html,
 dev/teacher.html and dev/index.html to main for GitHub Pages only.
 No production root page or production Supabase changes.
+
+
+DEV TEACHER RESTRICTIONS AND CONTROLS (NOV 5, 2026)
+--------------------------------------------------
+Teacher page:
+- "Today" summary at top; Students Out and Waiting side by side for
+  widths above 690px; Teacher Override Pass at bottom.
+- Fixed prior CSS misplacement inside the printable-report template.
+- Single toggle buttons for Restroom availability and Waiting List.
+- Removed Test Mode, bulk Clear Waiting, Backup Pass Log, destination
+  editing, room-wide Pass Settings, and the full restroom roster panel.
+- Student Restroom Restrictions stores only deviations from the room's
+  default: 1-100 passes per Period, Day, Week, Month; or Blocked.
+  Add via school roster search; edit or remove to restore room default.
+
+Admin:
+- Room modal controls default restroom pass limit (0=unlimited) and reset
+  period (Day, Week, Month); these are no longer teacher-editable.
+- Students screen can review, add, edit, and remove classroom exceptions
+  across all rooms. Admin's schoolwide student block retains precedence.
+
+DEV database:
+- public.student_restroom_restrictions, PRIMARY KEY(room_id,student_id),
+  only nondefault rules, RLS enabled with no end-user Data API policies.
+- hallpilot_private.restroom_status helper enforces schoolwide block,
+  room block, and per-room periods for all v2 pass-start RPCs.
+- Existing room_students restroom_allowed=false migrated to Blocked.
+- Original pass history and student/room records preserved.
+- Schema/RPC deployment script saved at
+  hallpilot-1.15/sql/restroom_restrictions_additive.sql.
+- SQL transaction exercised 9 synthetic restriction cases with rollback.
+
+DEV API:
+- Staff Edge Function v6 restricts teacher settings to today's approved
+  schedule override and Waiting List toggle; only Restroom can be
+  enabled/disabled by a teacher when Admin enables it schoolwide.
+- Teacher bulk queue clearing, test mode, destination editing, room
+  lockdown, and pass-log backup actions are denied server-side.
+- Individual restrictions save/remove operations verify the assigned
+  room and record the responsible teacher in the audit log.
+- Admin can manage room defaults and exceptions.
+- Dev api-shim routes new restriction actions to the Staff API.
+
+Verification:
+- Teacher/Admin HTML balanced, JavaScript syntax passed, unique IDs and
+  referenced elements checked.
+- 22 existing scheduling regressions passed.
+- DEV restriction SQL transaction passed 9 synthetic policy cases,
+  and all test writes rolled back.
+- DEV GitHub Pages pages match the staging branch, DEV Edge Function is
+  ACTIVE; root LIVE HTML/API files and LIVE database remain untouched.
+- Authenticated, interactive browser acceptance testing is still required.
