@@ -964,7 +964,14 @@
       x.textContent=t||'';
       x.className='message'+(e?' error':(t?' success':''));
       const panel=x.closest('.panel');
-      if(unlocked&&adminGeneralFeedbackIds.has(id)&&panel?.classList.contains('active')){
+      const activePanel=document.querySelector('#dashboard .panel.active')?.id||'';
+      const isActiveFeedback=Boolean(panel?.classList.contains('active'));
+      const isSharedManagementFeedback=id==='manageMessage'&&
+        (activePanel==='teachersPanel'||activePanel==='schedulePanel');
+      const isSchoolSwitchOrLiveError=id==='message'&&
+        (/switching school/i.test(String(t||''))||Boolean(e));
+      if(unlocked&&adminGeneralFeedbackIds.has(id)&&
+         (isActiveFeedback||isSharedManagementFeedback||isSchoolSwitchOrLiveError)){
         const value=String(t||'');
         if(value){
           const processing=/refreshing|loading|saving|creating|deleting|importing|updating|checking|previewing|processing|switching/i.test(value);
