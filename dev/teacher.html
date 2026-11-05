@@ -69,11 +69,13 @@
     /* Reserved dashboard message strip: never shifts the content when alerts come/go. */
     .teacherMessageDock {
       display:flex;align-items:center;gap:12px;height:46px;min-height:46px;
-      margin:0 0 14px;padding:5px 12px;background:#fff;
-      border:1px solid #dce4ec;border-radius:10px;
+      width:min(100%,760px);margin:0 auto 14px;padding:5px 12px;
+      background:#fff;border:1px solid #dce4ec;border-radius:10px;
     }
     .teacherMessageHeading {
-      flex:0 0 auto;color:#3f5368;font-size:13px;font-weight:700;
+      flex:0 0 auto;margin:0;color:#222;
+      font-size:var(--teacher-subheading-size,16px);
+      line-height:1.35;font-weight:700;
     }
     .actionMessage {
       display:flex;flex:1 1 auto;align-items:center;justify-content:center;
@@ -90,7 +92,6 @@
     .actionMessage.error { color:#8d1d18;background:#f8d7da;border-color:#e3a3a8; }
     @media(max-width:540px) {
       .teacherMessageDock{gap:8px;padding:5px 8px}
-      .teacherMessageHeading{font-size:12px}
       .actionMessage{font-size:12px;padding:4px 6px}
     }
     .message { min-height: 26px; margin-top: 10px; font-size: 16px; font-weight: bold; }
@@ -372,7 +373,7 @@
       </div>
 
       <div class="teacherMessageDock" aria-label="Dashboard messages">
-        <span class="teacherMessageHeading">Messages</span>
+        <h3 class="teacherMessageHeading">Messages:</h3>
         <div id="actionMessage" class="actionMessage" role="status" aria-live="polite" aria-atomic="true"></div>
       </div>
 
