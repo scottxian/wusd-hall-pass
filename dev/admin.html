@@ -257,6 +257,20 @@
       .adminMessagePanel{gap:8px}
       .adminGlobalMessage{font-size:12px;padding:4px 6px}
     }
+    /* Central messages replace duplicate top-level section messages only.
+       Detailed previews, forms, and modal feedback remain local. */
+    #dashboard #message,
+    #dashboard #campusLockMessage,
+    #dashboard #manageMessage,
+    #dashboard #scheduleMessage,
+    #dashboard #studentsMessage,
+    #dashboard #destinationsMessage,
+    #dashboard #calendarMessage,
+    #dashboard #securityMessage,
+    #dashboard #reportsMessage,
+    #dashboard #backupMessage,
+    #dashboard #auditMessage,
+    #dashboard #organizationMessage{display:none!important}
 </style>
 <link rel="stylesheet" href="branding.css">
 </head>
@@ -916,15 +930,59 @@
     const $=id=>document.getElementById(id); const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     function fmt(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString([], {month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'});} function elapsed(v){const ms=Date.now()-new Date(v).getTime();if(!Number.isFinite(ms))return '—';const m=Math.max(0,Math.floor(ms/60000));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0');}
     const adminMessageTimers=new Map();
+    let adminGlobalMessageTimer=null;
+    let adminGlobalMessageSource='';
+    // Only general panel feedback moves to the shared status strip. Detailed
+    // schedule previews, restriction warnings, modal errors and other guidance
+    // continue to appear in their own sections.
+    const adminGeneralFeedbackIds=new Set([
+      'message','campusLockMessage','manageMessage','scheduleMessage',
+      'studentsMessage','destinationsMessage','calendarMessage',
+      'securityMessage','reportsMessage','backupMessage','auditMessage',
+      'organizationMessage'
+    ]);
+    function setAdminGlobalMessage(text,type='',source=''){
+      const target=$('adminGlobalMessage');if(!target)return;
+      if(adminGlobalMessageTimer){clearTimeout(adminGlobalMessageTimer);adminGlobalMessageTimer=null;}
+      const value=String(text||'');
+      target.textContent=value;
+      target.className='adminGlobalMessage';
+      adminGlobalMessageSource=value?source:'';
+      if(!value)return;
+      const isClosed=type==='success'&&/\\b(?:closed|disabled|turned off)\\b/i.test(value);
+      const tone=isClosed?'closed':type;
+      if(tone)target.classList.add(tone);
+      if(type==='success')adminGlobalMessageTimer=setTimeout(function(){
+        if(target.textContent===value&&adminGlobalMessageSource===source){
+          setAdminGlobalMessage('','','');
+        }
+      },5000);
+    }
     function setMsg(id,t,e=false){
       const x=$(id);if(!x)return;
       if(adminMessageTimers.has(id)){clearTimeout(adminMessageTimers.get(id));adminMessageTimers.delete(id);}
       x.textContent=t||'';
       x.className='message'+(e?' error':(t?' success':''));
+      const panel=x.closest('.panel');
+      if(unlocked&&adminGeneralFeedbackIds.has(id)&&panel?.classList.contains('active')){
+        const value=String(t||'');
+        if(value){
+          const processing=/refreshing|loading|saving|creating|deleting|importing|updating|checking|previewing|processing|switching/i.test(value);
+          setAdminGlobalMessage(value,e?'error':processing?'processing':'success',id);
+        }else if(adminGlobalMessageSource===id){
+          setAdminGlobalMessage('','','');
+        }
+      }
       // Routine successes fade; errors and special-date preview guidance remain.
       const retain=new Set(['rsLegacyImportMessage','rsExceptionMessage']);
       if(t&&!e&&!retain.has(id)&&!/refreshing|loading|saving|creating|deleting|importing|updating|checking|previewing|processing/i.test(t)){
-        adminMessageTimers.set(id,setTimeout(()=>{if(x.textContent===t){x.textContent='';x.className='message'}adminMessageTimers.delete(id)},5000));
+        adminMessageTimers.set(id,setTimeout(()=>{
+          if(x.textContent===t){
+            x.textContent='';x.className='message';
+            if(adminGlobalMessageSource===id){setAdminGlobalMessage('','','');}
+          }
+          adminMessageTimers.delete(id)
+        },5000));
       }
     }
     function siteBase(){return location.href.split('#')[0].split('?')[0].replace(/admin\.html$/,'');}
@@ -1813,6 +1871,9 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       if(!document.getElementById(panelId)?.classList.contains('panel'))return;
       $('adminPageSelect').value=panelId;
       document.querySelectorAll('.panel').forEach(panel=>panel.classList.toggle('active',panel.id===panelId));
+      setAdminGlobalMessage('','','');
+      // The campus totals now stay visible on every page.
+      if(unlocked&&panelId!=='livePanel')refreshLive();
       if(['managePanel','teachersPanel','schedulePanel'].includes(panelId))refreshManagement();
       if(panelId==='studentsPanel')refreshStudents();
       if(panelId==='destinationsPanel')refreshDestinations();
@@ -1826,6 +1887,6 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('adminPageSelect').addEventListener('change',e=>openAdminPage(e.target.value));
         document.addEventListener('click',e=>{const sch=e.target.closest('[data-edit-school]');if(sch){openSchool(sch.dataset.editSchool);return}const es=e.target.closest('[data-edit-schedule]');if(es){openSchedule(es.dataset.editSchedule);return}const cp=e.target.closest('[data-copy-schedule]');if(cp){openSchedule(cp.dataset.copySchedule,true);return}const ds=e.target.closest('[data-delete-schedule]');if(ds){deleteSchedule(ds.dataset.deleteSchedule);return}const rl=e.target.closest('[data-room-links]');if(rl){openRoomLinks(rl.dataset.roomLinks);return}const er=e.target.closest('[data-edit-room]');if(er){openRoom(er.dataset.editRoom);return}const ert=e.target.closest('[data-email-room-teacher]');if(ert){emailRoomTeacher(ert.dataset.emailRoomTeacher);return}const aet=e.target.closest('[data-edit-teacher-from-links]');if(aet){hideModal('roomLinksModal');openTeacher(aet.dataset.editTeacherFromLinks);return}const dr=e.target.closest('[data-delete-room]');if(dr){deleteRoom(dr.dataset.deleteRoom);return}const et=e.target.closest('[data-edit-teacher]');if(et){openTeacher(et.dataset.editTeacher);return}const est=e.target.closest('[data-edit-student]');if(est){openStudent(est.dataset.editStudent);return}const edest=e.target.closest('[data-edit-destination]');if(edest){openDestination(edest.dataset.editDestination);return}const clr=e.target.closest('[data-clear-lockout]');if(clr){clearLockout(clr.dataset.scope,clr.dataset.hash);return}const ecal=e.target.closest('[data-edit-calendar]');if(ecal){editCalendar(ecal.dataset.editCalendar);return}const dcal=e.target.closest('[data-delete-calendar]');if(dcal){deleteCalendar(dcal.dataset.deleteCalendar);return}const dbatch=e.target.closest('[data-delete-calendar-batch]');if(dbatch){deleteCalendarBatch(dbatch.dataset.deleteCalendarBatch);return}const cl=e.target.closest('[data-close]');if(cl)hideModal(cl.dataset.close)});
     updateHallpassAdminTitle();
-    setInterval(()=>document.querySelectorAll('[data-left]').forEach(x=>x.textContent=elapsed(x.dataset.left)),1000);setInterval(()=>{if(unlocked && $('livePanel').classList.contains('active'))refreshLive()},5000);
+    setInterval(()=>document.querySelectorAll('[data-left]').forEach(x=>x.textContent=elapsed(x.dataset.left)),1000);setInterval(()=>{if(unlocked && $('livePanel').classList.contains('active'))refreshLive()},5000);setInterval(()=>{if(unlocked && !$('livePanel').classList.contains('active'))refreshLive()},30000);
   </script>
 </body></html>
