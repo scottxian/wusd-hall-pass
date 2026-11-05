@@ -1318,16 +1318,17 @@ async function ensureDefaultRoomSettings(admin, roomId) {
 }
 
 async function adminManagementState(admin, school, access) {
-  const [roomsQ, teachersQ, linksQ, schedulesQ, organizationSettingsQ, schoolSettingsQ, membershipsQ] = await Promise.all([
+  const [roomsQ, teachersQ, linksQ, schedulesQ, organizationSettingsQ, schoolSettingsQ, membershipsQ, roomSettingsQ] = await Promise.all([
     admin.from('rooms').select('id,room_key,room_name,timezone,active,emergency_lock,created_at').eq('school_id', school.id).order('room_name'),
     admin.from('teachers').select('id,name,email,role,active,created_at,organization_id').eq('organization_id', access.organization.id).order('name'),
     admin.from('teacher_rooms').select('teacher_id,room_id'),
     admin.from('master_schedules').select('id,schedule_name,period,start_time,end_time').eq('school_id', school.id).order('schedule_name').order('start_time'),
     admin.from('organization_settings').select('*').eq('organization_id',access.organization.id).maybeSingle(),
     admin.from('school_settings').select('*').eq('school_id',school.id).maybeSingle(),
-    admin.from('teacher_schools').select('teacher_id,school_id,access_level').eq('school_id',school.id)
+    admin.from('teacher_schools').select('teacher_id,school_id,access_level').eq('school_id',school.id),
+    admin.from('room_settings').select('room_id,restroom_pass_limit,restroom_limit_period')
   ])
-  for (const q of [roomsQ,teachersQ,linksQ,schedulesQ,organizationSettingsQ,schoolSettingsQ,membershipsQ]) if (q.error) throw q.error
+  for (const q of [roomsQ,teachersQ,linksQ,schedulesQ,organizationSettingsQ,schoolSettingsQ,membershipsQ,roomSettingsQ]) if (q.error) throw q.error
   const roomIds = new Set((roomsQ.data || []).map(r=>String(r.id)))
   const links = (linksQ.data || []).filter(x=>roomIds.has(String(x.room_id)))
   const membershipMap = new Map((membershipsQ.data || []).map(x=>[String(x.teacher_id),x.access_level]))
@@ -1345,6 +1346,8 @@ async function adminManagementState(admin, school, access) {
     rooms: (roomsQ.data || []).map(r => ({
       id: r.id, key: r.room_key, room: r.room_name, timezone: r.timezone,
       active: r.active, emergencyLock: r.emergency_lock, createdAt: r.created_at,
+      restroomLimit:roomSettingsQ.data?.find(x=>x.room_id===r.id)?.restroom_pass_limit??0,
+      restroomPeriod:roomSettingsQ.data?.find(x=>x.room_id===r.id)?.restroom_limit_period||'Day',
       teacherIds: links.filter(x => x.room_id === r.id).map(x => x.teacher_id)
     })),
     teachers: visibleTeachers.map(t => ({
@@ -1652,6 +1655,17 @@ async function adminCreateRoom(admin, authTeacher, school, data) {
       await ensureRoomDestinations(admin, room.id, school.id)
     }
 
+    if(Object.hasOwn(data,'restroomLimit')||Object.hasOwn(data,'restroomPeriod')){
+      const limit=Number(data.restroomLimit);
+      const period=String(data.restroomPeriod||'Day');
+      if(!Number.isInteger(limit)||limit<0||limit>100||!['Day','Week','Month'].includes(period))
+        throw new Error('Restroom default must be 0–100 passes per day, week, or month.');
+      const {error:settingsError}=await admin.from('room_settings').update({
+        restroom_pass_limit:limit,restroom_limit_period:period
+      }).eq('room_id',room.id)
+      if(settingsError)throw settingsError
+    }
+
     const teacherIds = Array.isArray(data.teacherIds) ? data.teacherIds : []
     for (const teacherId of [...new Set(teacherIds.map(x => String(x || '').trim()).filter(Boolean))]) {
       const teacherQ = await admin.from('teachers').select('id,organization_id,role').eq('id', teacherId).eq('organization_id', school.organization_id).maybeSingle()
@@ -1727,6 +1741,17 @@ async function adminUpdateRoom(admin, authTeacher, school, roomId, data) {
     throw q.error
   }
   if (!q.data) return fail('Room not found.')
+  if(Object.hasOwn(data,'restroomLimit')||Object.hasOwn(data,'restroomPeriod')){
+    const limit=Number(data.restroomLimit);
+    const period=String(data.restroomPeriod||'Day');
+    if(!Number.isInteger(limit)||limit<0||limit>100||!['Day','Week','Month'].includes(period))
+      return fail('Restroom default must be 0–100 passes per day, week, or month.')
+    const {error:settingsError}=await admin.from('room_settings').update({
+      restroom_pass_limit:limit,restroom_limit_period:period
+    }).eq('room_id',roomId)
+    if(settingsError)throw settingsError
+    await writeAudit(admin,authTeacher.id,'ADMIN_UPDATE_ROOM_RESTROOM_DEFAULT',roomId,{limit,period},school.id)
+  }
   if (Array.isArray(data.teacherIds)) {
     let ids = [...new Set(data.teacherIds.map(x => String(x || '').trim()).filter(Boolean))]
     const currentLinksQ = await admin.from('teacher_rooms').select('teacher_id').eq('room_id', roomId)
