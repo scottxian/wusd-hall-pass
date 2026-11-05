@@ -120,6 +120,83 @@
     .hpStudentOption:last-child { border-bottom:0; }
     .hpStudentNote { color:#555; padding:9px 12px; font-size:13px; }
     .hpStudentPicker input:focus, .hpStudentHints input:focus { outline:3px solid #8db5e7; outline-offset:0; }
+        /* Teacher DEV interface: essential status and two live lists first. */
+    .teacherPrimaryStatus{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
+    .teacherStatusDetails{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;padding:10px 14px 13px;margin:0 0 12px;border-radius:0 0 10px 10px;background:#fff;border:1px solid #e0e6ed;color:#566576;font-size:14px}
+    .teacherStatusDetails strong{color:#1c344e}
+    #statWindow.passOpen{color:#166437}
+    #statWindow.passClosed{color:#b3261e}
+    .teacherScheduleChoice{display:grid;grid-template-columns:minmax(220px,1fr) auto;align-items:end;gap:12px;margin:10px 0}
+    .teacherScheduleChoice label{font-size:13px;color:#526278}
+    .teacherScheduleChoice button{min-height:42px}
+    @media(max-width:580px){.teacherScheduleChoice{grid-template-columns:minmax(0,1fr)}}
+
+    .teacherLiveGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px}
+    .teacherLiveGrid>.card{min-width:0;margin-bottom:0;height:100%}
+    .teacherLiveGrid .tableWrap{overflow-x:auto}
+    .teacherLiveGrid table{table-layout:auto}
+    .teacherLiveGrid th,.teacherLiveGrid td{white-space:normal;overflow-wrap:anywhere;font-size:13px;padding:9px 7px}
+    .teacherLiveGrid button{font-size:13px;padding:8px 10px;min-height:36px}
+    .teacherDisclosure{padding:0;overflow:hidden}
+    .teacherDisclosure summary{margin:0;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;font-size:17px;font-weight:700;cursor:pointer;color:#244e75}
+    .teacherDisclosure summary::-webkit-details-marker{display:none}
+    .teacherDisclosure summary::after{content:"⌄";font-size:22px;font-weight:400}
+    .teacherDisclosure[open] summary::after{content:"⌃"}
+    .teacherDisclosure[open] summary{border-bottom:1px solid #e0e6ed}
+    .teacherDisclosure .disclosureBody{padding:17px 18px}
+    .teacherDisclosure.insetDisclosure{margin:14px 0;background:#f6f8fa;border:1px solid #dce4ec;border-radius:9px}
+    .teacherDisclosure.insetDisclosure .disclosureBody{padding:12px 16px}
+    .teacherDisclosure.insetDisclosure .controlGroup{margin:0}
+    .teacherDisclosure:focus-within{outline-offset:2px}
+    .teacherDisclosure summary:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
+    @media(max-width:690px){.teacherLiveGrid{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:620px){.teacherPrimaryStatus{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+      .teacherPrimaryStatus .stat{padding:10px 6px}.teacherPrimaryStatus .statValue{font-size:20px}
+      .teacherPrimaryStatus .statLabel{font-size:11px}
+      .teacherStatusDetails{font-size:13px;gap:6px 14px}
+    }
+    .reportDisclosure{margin:4px 0 16px;border:1px solid #dce4ec;border-radius:9px;background:#f8fafc}
+    .reportDisclosure summary{font-size:14px;padding:11px 14px}
+    .reportDisclosure .disclosureBody{padding:12px 14px}
+    .reportDisclosure .reportControls{margin-bottom:0}
+
+    /* Final Teacher UI: sticky live status, readable source and calm empty states. */
+    .teacherStatusDock{position:sticky;top:0;z-index:8;background:#f4f6f8;padding:6px 0 8px;
+      border-bottom:1px solid #dce3ec;transition:box-shadow .15s,padding .15s}
+    .teacherStatusDock.isCompact{box-shadow:0 7px 16px rgba(19,43,73,.13);padding:4px 0 5px}
+    .teacherStatusDock .teacherPrimaryStatus{gap:8px}
+    .teacherStatusDock .teacherPrimaryStatus .stat{padding:9px 12px}
+    .teacherStatusDock .teacherPrimaryStatus .statValue{font-size:22px}
+    .teacherStatusDock.isCompact .teacherPrimaryStatus .stat{padding:6px 12px}
+    .teacherStatusDock.isCompact .teacherPrimaryStatus .statValue{font-size:19px;margin-top:2px}
+    .teacherStatusDock .teacherStatusDetails{margin-bottom:0;padding:8px 12px;font-size:13px}
+    .teacherStatusDock.isCompact .teacherStatusDetails{padding:5px 12px;font-size:12px}
+    .scheduleSourceLabel{display:inline-block;padding:3px 8px;margin-left:5px;border-radius:999px;
+      background:#e5eef9;color:#1b4f89;font-size:12px;font-weight:600;vertical-align:middle}
+    .scheduleSourceLabel.isOverride{background:#f2e6fa;color:#68379c}
+    .emptyState{padding:26px 12px!important;text-align:center;color:#526476;background:#f7fafc;
+      font-size:14px!important;font-weight:500;white-space:normal}
+    .teacherLiveGrid .goButton{background:#16863a;color:#fff}
+    .teacherLiveGrid .cancelButton{background:#edf1f5;color:#344457}
+    .teacherLiveGrid .returnButton{background:#1f5ea8;color:#fff}
+    @media(max-width:620px){
+      .teacherStatusDock .teacherPrimaryStatus .stat{padding:7px 5px}
+      .teacherStatusDock .teacherPrimaryStatus .statValue{font-size:19px}
+      .teacherStatusDock.isCompact .teacherPrimaryStatus .statValue{font-size:17px}
+      .teacherStatusDock .teacherStatusDetails{gap:4px 12px;padding:6px 8px}
+      .scheduleSourceLabel{font-size:11px;margin-left:0;margin-top:3px}
+    }
+
+    /* Restored from printable report; actual screen CSS */
+    .teacherLiveGrid .tableWrap{max-width:100%;overflow-x:auto}
+    .teacherLiveGrid table{min-width:410px}
+    .teacherToday{padding:14px 16px}
+    .teacherToday h2{font-size:18px;margin:0 0 11px}
+    .teacherToday .statusGrid{margin:0;grid-template-columns:repeat(5,minmax(115px,1fr))}
+    .teacherToday .stat{padding:11px 9px}
+    .teacherToday .statValue{font-size:20px}
+    @media(max-width:800px){.teacherToday .statusGrid{grid-template-columns:repeat(3,minmax(100px,1fr))}}
+    @media(max-width:520px){.teacherToday .statusGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 <link rel="stylesheet" href="branding.css">
 </head>
@@ -165,6 +242,15 @@
       </div>
 
       <section id="tab-live" class="tabPanel activePanel">
+        <div class="card teacherToday"><h2>Today</h2><div class="statusGrid">
+            <div class="stat"><div class="statLabel">Passes Today</div><div id="passesToday" class="statValue">0</div></div>
+            <div class="stat"><div class="statLabel">Restroom Passes</div><div id="restroomToday" class="statValue">0</div></div>
+            <div class="stat"><div class="statLabel">Completed Passes</div><div id="completedToday" class="statValue">0</div></div>
+            <div class="stat"><div class="statLabel">Average Completed Pass</div><div id="averageTime" class="statValue">0:00</div></div>
+            <div class="stat"><div class="statLabel">Longest Completed Pass</div><div id="longestTime" class="statValue">0:00</div></div>
+          </div>
+        
+</div>
         <div class="teacherLiveGrid" aria-label="Current hall pass activity">
         <div class="card">
           <h2>Students Out</h2>
@@ -210,18 +296,6 @@
           </div>
           <button id="manualOverrideButton" class="purple" onclick="startManualOverride(this)">Start Override Pass</button>
           <div class="subtle">Destination capacity still applies. Any time or daily-limit override is recorded in the pass log and reports.</div>
-        
-</div></details>
-<details class="card teacherDisclosure todayDisclosure"><summary>Today</summary><div class="disclosureBody">
-
-          
-          <div class="statusGrid">
-            <div class="stat"><div class="statLabel">Passes Today</div><div id="passesToday" class="statValue">0</div></div>
-            <div class="stat"><div class="statLabel">Restroom Passes</div><div id="restroomToday" class="statValue">0</div></div>
-            <div class="stat"><div class="statLabel">Completed Passes</div><div id="completedToday" class="statValue">0</div></div>
-            <div class="stat"><div class="statLabel">Average Completed Pass</div><div id="averageTime" class="statValue">0:00</div></div>
-            <div class="stat"><div class="statLabel">Longest Completed Pass</div><div id="longestTime" class="statValue">0:00</div></div>
-          </div>
         
 </div></details>
       </section>
@@ -1705,72 +1779,6 @@
 
       const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(report.studentName)} - Hall Pass Report</title><style>
         body{font-family:Arial,sans-serif;color:#111;margin:28px;font-size:12px}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;margin-bottom:18px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 18px}.stat{border:1px solid #ccc;border-radius:6px;padding:8px}.label{font-size:10px;color:#555;text-transform:uppercase}.value{font-size:17px;font-weight:bold;margin-top:3px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:6px;text-align:left;white-space:nowrap}th{background:#eee}@media print{body{margin:0}}
-        /* Teacher DEV interface: essential status and two live lists first. */
-    .teacherPrimaryStatus{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
-    .teacherStatusDetails{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;padding:10px 14px 13px;margin:0 0 12px;border-radius:0 0 10px 10px;background:#fff;border:1px solid #e0e6ed;color:#566576;font-size:14px}
-    .teacherStatusDetails strong{color:#1c344e}
-    #statWindow.passOpen{color:#166437}
-    #statWindow.passClosed{color:#b3261e}
-    .teacherScheduleChoice{display:grid;grid-template-columns:minmax(220px,1fr) auto;align-items:end;gap:12px;margin:10px 0}
-    .teacherScheduleChoice label{font-size:13px;color:#526278}
-    .teacherScheduleChoice button{min-height:42px}
-    @media(max-width:580px){.teacherScheduleChoice{grid-template-columns:minmax(0,1fr)}}
-
-    .teacherLiveGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px}
-    .teacherLiveGrid>.card{min-width:0;margin-bottom:0;height:100%}
-    .teacherLiveGrid .tableWrap{overflow-x:auto}
-    .teacherLiveGrid table{table-layout:auto}
-    .teacherLiveGrid th,.teacherLiveGrid td{white-space:normal;overflow-wrap:anywhere;font-size:13px;padding:9px 7px}
-    .teacherLiveGrid button{font-size:13px;padding:8px 10px;min-height:36px}
-    .teacherDisclosure{padding:0;overflow:hidden}
-    .teacherDisclosure summary{margin:0;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;font-size:17px;font-weight:700;cursor:pointer;color:#244e75}
-    .teacherDisclosure summary::-webkit-details-marker{display:none}
-    .teacherDisclosure summary::after{content:"⌄";font-size:22px;font-weight:400}
-    .teacherDisclosure[open] summary::after{content:"⌃"}
-    .teacherDisclosure[open] summary{border-bottom:1px solid #e0e6ed}
-    .teacherDisclosure .disclosureBody{padding:17px 18px}
-    .teacherDisclosure.insetDisclosure{margin:14px 0;background:#f6f8fa;border:1px solid #dce4ec;border-radius:9px}
-    .teacherDisclosure.insetDisclosure .disclosureBody{padding:12px 16px}
-    .teacherDisclosure.insetDisclosure .controlGroup{margin:0}
-    .teacherDisclosure:focus-within{outline-offset:2px}
-    .teacherDisclosure summary:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
-    @media(max-width:1100px){.teacherLiveGrid{grid-template-columns:minmax(0,1fr)}}
-    @media(max-width:620px){.teacherPrimaryStatus{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-      .teacherPrimaryStatus .stat{padding:10px 6px}.teacherPrimaryStatus .statValue{font-size:20px}
-      .teacherPrimaryStatus .statLabel{font-size:11px}
-      .teacherStatusDetails{font-size:13px;gap:6px 14px}
-    }
-    .reportDisclosure{margin:4px 0 16px;border:1px solid #dce4ec;border-radius:9px;background:#f8fafc}
-    .reportDisclosure summary{font-size:14px;padding:11px 14px}
-    .reportDisclosure .disclosureBody{padding:12px 14px}
-    .reportDisclosure .reportControls{margin-bottom:0}
-
-    /* Final Teacher UI: sticky live status, readable source and calm empty states. */
-    .teacherStatusDock{position:sticky;top:0;z-index:8;background:#f4f6f8;padding:6px 0 8px;
-      border-bottom:1px solid #dce3ec;transition:box-shadow .15s,padding .15s}
-    .teacherStatusDock.isCompact{box-shadow:0 7px 16px rgba(19,43,73,.13);padding:4px 0 5px}
-    .teacherStatusDock .teacherPrimaryStatus{gap:8px}
-    .teacherStatusDock .teacherPrimaryStatus .stat{padding:9px 12px}
-    .teacherStatusDock .teacherPrimaryStatus .statValue{font-size:22px}
-    .teacherStatusDock.isCompact .teacherPrimaryStatus .stat{padding:6px 12px}
-    .teacherStatusDock.isCompact .teacherPrimaryStatus .statValue{font-size:19px;margin-top:2px}
-    .teacherStatusDock .teacherStatusDetails{margin-bottom:0;padding:8px 12px;font-size:13px}
-    .teacherStatusDock.isCompact .teacherStatusDetails{padding:5px 12px;font-size:12px}
-    .scheduleSourceLabel{display:inline-block;padding:3px 8px;margin-left:5px;border-radius:999px;
-      background:#e5eef9;color:#1b4f89;font-size:12px;font-weight:600;vertical-align:middle}
-    .scheduleSourceLabel.isOverride{background:#f2e6fa;color:#68379c}
-    .emptyState{padding:26px 12px!important;text-align:center;color:#526476;background:#f7fafc;
-      font-size:14px!important;font-weight:500;white-space:normal}
-    .teacherLiveGrid .goButton{background:#16863a;color:#fff}
-    .teacherLiveGrid .cancelButton{background:#edf1f5;color:#344457}
-    .teacherLiveGrid .returnButton{background:#1f5ea8;color:#fff}
-    @media(max-width:620px){
-      .teacherStatusDock .teacherPrimaryStatus .stat{padding:7px 5px}
-      .teacherStatusDock .teacherPrimaryStatus .statValue{font-size:19px}
-      .teacherStatusDock.isCompact .teacherPrimaryStatus .statValue{font-size:17px}
-      .teacherStatusDock .teacherStatusDetails{gap:4px 12px;padding:6px 8px}
-      .scheduleSourceLabel{font-size:11px;margin-left:0;margin-top:3px}
-    }
   </style></head><body>
         <h1>Student Pass Report: ${escapeHtml(report.studentName)}</h1>
         <div class="meta">${escapeHtml(meta)}</div>
