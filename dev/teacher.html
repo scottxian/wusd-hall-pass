@@ -133,7 +133,7 @@
     .hpStudentNote { color:#555; padding:9px 12px; font-size:13px; }
     .hpStudentPicker input:focus, .hpStudentHints input:focus { outline:3px solid #8db5e7; outline-offset:0; }
         /* Teacher DEV interface: essential status and two live lists first. */
-    .teacherPrimaryStatus{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
+    .teacherPrimaryStatus{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:0}
     .teacherStatusDetails{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;padding:10px 14px 13px;margin:0 0 12px;border-radius:0 0 10px 10px;background:#fff;border:1px solid #e0e6ed;color:#566576;font-size:14px}
     .teacherStatusDetails strong{color:#1c344e}
     #statWindow.passOpen{color:#166437}
@@ -162,7 +162,7 @@
     .teacherDisclosure:focus-within{outline-offset:2px}
     .teacherDisclosure summary:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
     @media(max-width:690px){.teacherLiveGrid{grid-template-columns:minmax(0,1fr)}}
-    @media(max-width:620px){.teacherPrimaryStatus{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+    @media(max-width:620px){.teacherPrimaryStatus{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
       .teacherPrimaryStatus .stat{padding:10px 6px}.teacherPrimaryStatus .statValue{font-size:20px}
       .teacherPrimaryStatus .statLabel{font-size:11px}
       .teacherStatusDetails{font-size:13px;gap:6px 14px}
@@ -277,11 +277,11 @@
         <div class="stat"><div class="statLabel">Period</div><div id="statPeriod" class="statValue">—</div></div>
         <div class="stat"><div class="statLabel">Pass Window</div><div id="statWindow" class="statValue">—</div></div>
         <div class="stat"><div class="statLabel">Students Out</div><div id="statOut" class="statValue">0</div></div>
+        <div class="stat"><div class="statLabel">Waiting</div><div id="statWaiting" class="statValue">0</div></div>
       </div>
       <div class="teacherStatusDetails" aria-label="Schedule and navigation">
         <div class="teacherScheduleMeta">
           <span class="teacherScheduleMetaItem">Schedule: <strong id="statSchedule">—</strong> <span class="scheduleSourceLabel" id="statScheduleSource" title="Schedule source">Automatic</span></span>
-          <span class="teacherScheduleMetaItem">Waiting: <strong id="statWaiting">0</strong></span>
           <span class="teacherScheduleMetaItem">Next change: <strong id="statNextChange">—</strong></span>
         </div>
         <div class="teacherPageNav">
