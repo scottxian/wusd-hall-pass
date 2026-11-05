@@ -344,7 +344,7 @@ async function getDestinations(admin, roomId, schoolId) {
       id: d.id,
       catalogId: d.catalog_id,
       name: c.name || d.name,
-      enabled: Boolean(d.enabled),
+      enabled: Boolean(d.enabled && d.room_enabled !== false && c.enabled_schoolwide !== false),
       roomEnabled: d.room_enabled !== false,
       schoolwideEnabled: c.enabled_schoolwide !== false,
       maxOut: Number(d.max_out || 0),
@@ -1134,25 +1134,28 @@ async function handleAction(admin, body, fingerprintHash) {
   }
 
   if (action === 'updateDestinationFromDashboard') {
-    const name=String(args[1]||'').trim()
-    const changes=args[2]||{}
+    const name=String(args[1]||'').trim();
+    const changes=args[2]||{};
     if(name.toLowerCase()!=='restroom'||Object.keys(changes).length!==1||typeof changes.enabled!=='boolean')
-      return fail('Teachers may only open or close Restroom requests for their room.')
-    const {data:current,error:readError}=await admin.from('destinations')
-      .select('id,catalog_id').eq('room_id',room.id).ilike('name','Restroom').maybeSingle()
-    if(readError)throw readError
-    if(!current)return fail('Restroom destination is not configured.')
+      return fail('Teachers may only open or close Restroom requests for their room.');
+    const roomDestinations=await getDestinations(admin,room.id,room.school_id);
+    const current=roomDestinations.find(d=>normalize(d.name)==='restroom');
+    if(!current)return fail('Restroom destination is not configured.');
+    if(changes.enabled&&current.schoolwideEnabled===false)
+      return fail('Restroom is closed schoolwide by Admin.');
     if(changes.enabled){
-      const {data:catalog,error:catalogError}=await admin.from('destination_catalog')
-        .select('enabled_schoolwide').eq('id',current.catalog_id).maybeSingle()
-      if(catalogError)throw catalogError
-      if(catalog&&catalog.enabled_schoolwide===false)
-        return fail('Restroom is closed schoolwide by Admin.')
+      const {data:databaseRow,error:dbError}=await admin.from('destinations')
+        .select('enabled').eq('id',current.id).maybeSingle();
+      if(dbError)throw dbError;
+      if(databaseRow?.enabled===false)
+        return fail('Restroom is unavailable at the school level. Ask Admin to enable it.');
     }
     const {error}=await admin.from('destinations').update({room_enabled:changes.enabled})
-      .eq('id',current.id)
-    if(error)throw error
-    return {success:true,message:changes.enabled?'Restroom requests are open.':'Restroom requests are closed.'}
+      .eq('id',current.id).eq('room_id',room.id);
+    if(error)throw error;
+    await writeAudit(admin,auth.teacher.id,'teacher_restroom_toggle',room.id,
+      {enabled:changes.enabled},room.school_id);
+    return {success:true,message:changes.enabled?'Restroom requests are open.':'Restroom requests are closed.'};
   }
 
   if (action === 'addDestinationFromDashboard') {
