@@ -322,6 +322,200 @@
         grid-column:1;justify-content:flex-end;width:100%;
       }
     }
+
+    /* SCHOOL ADMIN DEV — consistent, compact administrative components.
+       Scope these rules to dashboard panels; preserve all modal controls. */
+    #dashboard .panel .card:not(.adminDisclosure){
+      padding:16px;
+      margin-bottom:14px;
+      border-radius:12px;
+    }
+    #dashboard .panel .sectionHead{
+      gap:12px;
+      margin-bottom:10px;
+      align-items:center;
+    }
+    #dashboard .panel .sectionHead > div:first-child{min-width:0}
+    #dashboard .panel .sectionHead h2{margin-bottom:4px}
+    #dashboard .panel .sectionHead .muted{line-height:1.4}
+    #dashboard .panel .sectionHead > .actions{
+      justify-content:flex-end;
+      flex:0 0 auto;
+    }
+    #dashboard .panel .sectionHead > button,
+    #dashboard .panel .sectionHead > .actions button,
+    #dashboard .panel .adminToolbar button,
+    #dashboard .panel .adminOverviewToolbar > button{
+      width:auto;
+      min-width:0;
+      min-height:38px;
+      padding:8px 12px;
+      font-size:14px;
+      line-height:1.25;
+      white-space:nowrap;
+    }
+    #dashboard .panel input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+    #dashboard .panel select{
+      min-height:38px;
+      padding:7px 10px;
+      font-size:14px;
+    }
+    #dashboard .panel .adminFilterCard{padding:14px 16px}
+    #dashboard .panel .adminOverviewToolbar{
+      display:grid;
+      grid-template-columns:minmax(190px,1fr) minmax(260px,1.3fr) auto;
+      align-items:end;
+      gap:12px;
+    }
+    #dashboard .panel .adminOverviewToolbar > button{justify-self:end;align-self:end}
+    #dashboard .panel .adminToolbar{
+      display:flex;
+      align-items:end;
+      justify-content:space-between;
+      gap:12px;
+      margin:12px 0 14px;
+    }
+    #dashboard .panel .adminToolbar .adminFilterFields{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(150px,1fr));
+      gap:12px;
+      align-items:end;
+      flex:1 1 auto;
+      max-width:680px;
+      min-width:0;
+    }
+    #dashboard .panel .adminToolbar .actions{
+      display:flex;
+      justify-content:flex-end;
+      flex:0 0 auto;
+      gap:8px;
+    }
+    /* Tables: uniform headings, compact rows, predictable actions. */
+    #dashboard .panel .tableWrap{
+      max-width:100%;
+      overflow-x:auto;
+      border-radius:5px;
+    }
+    #dashboard .panel .tableWrap table{width:100%}
+    #dashboard .panel .tableWrap thead th{
+      position:sticky;
+      top:0;
+      z-index:1;
+      background:#e8eef5;
+      font-size:14px;
+      line-height:1.3;
+      font-weight:700;
+      color:#222;
+      padding:9px 10px;
+      text-transform:none;
+      letter-spacing:normal;
+    }
+    #dashboard .panel .tableWrap tbody td{
+      font-size:14px;
+      line-height:1.35;
+      padding:9px 10px;
+    }
+    #dashboard .panel .compactRooms th,
+    #dashboard .panel .compactRooms td{padding:9px 10px}
+    #dashboard .panel .tableWrap tbody tr:hover{background:#f8fafc}
+    /* Bound only long roster tables so their headers remain visible. */
+    #studentsPanel > .card > .tableWrap,
+    #managePanel > .card > .tableWrap,
+    #teachersPanel > .card > .tableWrap{
+      max-height:min(65vh,600px);
+      overflow:auto;
+    }
+    #dashboard .panel .tableWrap .emptyState{
+      padding:18px 12px!important;
+      min-height:54px;
+      text-align:center;
+    }
+    #dashboard .panel .tableWrap td:last-child .actions,
+    #dashboard .panel .tableWrap td:last-child .restrictionActions{
+      justify-content:flex-start;
+      gap:6px;
+    }
+    /* School emergency status — compact and clear when campus is locked. */
+    #livePanel .adminSafetyRow .adminEmergencyCard{
+      padding:14px 16px;
+      border:1px solid #e1d6d4;
+      box-shadow:none;
+    }
+    #livePanel .adminSafetyRow .adminEmergencyCard.isLocked{
+      border-color:#b3261e;
+      background:#fff8f7;
+    }
+    #livePanel .adminEmergencyCard .sectionHead{
+      gap:16px;
+      margin:0;
+    }
+    #livePanel .adminEmergencyHeading{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:4px;
+    }
+    #livePanel .adminEmergencyHeading h2{margin:0}
+    #livePanel .adminEmergencyCopy{flex:1 1 auto;min-width:0}
+    #livePanel .campusLockIndicator{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      padding:4px 9px;
+      background:#edf1f5;
+      color:#344457;
+      font-size:12px;
+      font-weight:700;
+      line-height:1.2;
+    }
+    #livePanel .campusLockIndicator.isLocked{
+      background:#fde3e3;
+      color:#9c1818;
+    }
+    #livePanel #campusLockButton{flex:0 0 auto;min-height:38px}
+    /* Older calendar remains functional, but is no longer presented as primary. */
+    #calendarPanel .legacyCalendarIntro{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin:0 0 6px;
+    }
+    #calendarPanel .legacyCalendarIntro h2{margin:0}
+    #calendarPanel .legacyCalendarTag{
+      display:inline-flex;
+      align-items:center;
+      border-radius:6px;
+      padding:4px 8px;
+      background:#e9eef3;
+      color:#45586a;
+      font-size:12px;
+      font-weight:700;
+    }
+    #calendarPanel .legacyCalendarHint{
+      margin:0 0 14px;
+      font-size:14px;
+      line-height:1.45;
+      color:#526476;
+    }
+    @media(max-width:960px){
+      #dashboard .panel .adminToolbar{flex-wrap:wrap}
+      #dashboard .panel .adminToolbar .adminFilterFields{max-width:none;flex:1 1 100%}
+      #dashboard .panel .adminToolbar .actions{margin-left:auto}
+    }
+    @media(max-width:720px){
+      #dashboard .panel .adminOverviewToolbar{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+      #dashboard .panel .adminOverviewToolbar > button{grid-column:1/-1;justify-self:end}
+    }
+    @media(max-width:520px){
+      #dashboard .panel .adminOverviewToolbar{grid-template-columns:minmax(0,1fr)}
+      #dashboard .panel .adminOverviewToolbar > button{grid-column:1}
+      #dashboard .panel .adminToolbar .adminFilterFields{grid-template-columns:minmax(0,1fr)}
+      #dashboard .panel .sectionHead > .actions{flex-wrap:wrap;justify-content:flex-start}
+      #livePanel .adminEmergencyCard .sectionHead{align-items:flex-start}
+    }
 </style>
 <link rel="stylesheet" href="branding.css">
 </head>
@@ -385,14 +579,14 @@
       </div>
 
       <section id="livePanel" class="panel active">
-        <div class="card"><div class="controls"><div><label for="roomFilter">Room</label><select id="roomFilter"><option value="">All Rooms</option></select></div><div><label for="search">History Search</label><input id="search" placeholder="Student, ID, destination, room..."></div><button id="refreshLive" class="gray">Refresh</button></div><div id="message" class="message"></div></div>
+        <div class="card adminFilterCard"><div class="controls adminOverviewToolbar"><div><label for="roomFilter">Room</label><select id="roomFilter"><option value="">All Rooms</option></select></div><div><label for="search">History Search</label><input id="search" placeholder="Student, ID, destination, room..."></div><button id="refreshLive" class="gray" type="button">Refresh</button></div><div id="message" class="message"></div></div>
         <div class="adminLiveGrid" aria-label="Current campus hall passes">
         <div class="card"><h2>Students Out Right Now</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Left</th><th>Time Gone</th></tr></thead><tbody id="outBody"></tbody></table></div></div>
         <div class="card"><h2>Waiting</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Requested</th></tr></thead><tbody id="waitingBody"></tbody></table></div></div>
         </div>
         <details class="card adminDisclosure" id="adminHistoryDisclosure"><summary>Recent Pass History</summary><div class="adminDisclosureBody"><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Left</th><th>Returned</th><th>Status</th></tr></thead><tbody id="historyBody"></tbody></table></div></div></details>
         <div class="adminSafetyRow">
-        <div class="card"><div class="sectionHead"><div><h2 style="margin-bottom:4px">Campus Emergency Lock</h2><div class="muted">Blocks all new passes campus-wide and clears waiting requests. Students already out remain visible until returned.</div></div><button id="campusLockButton" class="gray">Campus Lock: OFF</button></div><div id="campusLockMessage" class="message"></div></div>
+        <div class="card adminEmergencyCard" id="adminEmergencyCard"><div class="sectionHead"><div class="adminEmergencyCopy"><div class="adminEmergencyHeading"><h2 style="margin-bottom:0">Campus Emergency Lock</h2><span id="campusLockStatus" class="campusLockIndicator" role="status" aria-live="polite">Unlocked</span></div><div class="muted">Blocks new passes campus-wide and clears waiting requests. Students already out remain visible until returned.</div></div><button id="campusLockButton" class="gray">Campus Lock: OFF</button></div><div id="campusLockMessage" class="message"></div></div>
         </div>
       </section>
 
@@ -492,8 +686,8 @@
 
       <section id="studentsPanel" class="panel">
         <div class="card">
-          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Students</h2><div class="muted">Every active student can use every active room. Disable students instead of deleting them so pass history remains intact.</div></div><div class="actions"><button id="addStudentButton" class="green">Add Student</button><button id="importStudentsButton" class="purple">Import CSV</button><button id="refreshStudents" class="gray">Refresh</button></div></div>
-          <div class="controls" style="margin-top:12px"><div><label for="studentSearch">Search</label><input id="studentSearch" placeholder="Student name or ID"></div><div><label for="studentStatusFilter">Status</label><select id="studentStatusFilter"><option value="all">All Students</option><option value="active">Active Only</option><option value="inactive">Disabled Only</option></select></div></div>
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Students</h2><div class="muted">Every active student can use every active room. Disable students instead of deleting them so pass history remains intact.</div></div></div>
+          <div class="adminToolbar adminStudentToolbar"><div class="controls adminFilterFields"><div><label for="studentSearch">Search</label><input id="studentSearch" placeholder="Student name or ID"></div><div><label for="studentStatusFilter">Status</label><select id="studentStatusFilter"><option value="all">All Students</option><option value="active">Active Only</option><option value="inactive">Disabled Only</option></select></div></div><div class="actions"><button id="addStudentButton" class="green">Add Student</button><button id="importStudentsButton" class="purple">Import CSV</button><button id="refreshStudents" class="gray">Refresh</button></div></div>
           <div id="studentsMessage" class="message"></div>
           <div class="tableWrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Default Restroom</th><th>Actions</th></tr></thead><tbody id="studentsBody"></tbody></table></div>
         </div>
@@ -529,6 +723,11 @@
 
       <section id="calendarPanel" class="panel">
         <div class="card">
+          <div class="legacyCalendarIntro">
+            <h2>Legacy Calendar</h2>
+            <span class="legacyCalendarTag">Compatibility / rollback</span>
+          </div>
+          <p class="legacyCalendarHint">This is the previous scheduling system. Use <strong>Room Scheduling</strong> for current schedules and special days. The legacy tools remain available for compatibility and rollback.</p>
           <div class="calendarAutoBar">
             <div>
               <h3>Automatic Calendar Scheduling — Entire School</h3>
@@ -627,8 +826,8 @@
 
       <section id="auditPanel" class="panel">
         <div class="card">
-          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Audit Log</h2><div class="muted">Recent room, teacher, schedule, and PIN-management changes. PIN values and session tokens are never logged.</div></div><button id="refreshAudit" class="gray">Refresh</button></div>
-          <div class="controls" style="margin-top:12px"><div><label for="auditRoomFilter">Room</label><select id="auditRoomFilter"><option value="">All Rooms</option></select></div><div><label for="auditSearch">Search</label><input id="auditSearch" placeholder="Action, teacher, room..."></div></div>
+          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Audit Log</h2><div class="muted">Recent room, teacher, schedule, and PIN-management changes. PIN values and session tokens are never logged.</div></div></div>
+          <div class="adminToolbar adminAuditToolbar"><div class="controls adminFilterFields"><div><label for="auditRoomFilter">Room</label><select id="auditRoomFilter"><option value="">All Rooms</option></select></div><div><label for="auditSearch">Search</label><input id="auditSearch" placeholder="Action, teacher, room..."></div></div><button id="refreshAudit" class="gray" type="button">Refresh</button></div>
           <div id="auditMessage" class="message"></div>
           <div class="tableWrap"><table><thead><tr><th>When</th><th>Teacher/Admin</th><th>Room</th><th>Action</th><th>Details</th></tr></thead><tbody id="auditBody"></tbody></table></div>
         </div>
@@ -1068,7 +1267,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     let adminLiveRefreshBusy=false;
     const adminLiveSignatures={out:null,waiting:null,history:null,rooms:null};
     async function refreshLive(button){if(!unlocked||adminLiveRefreshBusy)return;adminLiveRefreshBusy=true;if(button)button.disabled=true;if(button)setMsg('message','Refreshing...');try{const r=await hallpassApi.call('adminState',[$('roomFilter').value,$('search').value.trim()]);if(!r.success){setMsg('message',r.message,true);return;}lastState=r;applyAdminContext(r);renderLive(r);setMsg('message','')}catch(e){setMsg('message',e.message,true)}finally{adminLiveRefreshBusy=false;if(button)button.disabled=false}}
-    function renderLive(r){$('statRooms').textContent=r.campusStats.activeRooms;$('statOut').textContent=r.campusStats.out;$('statWaiting').textContent=r.campusStats.waiting;const campusButton=$('campusLockButton');if(campusButton){campusButton.textContent=r.campusEmergencyLock?'Campus Lock: ON':'Campus Lock: OFF';campusButton.classList.toggle('red',r.campusEmergencyLock);campusButton.classList.toggle('gray',!r.campusEmergencyLock);}const sel=$('roomFilter'),cur=sel.value,roomSig=JSON.stringify(r.rooms);
+    function renderLive(r){$('statRooms').textContent=r.campusStats.activeRooms;$('statOut').textContent=r.campusStats.out;$('statWaiting').textContent=r.campusStats.waiting;const campusButton=$('campusLockButton');if(campusButton){campusButton.textContent=r.campusEmergencyLock?'Campus Lock: ON':'Campus Lock: OFF';campusButton.classList.toggle('red',r.campusEmergencyLock);campusButton.classList.toggle('gray',!r.campusEmergencyLock);}const campusLockStatus=$('campusLockStatus');if(campusLockStatus){campusLockStatus.textContent=r.campusEmergencyLock?'LOCKED':'Unlocked';campusLockStatus.classList.toggle('isLocked',Boolean(r.campusEmergencyLock));}const lockCard=$('adminEmergencyCard');if(lockCard)lockCard.classList.toggle('isLocked',Boolean(r.campusEmergencyLock));const sel=$('roomFilter'),cur=sel.value,roomSig=JSON.stringify(r.rooms);
       if(adminLiveSignatures.rooms!==roomSig&&document.activeElement!==sel){
         adminLiveSignatures.rooms=roomSig;
         sel.innerHTML='<option value="">All Rooms</option>'+r.rooms.map(x=>`<option value="${esc(x.key)}">${esc(x.room)}${x.emergencyLock?' — LOCKED':''}</option>`).join('');
