@@ -1800,7 +1800,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       $('rsCustomDayType').value='';
     }
     async function rsSaveType(){
-      const name=$('rsCustomDayType').value.replace(/\\s+/g,' ').trim();
+      const name=$('rsCustomDayType').value.replace(/\s+/g,' ').trim();
       if(!name)return setMsg('rsTypeMessage','Enter a Schedule Type name.',true);
       const btn=$('rsSaveTypeButton');btn.disabled=true;
       try{
