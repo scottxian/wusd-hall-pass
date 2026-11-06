@@ -579,7 +579,38 @@
     #roomSchedulePanel #rsModeMessage{display:none!important}
     #roomSchedulePanel .roomScheduleNav{padding-bottom:12px}
     #roomSchedulePanel #rsModeStatus{margin:4px 0;color:#435669;font-size:13px}
-  </style>
+  
+    /* DEV: scoped Special Days and reusable Room Groups */
+    #roomSchedulePanel .rsScopeSection{border-top:1px solid #e2e7ed;padding-top:15px;margin-top:16px}
+    #roomSchedulePanel .rsScopeHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+    #roomSchedulePanel .rsScopeHeader h3{font-size:16px;margin:0 0 4px}
+    #roomSchedulePanel .rsScopeHeader button{font-size:14px;min-height:36px;padding:8px 12px}
+    #roomSchedulePanel .rsScopeRules{display:grid;gap:10px}
+    #roomSchedulePanel .rsScopeRule{border:1px solid #dce4ee;border-radius:9px;padding:12px;background:#f8fafc}
+    #roomSchedulePanel .rsScopeRuleHead{display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) auto;gap:10px;align-items:end}
+    #roomSchedulePanel .rsScopeRuleButton{min-height:38px;font-size:13px;padding:8px 12px}
+    #roomSchedulePanel .rsScopeRuleTargets{margin-top:10px}
+    #roomSchedulePanel .rsRoomCheckGrid,#roomSchedulePanel .rsGroupCheckGrid{
+       display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;
+       padding:10px;background:#fff;border:1px solid #e1e6ee;border-radius:8px;
+    }
+    #roomSchedulePanel .rsRoomCheckGrid label,#roomSchedulePanel .rsGroupCheckGrid label{
+       font-weight:500;margin:0;display:flex;align-items:center;gap:6px;font-size:14px;
+    }
+    #roomSchedulePanel .rsRoomCheckGrid input,#roomSchedulePanel .rsGroupCheckGrid input{width:17px;height:17px;min-height:17px;margin:0}
+    #roomSchedulePanel .rsRepeatDetails{border-top:1px solid #e2e7ed;margin-top:15px;padding-top:12px}
+    #roomSchedulePanel .rsRepeatDetails summary{cursor:pointer;color:#23517d;font-size:14px;font-weight:700}
+    #roomSchedulePanel .rsPreviewTitle{font-size:16px;margin:16px 0 8px}
+    #roomSchedulePanel .rsGroupEditor{padding:14px;background:#f7fafc;border:1px solid #dce4ee;border-radius:9px;margin:12px 0}
+    #roomSchedulePanel .rsGroupEditorTop{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    #roomSchedulePanel .rsGroupEditorTop>div:first-child{flex:1 1 220px;max-width:420px}
+    #roomSchedulePanel .rsGroupEditorTop button{min-height:38px;padding:8px 12px;font-size:14px}
+    #roomSchedulePanel #rsGroupsTable .actions{gap:6px}
+    @media(max-width:620px){
+      #roomSchedulePanel .rsScopeRuleHead{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+      #roomSchedulePanel .rsScopeRuleHead button{grid-column:1/-1;justify-self:start}
+    }
+</style>
 <link rel="stylesheet" href="branding.css">
 </head>
 <body><div style="background:#f4c542;color:#222;padding:8px;text-align:center;font-weight:bold">HALL PILOT DEV · LIVE SCHOOL SNAPSHOT · TEST ONLY</div>
@@ -685,6 +716,7 @@
         <div class="roomScheduleNav"><label for="rsSectionSelect">Manage</label><select id="rsSectionSelect" aria-label="Choose scheduling section">
           <option value="classrooms">Classroom Schedules</option>
           <option value="special">Special Days</option>
+          <option value="groups">Room Groups</option>
           
         </select></div>
         <div id="rsSectionClassrooms">
@@ -724,36 +756,63 @@
             <div id="rsAssignMessage" class="message" role="status" aria-live="polite"></div>
           </div>
         </div>
-        <div id="rsSectionSpecial" class="hidden">        <div class="card">
-          <h2>Special-Day Calendar</h2>
-          <div class="muted">No entries are needed for ordinary days. Assign special-day schedules to every active room before using a day type for the entire school.</div>
-          <div class="formGrid" style="margin-top:12px">
-            <div><label for="rsExceptionDayType">Schedule Type</label><select id="rsExceptionDayType"></select></div>
-            <div><label for="rsOneDate">One Date</label><input id="rsOneDate" type="date"></div>
-            <div><label for="rsConflictMode">If Date Already Exists</label><select id="rsConflictMode"><option value="skip">Skip</option><option value="replace">Replace</option></select></div>
-            <div><label for="rsNote">Note (optional)</label><input id="rsNote" maxlength="250" placeholder="Minimum Day, assembly…"></div>
+        <div id="rsSectionSpecial" class="hidden">
+          <div class="card">
+            <div class="sectionHead">
+              <div><h2>Special Days</h2><div class="muted">Set a schoolwide default for a date, then add optional exceptions for room groups or individual rooms. Everyone else follows the default.</div></div>
+              <button id="rsClearDateForm" type="button" class="quietButton">New Special Day</button>
+            </div>
+            <div class="formGrid" style="margin-top:12px">
+              <div><label for="rsOneDate">Date</label><input id="rsOneDate" type="date"></div>
+              <div><label for="rsExceptionDayType">Schoolwide Schedule Type</label><select id="rsExceptionDayType"></select></div>
+              <div><label for="rsConflictMode">Existing Date</label><select id="rsConflictMode"><option value="skip">Skip Existing</option><option value="replace">Replace Existing</option></select></div>
+              <div><label for="rsNote">Note (optional)</label><input id="rsNote" maxlength="250" placeholder="Middle school rally…"></div>
+            </div>
+            <div class="rsScopeSection">
+              <div class="rsScopeHeader"><div><h3>Exceptions</h3><div class="muted">Choose groups or individual rooms to use another schedule type. Room selections override group selections.</div></div><button id="rsAddScopeRule" class="softButton" type="button">+ Add Exception</button></div>
+              <div id="rsScopeRules" class="rsScopeRules"></div>
+              <div id="rsScopeNote" class="muted">Room groups are reusable; changing a group later will not change dates you've already saved.</div>
+            </div>
+            <details class="rsRepeatDetails">
+              <summary>Repeat or apply to multiple dates</summary>
+              <div class="formGrid" style="margin-top:12px">
+                <div><label for="rsRepeatStart">Start Date</label><input id="rsRepeatStart" type="date"></div>
+                <div><label for="rsRepeatEnd">End Date</label><input id="rsRepeatEnd" type="date"></div>
+              </div>
+              <div style="margin-top:10px"><label>Repeat on weekdays</label><div class="checkRow" id="rsWeekdays">
+                <label><input type="checkbox" value="1">Monday</label><label><input type="checkbox" value="2">Tuesday</label><label><input type="checkbox" value="3">Wednesday</label><label><input type="checkbox" value="4">Thursday</label><label><input type="checkbox" value="5">Friday</label>
+              </div></div>
+              <div style="margin-top:12px"><label for="rsDateList">Or paste dates (one per line)</label><textarea id="rsDateList" rows="3" placeholder="11/18/2026&#10;12/2/2026"></textarea></div>
+            </details>
+            <div class="actions" style="margin-top:14px">
+              <button id="rsPreview" class="purple" type="button">Preview Room Schedules</button>
+              <button id="rsApply" class="green" type="button" disabled>Save Previewed Dates</button>
+            </div>
+            <div id="rsExceptionMessage" class="message" role="status" aria-live="polite"></div>
+            <div id="rsPreviewWrap" class="hidden">
+              <h3 class="rsPreviewTitle">Preview by Room</h3>
+              <div id="rsPreviewSummary" class="muted"></div>
+              <div class="tableWrap"><table><thead><tr><th>Room</th><th>Schedule Type</th><th>Bell Schedule</th><th>Source</th></tr></thead><tbody id="rsRoomPreviewBody"></tbody></table></div>
+              <h3 class="rsPreviewTitle" style="margin-top:14px">Date Changes</h3>
+              <div class="tableWrap"><table><thead><tr><th>Date</th><th>Current Default</th><th>New Default</th><th>Result</th></tr></thead><tbody id="rsPreviewBody"></tbody></table></div>
+            </div>
           </div>
-          <div class="formGrid" style="margin-top:12px">
-            <div><label for="rsRepeatStart">Or Repeat — Start</label><input id="rsRepeatStart" type="date"></div>
-            <div><label for="rsRepeatEnd">Repeat — End</label><input id="rsRepeatEnd" type="date"></div>
+          <div class="card">
+            <h2>Configured Special Days</h2>
+            <div class="muted">Only dates with a schoolwide special type or scoped exceptions appear here. Normal days automatically use Primary.</div>
+            <div class="tableWrap" style="margin-top:12px"><table><thead><tr><th>Date</th><th>Default</th><th>Room Exceptions</th><th>Note</th><th>Actions</th></tr></thead><tbody id="rsExceptionsBody"></tbody></table></div>
           </div>
-          <div style="margin-top:8px"><label>Repeat on weekdays</label><div class="checkRow" id="rsWeekdays">
-            <label><input type="checkbox" value="1">Monday</label><label><input type="checkbox" value="2">Tuesday</label><label><input type="checkbox" value="3">Wednesday</label><label><input type="checkbox" value="4">Thursday</label><label><input type="checkbox" value="5">Friday</label>
-          </div></div>
-          <div style="margin-top:12px"><label for="rsDateList">Or Paste Specific Dates (one per line)</label><textarea id="rsDateList" rows="3" placeholder="11/18/2026&#10;12/2/2026"></textarea></div>
-          <div class="actions" style="margin-top:12px">
-            <button id="rsPreview" class="purple" type="button">Preview Special Days</button>
-            <button id="rsApply" class="green" type="button" disabled>Save Previewed Dates</button>
-          </div>
-          <div id="rsExceptionMessage" class="message"></div>
-          <div id="rsPreviewWrap" class="hidden"><div class="tableWrap" style="margin-top:10px"><table><thead><tr><th>Date</th><th>Existing</th><th>Requested</th><th>Result</th></tr></thead><tbody id="rsPreviewBody"></tbody></table></div></div>
         </div>
-
-        <div class="card">
-          <h2>Configured Special Days</h2>
-          <div class="muted">These dates are used only when Room Scheduling is enabled and Automatic Scheduling is on.</div>
-          <div class="tableWrap" style="margin-top:12px"><table><thead><tr><th>Date</th><th>Schedule Type</th><th>Note</th><th>Action</th></tr></thead><tbody id="rsExceptionsBody"></tbody></table></div>
-        </div>
+        <div id="rsSectionGroups" class="hidden">
+          <div class="card">
+            <div class="sectionHead"><div><h2>Room Groups</h2><div class="muted">Save groups such as Middle School or 6th Grade for special-day exceptions. A room may belong to multiple groups.</div></div><button id="rsNewGroup" class="green" type="button">Add Room Group</button></div>
+            <div id="rsGroupEditor" class="rsGroupEditor hidden">
+              <div class="rsGroupEditorTop"><div><label for="rsGroupName">Group Name</label><input id="rsGroupName" maxlength="80" placeholder="e.g., Middle School"></div><div class="actions"><button id="rsSaveGroup" class="green" type="button">Save Group</button><button id="rsCancelGroup" class="gray" type="button">Cancel</button></div></div>
+              <label>Select Active Rooms</label><div id="rsGroupChecks" class="rsGroupCheckGrid"></div>
+            </div>
+            <div id="rsGroupMessage" class="message" role="status" aria-live="polite"></div>
+            <div class="tableWrap"><table><thead><tr><th>Room Group</th><th>Rooms</th><th>Actions</th></tr></thead><tbody id="rsGroupsTable"></tbody></table></div>
+          </div>
         </div>
         <div id="rsSectionAdvanced" class="hidden">        <div class="card">
           <h2>Bring Existing Special Dates Forward</h2>
@@ -1687,9 +1746,9 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
 
     function showRoomSchedulingSection(section) {
-      if (!['classrooms','special'].includes(section)) return;
+      if (!['classrooms','special','groups'].includes(section)) return;
       $('rsSectionSelect').value=section;
-      for (const [part,id] of [['classrooms','rsSectionClassrooms'],['special','rsSectionSpecial'],['advanced','rsSectionAdvanced']]) {
+      for (const [part,id] of [['classrooms','rsSectionClassrooms'],['special','rsSectionSpecial'],['groups','rsSectionGroups'],['advanced','rsSectionAdvanced']]) {
         $(id).classList.toggle('hidden',part!==section);
       }
     }
