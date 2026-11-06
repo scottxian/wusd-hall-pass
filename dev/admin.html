@@ -516,6 +516,59 @@
       #dashboard .panel .sectionHead > .actions{flex-wrap:wrap;justify-content:flex-start}
       #livePanel .adminEmergencyCard .sectionHead{align-items:flex-start}
     }
+
+    /* Room scheduling: schedule TYPE is a filter, not a grid of hardcoded
+       Primary/Minimum/Rally columns. Active room assignments share one table. */
+    #roomSchedulePanel .rsScheduleTypeBar{
+      display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
+      margin:14px 0 12px;
+    }
+    #roomSchedulePanel .rsTypePicker{flex:1 1 240px;max-width:380px;min-width:180px}
+    #roomSchedulePanel .rsScheduleTypeBar .actions{align-items:flex-end;gap:8px}
+    #roomSchedulePanel .rsScheduleTypeBar .actions button{
+      min-height:38px;padding:8px 12px;width:auto;font-size:14px;
+    }
+    #roomSchedulePanel .rsTypeEditor{
+      display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;
+      padding:12px;margin:0 0 12px;background:#f6f8fb;border:1px solid #dce4ec;
+      border-radius:8px;
+    }
+    #roomSchedulePanel .rsTypeEditor > div{flex:1 1 250px;max-width:420px}
+    #roomSchedulePanel .rsTypeEditor button{min-height:38px;font-size:14px;padding:8px 12px}
+    #roomSchedulePanel .rsScheduleAssignmentBar{
+      display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
+      margin:12px 0 16px;
+    }
+    #roomSchedulePanel .rsBellSchedulePicker{flex:1 1 250px;max-width:420px;min-width:180px}
+    #roomSchedulePanel .rsScheduleAssignmentBar button{
+      flex:0 0 auto;min-height:38px;white-space:nowrap;padding:8px 12px;font-size:14px;
+    }
+    #roomSchedulePanel .rsRoomTableHeader{
+      display:flex;justify-content:space-between;align-items:center;
+      gap:12px;flex-wrap:wrap;margin:6px 0;
+    }
+    #roomSchedulePanel .rsRoomTableHeader h3{margin:0;font-size:16px;font-weight:700;color:#222}
+    #roomSchedulePanel .rsRoomTableHeader button{width:auto;min-height:36px;padding:7px 11px;font-size:13px}
+    #roomSchedulePanel .rsAssignmentTable td:first-child,
+    #roomSchedulePanel .rsAssignmentTable th:first-child{
+      width:85px;text-align:center;
+    }
+    #roomSchedulePanel .rsRoomCheckLabel{display:inline-flex;justify-content:center;align-items:center;margin:0}
+    #roomSchedulePanel .rsRoomCheckLabel input{
+      width:18px;min-height:18px;height:18px;margin:0;cursor:pointer;
+    }
+    #roomSchedulePanel .rsAssignmentStatus{
+      display:inline-flex;border-radius:999px;padding:4px 9px;
+      font-size:12px;font-weight:700;white-space:nowrap;
+    }
+    #roomSchedulePanel .rsAssignmentStatus.isAssigned{color:#155c32;background:#e3f2e8}
+    #roomSchedulePanel .rsAssignmentStatus.isUnassigned{color:#6b5032;background:#fff0d7}
+    @media(max-width:620px){
+      #roomSchedulePanel .rsScheduleTypeBar .rsTypePicker,
+      #roomSchedulePanel .rsBellSchedulePicker{max-width:none;flex:1 1 100%}
+      #roomSchedulePanel .rsScheduleTypeBar .actions{width:100%}
+      #roomSchedulePanel .rsScheduleAssignmentBar button{flex:1 1 auto}
+    }
 </style>
 <link rel="stylesheet" href="branding.css">
 </head>
@@ -624,28 +677,48 @@
           <option value="special">Special Days</option>
           <option value="advanced">Advanced / Migration</option>
         </select></div>
-        <div id="rsSectionClassrooms">        <div class="card">
-          <h2>Assign Primary & Special Schedules</h2>
-          <div class="muted">A master schedule can be assigned to any number of rooms. Select rooms below; Grade level is not required.</div>
-          <div class="actions" style="margin:12px 0">
-            <button id="rsSelectAll" class="gray" type="button">Select All Active Rooms</button>
-            <button id="rsSelectNone" class="gray" type="button">Clear Selection</button>
+        <div id="rsSectionClassrooms">
+          <div class="card">
+            <h2>Room Schedule Assignments</h2>
+            <div class="muted">Choose a Schedule Type to view its assigned bell schedule in every active room. Types are school-wide; each room can use a different bell schedule for the same type.</div>
+            <div class="rsScheduleTypeBar">
+              <div class="rsTypePicker">
+                <label for="rsAssignDayType">Schedule Type</label>
+                <select id="rsAssignDayType" aria-label="Choose the schedule type to display"></select>
+              </div>
+              <div class="actions">
+                <button id="rsAddTypeButton" type="button" class="softButton">Add Type</button>
+                <button id="rsDeleteTypeButton" type="button" class="gray">Delete Type</button>
+              </div>
+            </div>
+            <div id="rsTypeAddPanel" class="rsTypeEditor hidden">
+              <div><label for="rsCustomDayType">New Schedule Type</label><input id="rsCustomDayType" maxlength="80" placeholder="e.g., Minimum, Assembly, Early Release"></div>
+              <button id="rsSaveTypeButton" class="green" type="button">Save Type</button>
+              <button id="rsCancelTypeButton" class="gray" type="button">Cancel</button>
+            </div>
+            <div id="rsTypeMessage" class="message" role="status" aria-live="polite"></div>
+            <div class="rsScheduleAssignmentBar">
+              <div class="rsBellSchedulePicker"><label for="rsMasterSchedule">Bell Schedule</label><select id="rsMasterSchedule"></select></div>
+              <button id="rsViewSchedule" type="button" class="gray" aria-haspopup="dialog">View Schedule</button>
+              <button id="rsAssignSchedule" class="green" type="button">Assign to Selected Rooms</button>
+            </div>
+            <div class="rsRoomTableHeader">
+              <h3><span id="rsSelectedTypeTitle">Primary</span> Schedules by Room</h3>
+              <div class="actions">
+                <button id="rsSelectAll" class="gray" type="button">Select All Active Rooms</button>
+                <button id="rsSelectNone" class="gray" type="button">Clear Selection</button>
+              </div>
+            </div>
+            <div id="rsSelectedTypeDescription" class="muted">Showing Primary schedules for active rooms.</div>
+            <div class="tableWrap" style="margin-top:12px"><table class="rsAssignmentTable"><thead><tr><th>Select</th><th>Room</th><th id="rsScheduleColumnTitle">Primary Schedule</th><th>Status</th></tr></thead><tbody id="rsRoomTable"></tbody></table></div>
+            <div id="rsAssignMessage" class="message" role="status" aria-live="polite"></div>
           </div>
-          <div class="checkRow" id="rsRoomChecks" style="margin:8px 0 12px"></div>
-          <div class="formGrid">
-            <div><label for="rsAssignDayType">Day Type</label><select id="rsAssignDayType"><option value="Primary">Primary</option><option value="Minimum">Minimum</option><option value="Rally">Rally</option><option value="Testing">Testing</option><option value="Assembly">Assembly</option><option value="">Add custom day type…</option></select><div id="rsCustomDayTypeField" class="hidden" style="margin-top:8px"><label for="rsCustomDayType">Custom Day Type</label><input id="rsCustomDayType" maxlength="80" placeholder="Enter a name"></div></div>
-            <div><label for="rsMasterSchedule">Master Bell Schedule</label><select id="rsMasterSchedule"></select><button id="rsViewSchedule" type="button" class="gray" style="margin-top:8px" aria-haspopup="dialog">View Schedule</button></div>
-            <div><button id="rsAssignSchedule" class="green" type="button">Assign to Selected Rooms</button></div>
-          </div>
-          <div id="rsAssignMessage" class="message"></div>
-          <div class="tableWrap" style="margin-top:12px"><table><thead><tr><th>Room</th><th>Primary</th><th>Minimum</th><th>Rally</th><th>Other Assigned Days</th></tr></thead><tbody id="rsRoomTable"></tbody></table></div>
-        </div>
         </div>
         <div id="rsSectionSpecial" class="hidden">        <div class="card">
           <h2>Special-Day Calendar</h2>
           <div class="muted">No entries are needed for ordinary days. Assign special-day schedules to every active room before using a day type for the entire school.</div>
           <div class="formGrid" style="margin-top:12px">
-            <div><label for="rsExceptionDayType">Special Day Type</label><select id="rsExceptionDayType"></select></div>
+            <div><label for="rsExceptionDayType">Schedule Type</label><select id="rsExceptionDayType"></select></div>
             <div><label for="rsOneDate">One Date</label><input id="rsOneDate" type="date"></div>
             <div><label for="rsConflictMode">If Date Already Exists</label><select id="rsConflictMode"><option value="skip">Skip</option><option value="replace">Replace</option></select></div>
             <div><label for="rsNote">Note (optional)</label><input id="rsNote" maxlength="250" placeholder="Minimum Day, assembly…"></div>
@@ -669,7 +742,7 @@
         <div class="card">
           <h2>Configured Special Days</h2>
           <div class="muted">These dates are used only when Room Scheduling is enabled and Automatic Scheduling is on.</div>
-          <div class="tableWrap" style="margin-top:12px"><table><thead><tr><th>Date</th><th>Day Type</th><th>Note</th><th>Action</th></tr></thead><tbody id="rsExceptionsBody"></tbody></table></div>
+          <div class="tableWrap" style="margin-top:12px"><table><thead><tr><th>Date</th><th>Schedule Type</th><th>Note</th><th>Action</th></tr></thead><tbody id="rsExceptionsBody"></tbody></table></div>
         </div>
         </div>
         <div id="rsSectionAdvanced" class="hidden">        <div class="card">
@@ -1620,57 +1693,85 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       if(action==='delete')deleteSchedule(index);
     });
     function rsDayTypes() {
-      const unique = new Map();
-      for (const x of (rsState?.assignments || [])) {
-        const type = String(x.dayType || '').trim();
-        if (type && !['regular','primary'].includes(type.toLowerCase())) unique.set(type.toLowerCase(), type);
-      }
-      return [...unique.values()].sort((a,b)=>a.localeCompare(b));
+      const names=Array.isArray(rsState?.scheduleTypes) ? rsState.scheduleTypes : [];
+      const other=names.filter(name=>!['primary','regular'].includes(String(name).trim().toLowerCase()));
+      return [...new Set(other)].sort((a,b)=>a.localeCompare(b));
     }
 
-
+    function rsSelectedRoomIds() {
+      return [...document.querySelectorAll('#rsRoomTable [data-rs-room]:checked')].map(x=>x.value);
+    }
+    function rsSelectAll(yes) {
+      document.querySelectorAll('#rsRoomTable [data-rs-room]').forEach(x=>x.checked=Boolean(yes));
+    }
+    function rsScheduleTypeChanged() {
+      $('rsTypeAddPanel').classList.add('hidden');
+      $('rsCustomDayType').value='';
+      const type=$('rsAssignDayType').value;
+      $('rsDeleteTypeButton').disabled = !type || type.toLowerCase()==='primary';
+      $('rsDeleteTypeButton').title = type.toLowerCase()==='primary'
+        ? 'Primary is required for normal school days and cannot be removed.'
+        : 'Only types with no room assignments or special-day dates can be removed.';
+      renderRoomScheduleAssignments();
+    }
     function renderAssignmentDayTypes() {
-      const select = $('rsAssignDayType');
-      const previous = select.value;
-      const types = new Map(['Primary', 'Minimum', 'Rally', 'Testing', 'Assembly'].map(name => [name.toLowerCase(), name]));
-      for (const name of rsDayTypes()) types.set(name.toLowerCase(), name);
-      select.innerHTML = [...types.values()].map(name => '<option value="' + esc(name) + '">' + esc(name) + '</option>').join('')
-        + '<option value="">Add custom day type…</option>';
-      select.value = types.get(previous.toLowerCase()) || (previous.toLowerCase() === 'regular' ? 'Primary' : '');
-      $('rsCustomDayTypeField').classList.toggle('hidden', select.value !== '');
+      const select=$('rsAssignDayType');
+      const previous=select.value;
+      const types=Array.isArray(rsState?.scheduleTypes)&&rsState.scheduleTypes.length
+        ? rsState.scheduleTypes : ['Primary'];
+      select.innerHTML=types.map(type=>'<option value="'+esc(type)+'">'+esc(type)+'</option>').join('');
+      select.value=types.find(type=>type.toLowerCase()===previous.toLowerCase())||'Primary';
+      $('rsDeleteTypeButton').disabled=select.value.toLowerCase()==='primary';
     }
-
+    function renderRoomScheduleAssignments(selectedIds) {
+      if(!rsState)return;
+      const selected=selectedIds||new Set(rsSelectedRoomIds());
+      const type=$('rsAssignDayType').value||'Primary';
+      const primary=['primary','regular'].includes(type.toLowerCase());
+      const available=new Set((rsState.schedules||[]).map(name=>name.toLowerCase()));
+      const active=rsState.rooms.filter(room=>room.active);
+      const assignments=rsState.assignments||[];
+      $('rsSelectedTypeTitle').textContent=type;
+      $('rsScheduleColumnTitle').textContent=type+' Schedule';
+      $('rsSelectedTypeDescription').textContent='Showing '+type+' schedules for all '+active.length+
+        ' active room'+(active.length===1?'':'s')+'. Select rooms to assign a bell schedule above.';
+      $('rsRoomTable').innerHTML=active.length ? active.map(room=>{
+        const saved=primary ? room.defaultSchedule :
+          (assignments.find(x=>x.roomId===room.id && x.dayType.toLowerCase()===type.toLowerCase())?.schedule||'');
+        const configured=Boolean(saved)&&available.has(saved.toLowerCase());
+        const label=configured?'Assigned':saved?'Schedule missing':'Not assigned';
+        return '<tr>'+
+          '<td><label class="rsRoomCheckLabel"><input type="checkbox" data-rs-room value="'+esc(room.id)+
+            '" aria-label="Select '+esc(room.name)+'"'+(selected.has(room.id)?' checked':'')+'></label></td>'+
+          '<td><strong>'+esc(room.name)+'</strong></td>'+
+          '<td>'+esc(saved||'—')+'</td>'+
+          '<td><span class="rsAssignmentStatus '+(configured?'isAssigned':'isUnassigned')+'">'+esc(label)+'</span></td>'+
+          '</tr>';
+      }).join('') : '<tr><td colspan="4" class="emptyState">No active rooms are configured.</td></tr>';
+    }
     function renderRoomScheduling() {
       if (!rsState) return;
+      const selected=new Set(rsSelectedRoomIds());
       renderAssignmentDayTypes();
-      const selected = new Set([...document.querySelectorAll('#rsRoomChecks [data-rs-room]:checked')].map(x => x.value));
-      $('rsModeStatus').textContent = rsState.enabled
+      $('rsModeStatus').textContent=rsState.enabled
         ? 'Room Scheduling is ON. Ordinary days use each room’s Primary schedule.'
         : 'Room Scheduling is OFF. Westfield continues using its original school-wide calendar.';
-      $('rsLegacyWarning').textContent = rsState.legacyFutureCount
+      $('rsLegacyWarning').textContent=rsState.legacyFutureCount
         ? rsState.legacyFutureCount + ' future date(s) remain in the original calendar. They are preserved, but not used while Room Scheduling is ON. Review them before enabling.'
         : 'The original calendar remains preserved for rollback.';
       if (!rsState.autoEnabled) $('rsModeStatus').textContent += ' Automatic calendar scheduling is OFF: special-day dates will not apply.';
       $('rsToggleMode').disabled = false;
       $('rsToggleMode').textContent = rsState.enabled ? 'Return to Original Calendar Mode' : 'Enable Room Scheduling';
       $('rsToggleMode').className = rsState.enabled ? 'gray' : 'purple';
-      const activeRooms = rsState.rooms.filter(x => x.active);
-      $('rsRoomChecks').innerHTML = activeRooms.map(r=>'<label><input type="checkbox" data-rs-room value="' + esc(r.id) + '"' + (selected.has(r.id)?' checked':'') + '>' + esc(r.name) + '</label>').join('') || '<span class="muted">No active rooms.</span>';
       const opts = rsState.schedules.map(x=>'<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
       const current = $('rsMasterSchedule').value;
-      $('rsMasterSchedule').innerHTML = '<option value="">Choose schedule</option>' + opts;
+      $('rsMasterSchedule').innerHTML = '<option value="">Choose bell schedule</option>' + opts;
       if (rsState.schedules.includes(current)) $('rsMasterSchedule').value = current;
-      const assignments = rsState.assignments;
-      const byRoom = new Map(rsState.rooms.map(r=>[r.id,assignments.filter(x=>x.roomId===r.id)]));
-      $('rsRoomTable').innerHTML = rsState.rooms.map(r=>{
-        const list = byRoom.get(r.id) || [];
-        const named = name => list.find(x=>x.dayType.toLowerCase()===name.toLowerCase())?.schedule || '—';
-        const other = list.filter(x=>!['minimum','rally'].includes(x.dayType.toLowerCase())).map(x=>x.dayType + ': ' + x.schedule).join('; ') || '—';
-        return '<tr><td>' + esc(r.name) + (r.active?'':' (disabled)') + '</td><td>' + esc(r.defaultSchedule) + '</td><td>' + esc(named('Minimum')) + '</td><td>' + esc(named('Rally')) + '</td><td>' + esc(other) + '</td></tr>';
-      }).join('') || '<tr><td colspan="5">No rooms.</td></tr>';
+      rsScheduleTypeChanged();
+      renderRoomScheduleAssignments(selected);
       const prior = $('rsExceptionDayType').value;
       const types = rsDayTypes();
-      $('rsExceptionDayType').innerHTML = '<option value="">Choose special day</option>' + types.map(x=>'<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
+      $('rsExceptionDayType').innerHTML = '<option value="">Choose schedule type</option>' + types.map(x=>'<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
       if (types.includes(prior)) $('rsExceptionDayType').value = prior;
       const legacyGroups = new Map();
       (rsState.legacyDates || []).forEach(row=>{
@@ -1688,6 +1789,48 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       rsResetPreview();
     }
 
+    function rsOpenAddType(){
+      $('rsTypeAddPanel').classList.remove('hidden');
+      $('rsCustomDayType').value='';
+      $('rsCustomDayType').focus();
+      setMsg('rsTypeMessage','');
+    }
+    function rsCloseAddType(){
+      $('rsTypeAddPanel').classList.add('hidden');
+      $('rsCustomDayType').value='';
+    }
+    async function rsSaveType(){
+      const name=$('rsCustomDayType').value.replace(/\\s+/g,' ').trim();
+      if(!name)return setMsg('rsTypeMessage','Enter a Schedule Type name.',true);
+      const btn=$('rsSaveTypeButton');btn.disabled=true;
+      try{
+        const r=await hallpassApi.call('adminAddScheduleType',[{name}]);
+        if(!r.success)throw Error(r.message);
+        rsCloseAddType();
+        await refreshRoomScheduling();
+        const selected=[...$('rsAssignDayType').options].find(x=>x.value.toLowerCase()===name.toLowerCase());
+        if(selected){$('rsAssignDayType').value=selected.value;rsScheduleTypeChanged();}
+        setMsg('rsTypeMessage',r.message);
+      }catch(e){setMsg('rsTypeMessage',e.message,true)}
+      finally{btn.disabled=false}
+    }
+    async function rsDeleteType(){
+      const name=$('rsAssignDayType').value;
+      if(!name||name.toLowerCase()==='primary')return setMsg('rsTypeMessage','Primary is required and cannot be removed.',true);
+      const state=rsState;
+      const count=(state?.assignments||[]).filter(x=>x.dayType.toLowerCase()===name.toLowerCase()).length;
+      const dates=(state?.exceptions||[]).filter(x=>x.dayType.toLowerCase()===name.toLowerCase()).length;
+      if(count||dates)return setMsg('rsTypeMessage','Remove '+name+' from '+count+' room assignment(s) and '+dates+' special-day date(s) before deleting this type.',true);
+      if(!window.confirm('Delete Schedule Type "'+name+'"? No bell schedules will be deleted.'))return;
+      const btn=$('rsDeleteTypeButton');btn.disabled=true;
+      try{
+        const r=await hallpassApi.call('adminDeleteScheduleType',[{name}]);
+        if(!r.success)throw Error(r.message);
+        await refreshRoomScheduling();
+        setMsg('rsTypeMessage',r.message);
+      }catch(e){setMsg('rsTypeMessage',e.message,true)}
+      finally{btn.disabled=($('rsAssignDayType').value||'Primary').toLowerCase()==='primary'}
+    }
 
     function rsPrepareLegacyDates(){
       if(!rsState)return;
@@ -1716,12 +1859,10 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       $('rsPreviewWrap').classList.add('hidden');
     }
 
-    function rsSelectedRoomIds(){return [...document.querySelectorAll('#rsRoomChecks [data-rs-room]:checked')].map(x=>x.value)}
-    function rsSelectAll(yes){document.querySelectorAll('#rsRoomChecks [data-rs-room]').forEach(x=>x.checked=Boolean(yes))}
     async function rsAssign() {
-      const ids=rsSelectedRoomIds(), type=($('rsAssignDayType').value || $('rsCustomDayType').value).trim(), schedule=$('rsMasterSchedule').value;
+      const ids=rsSelectedRoomIds(), type=$('rsAssignDayType').value.trim(), schedule=$('rsMasterSchedule').value;
       if (!ids.length) return setMsg('rsAssignMessage','Select one or more active rooms.',true);
-      if (!type || !schedule) return setMsg('rsAssignMessage','Choose Primary or a special day type, and a master bell schedule.',true);
+      if (!type || !schedule) return setMsg('rsAssignMessage','Choose a Schedule Type and a bell schedule.',true);
       const button=$('rsAssignSchedule');button.disabled=true;
       try {
         const r=await hallpassApi.call('adminAssignRoomSchedules',[{roomIds:ids,dayType:type,schedule}]);
@@ -2104,11 +2245,12 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('rsSelectAll').addEventListener('click',()=>rsSelectAll(true));
     $('rsSelectNone').addEventListener('click',()=>rsSelectAll(false));
     $('rsAssignSchedule').addEventListener('click',rsAssign);
-    $('rsAssignDayType').addEventListener('change', () => {
-      const custom = $('rsAssignDayType').value === '';
-      $('rsCustomDayTypeField').classList.toggle('hidden', !custom);
-      if (custom) $('rsCustomDayType').focus();
-    });
+    $('rsAssignDayType').addEventListener('change', rsScheduleTypeChanged);
+    $('rsAddTypeButton').addEventListener('click', rsOpenAddType);
+    $('rsCancelTypeButton').addEventListener('click', rsCloseAddType);
+    $('rsSaveTypeButton').addEventListener('click', rsSaveType);
+    $('rsCustomDayType').addEventListener('keydown', e=>{if(e.key==='Enter'){e.preventDefault();rsSaveType();}});
+    $('rsDeleteTypeButton').addEventListener('click', rsDeleteType);
     $('rsViewSchedule').addEventListener('click',previewSelectedSchedule);
     $('rsPreview').addEventListener('click',rsPreviewSpecialDates);
     $('rsApply').addEventListener('click',rsApplySpecialDates);
