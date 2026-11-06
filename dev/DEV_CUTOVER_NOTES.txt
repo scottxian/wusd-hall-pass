@@ -1,0 +1,64 @@
+HALL PILOT DEV — WESTFIELD PRODUCTION-SNAPSHOT TESTING
+Snapshot prepared: 2026-11-06
+Environment: Hall Pilot Dev Supabase project. Production was read-only.
+
+PURPOSE
+Rehearse the eventual Hall Pilot cutover with real school configuration and
+historical data, but using Room Scheduling exclusively. This is a ONE-TIME
+SNAPSHOT, not live synchronization. No changes made to the production app.
+
+WHAT WAS COPIED FROM LIVE
+- 182 school student records (including student IDs and names)
+- 12 production staff records, plus preserved DEV-only test accounts
+- 11 Westfield classrooms and room configuration
+- 88 room-level destinations, and 8 catalog destinations
+- 11 teacher/room links, 12 school staff memberships
+- 59 student/room links; 10 legacy room aliases
+- 1,193 completed pass-history records
+- 168 historical waiting/request records (no live waiting entries)
+- 37 historical audit events (tagged _devSnapshotSource)
+
+NOT COPIED
+- The one pass that was still open in production
+- Active waiting queues
+- Live teacher sessions/session tokens, client rate-limit records or backups
+- Legacy schedules/calendar data used for production's old operating mode
+
+NEW SCHEDULING IS THE ONLY SUPPORTED DEV MODE
+- 11 active Westfield rooms retain DEV's Primary - MS bell schedules.
+- Each has Minimum - MS and Rally - MS assignments (22 in total).
+- Seven future Minimum dates were converted from production's original
+  calendar to DEV's Special Days. Normal/Regular calendar entries are
+  intentionally omitted: Primary is automatic.
+- Room Scheduling and automatic scheduling are ON for Westfield DEV.
+- Legacy calendar entries were cleared in DEV only.
+- School Admin and Master Admin DEV hide legacy navigation and migration
+  controls. The DEV staff backend blocks switching back to legacy mode.
+- Unused legacy implementation remains dormant for the testing rollback
+  period; removing old source code can happen when the cutover is verified.
+
+SECURITY AND OPERATIONS
+- DEV NOW CONTAINS REAL STUDENT INFORMATION. Restrict access to
+  authorized school personnel; do not distribute DEV links to students.
+- Existing RLS protection remains enabled. DEV staff sessions were revoked
+  so authorized testers must sign in again using their current staff PIN.
+- Production remains untouched. The DEV-only test school was preserved.
+- A private, non-exposed DEV backup of Westfield's pre-sync configuration is
+  at hallpilot_dev_backup.pre_live_sync_20261106.
+- DEV data is a frozen snapshot. Later production changes require a
+  deliberate new sync, not automatic copying.
+
+BEFORE PRODUCTION CUTOVER
+1. Confirm each room's Primary, Minimum, Rally and any other bell schedules.
+2. Review the seven imported Minimum dates, especially school closures.
+3. Test school admin, master admin, teacher and student pass workflows.
+4. Verify new and existing pass reports and room/student restrictions.
+5. Verify staff permissions and PIN login, including Master Admin scope.
+6. Perform a separate production backup and planned after-hours migration.
+7. Remove dormant legacy implementation only after the new flow passes QA.
+
+DEV LINKS
+School Admin: https://app.hallpilot.net/dev/admin.html?org=wusd&school=westfield
+Master Admin: https://app.hallpilot.net/dev/master-admin.html?org=wusd&school=westfield
+Teacher:      https://app.hallpilot.net/dev/teacher.html?org=wusd&school=westfield&room=d4
+Student:      https://app.hallpilot.net/dev/?org=wusd&school=westfield&room=d4
