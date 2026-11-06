@@ -2177,30 +2177,48 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function rsPreviewSpecialDates(){
       rsResetPreview();
       if(!rsState)return setMsg('rsExceptionMessage','Load scheduling first.',true);
-      try {
-        const dayType=$('rsExceptionDayType').value;
-        if(!dayType)throw Error('Choose a special day type.');
+      try{
         const dates=rsDateCollection();
-        const missing=rsMissingRooms(dayType);
-        if(missing.length)throw Error('Assign ' + dayType + ' to these rooms first: ' + missing.map(x=>x.name).join(', '));
-        const conflictMode=$('rsConflictMode').value,already=new Map(rsState.exceptions.map(x=>[x.date,x]));
-        rsPreviewData={dates,dayType,conflictMode,note:$('rsNote').value.trim()};
+        const preview=rsBuildScopedPreview();
+        const conflictMode=$('rsConflictMode').value;
+        const existing=new Map(rsConfiguredDates().map(x=>[x.date,x]));
+        const overrideRows=[...preview.overrides].map(([roomId,x])=>({
+          scope:'room',roomIds:[roomId],dayType:x.dayType,sourceGroupId:x.sourceGroupId
+        }));
+        // Preserve group source attribution in the saved snapshot; server expands
+        // the original group/room rules, and validates all final assignments.
+        const rules=rsExceptionRules.map(x=>({
+          scope:x.scope,groupId:x.groupId||'',roomIds:[...(x.roomIds||[])],dayType:x.dayType
+        }));
+        rsPreviewData={
+          dates,defaultType:preview.defaultType,
+          overrides:rules,note:$('rsNote').value.trim(),conflictMode
+        };
+        $('rsRoomPreviewBody').innerHTML=preview.rows.map(x=>
+          '<tr><td><strong>'+esc(x.name)+'</strong></td><td>'+esc(x.dayType)+
+          '</td><td>'+esc(x.bell)+'</td><td>'+esc(x.source)+'</td></tr>'
+        ).join('')||'<tr><td colspan="4">No active rooms.</td></tr>';
+        $('rsPreviewSummary').textContent=dates.length+' date(s), '+preview.rows.length+
+          ' active room(s); '+preview.overrides.size+' room-specific schedule exception(s). Bell schedules shown are the effective schedules.';
         $('rsPreviewBody').innerHTML=dates.map(date=>{
-          const prior=already.get(date);
-          const result=prior?(conflictMode==='replace'?'Replace':'Skip'):'Add';
-          return '<tr><td>'+esc(date)+'</td><td>'+esc(prior?.dayType||'—')+'</td><td>'+esc(dayType)+'</td><td>'+esc(result)+'</td></tr>';
+          const old=existing.get(date);
+          const action=old?(conflictMode==='replace'?'Replace':'Skip'):'Add';
+          return '<tr><td>'+esc(date)+'</td><td>'+esc(old?.defaultType||'Primary')+
+            (old?.roomOverrides.length?' + '+old.roomOverrides.length+' room exceptions':'')+
+            '</td><td>'+esc(preview.defaultType)+(preview.overrides.size?' + '+preview.overrides.size+' room exceptions':'')+
+            '</td><td>'+esc(action)+'</td></tr>';
         }).join('');
         $('rsPreviewWrap').classList.remove('hidden');
         $('rsApply').disabled=false;
-        setMsg('rsExceptionMessage',dates.length+' date(s) previewed. Nothing saved yet.');
-      } catch(e){setMsg('rsExceptionMessage',e.message,true)}
+        setMsg('rsExceptionMessage','Preview ready. No dates or assignments have been saved.');
+      }catch(e){setMsg('rsExceptionMessage',e.message,true)}
     }
 
     async function rsApplySpecialDates(){
-      if(!rsPreviewData)return setMsg('rsExceptionMessage','Preview the dates first.',true);
+      if(!rsPreviewData)return setMsg('rsExceptionMessage','Preview room schedules first.',true);
       const b=$('rsApply');b.disabled=true;
       try{
-        const r=await hallpassApi.call('adminSaveDayExceptions',[rsPreviewData]);
+        const r=await hallpassApi.call('adminSaveScopedSpecialDays',[rsPreviewData]);
         if(!r.success)throw Error(r.message);
         await refreshRoomScheduling();
         setMsg('rsExceptionMessage',r.message);
@@ -2208,11 +2226,12 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
 
     async function rsDeleteSpecialDate(date){
-      if(!window.confirm('Remove special day on ' + date + '? This will restore each room’s Primary schedule for that day.'))return;
+      if(!window.confirm('Remove the schoolwide date and ALL room/group exceptions on '+date+'? Every room will use its Primary schedule.'))return;
       try{
         const r=await hallpassApi.call('adminDeleteDayException',[date]);
         if(!r.success)throw Error(r.message);
         await refreshRoomScheduling();
+        if($('rsOneDate').value===date)rsClearSpecialForm();
         setMsg('rsExceptionMessage',r.message);
       }catch(e){setMsg('rsExceptionMessage',e.message,true)}
     }
@@ -2522,7 +2541,44 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('rsApply').addEventListener('click',rsApplySpecialDates);
     $('roomSchedulePanel').addEventListener('input',e=>{if(e.target.closest('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays,#rsExceptionDayType,#rsConflictMode'))rsResetPreview();});
     $('roomSchedulePanel').addEventListener('change',e=>{if(e.target.closest('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays,#rsExceptionDayType,#rsConflictMode'))rsResetPreview();});
-    $('rsExceptionsBody').addEventListener('click',e=>{const b=e.target.closest('[data-rs-delete-date]');if(b)rsDeleteSpecialDate(b.dataset.rsDeleteDate)});
+    $('rsExceptionsBody').addEventListener('click',e=>{
+      const del=e.target.closest('[data-rs-delete-date]');
+      const edit=e.target.closest('[data-rs-edit-date]');
+      if(del)rsDeleteSpecialDate(del.dataset.rsDeleteDate);
+      else if(edit)rsEditSpecialDate(edit.dataset.rsEditDate);
+    });
+    $('rsClearDateForm').addEventListener('click',rsClearSpecialForm);
+    $('rsAddScopeRule').addEventListener('click',rsAddExceptionRule);
+    $('rsScopeRules').addEventListener('click',e=>{
+      const button=e.target.closest('[data-rs-remove-rule]');if(!button)return;
+      const row=button.closest('[data-rs-rule]');if(!row)return;
+      rsExceptionRules=rsExceptionRules.filter(x=>x.id!==Number(row.dataset.rsRule));
+      rsRenderExceptionRules();rsResetPreview();
+    });
+    $('rsScopeRules').addEventListener('change',e=>{
+      const row=e.target.closest('[data-rs-rule]');if(!row)return;
+      const rule=rsExceptionRules.find(x=>x.id===Number(row.dataset.rsRule));if(!rule)return;
+      const el=e.target;
+      if(el.matches('[data-rs-rule-scope]')){
+        rule.scope=el.value;rule.groupId='';rule.roomIds=[];
+        rsRenderExceptionRules();
+      }else if(el.matches('[data-rs-rule-type]'))rule.dayType=el.value;
+      else if(el.matches('[data-rs-rule-group]'))rule.groupId=el.value;
+      else if(el.matches('[data-rs-rule-room]')){
+        if(el.checked)rule.roomIds=[...new Set([...(rule.roomIds||[]),el.dataset.rsRuleRoom])];
+        else rule.roomIds=(rule.roomIds||[]).filter(id=>id!==el.dataset.rsRuleRoom);
+      }
+      rsResetPreview();
+    });
+    $('rsNewGroup').addEventListener('click',()=>rsOpenGroupEditor());
+    $('rsCancelGroup').addEventListener('click',rsCancelGroupEditor);
+    $('rsSaveGroup').addEventListener('click',rsSaveRoomGroup);
+    $('rsGroupsTable').addEventListener('click',e=>{
+      const edit=e.target.closest('[data-rs-edit-group]');
+      const del=e.target.closest('[data-rs-delete-group]');
+      if(edit)rsOpenGroupEditor(edit.dataset.rsEditGroup);
+      else if(del)rsDeleteRoomGroup(del.dataset.rsDeleteGroup);
+    });
     $('refreshCalendar').addEventListener('click',e=>refreshCalendar(e.currentTarget));$('saveCalendarEntry').addEventListener('click',saveCalendarEntry);$('previewWeeklyCalendar').addEventListener('click',()=>previewBulkCalendar(buildWeeklyCalendarDates(),'weekly'));$('previewListedCalendar').addEventListener('click',()=>previewBulkCalendar(buildListedCalendarDates(),'listed'));$('applyBulkCalendar').addEventListener('click',applyBulkCalendar);$('clearBulkCalendar').addEventListener('click',clearBulkCalendarPreview);$('bulkConflictMode').addEventListener('change',()=>{if(bulkCalendarPreview)previewBulkCalendar(bulkCalendarPreview.dates,bulkCalendarPreview.source)});
     $('refreshReportOptions').addEventListener('click',e=>refreshReportOptions(e.currentTarget));$('generateCampusReport').addEventListener('click',generateCampusReport);$('downloadCampusReport').addEventListener('click',downloadCampusReport);$('campusReportBack').addEventListener('click',backCampusReportDrill);$('printCampusStudentDetail').addEventListener('click',printCampusStudentDetail);['campusReportBody','reportSecondaryBody'].forEach(id=>$(id).addEventListener('click',e=>{const btn=e.target.closest('[data-report-drill]');if(btn)drillDownCampusReport(btn.dataset.reportDrill,btn.dataset.reportValue)}));$('reportType').addEventListener('change',clearCampusReportOnChange);['campusReportRoom','campusReportStudent','campusReportDestination','campusReportStart','campusReportEnd','longPassMinutes','frequentPassCount','campusIncludeTestData'].forEach(id=>$(id).addEventListener('change',clearCampusReportOnChange));$('exportStudents').addEventListener('click',e=>exportBackupDataset('students',e.currentTarget));$('exportPasses').addEventListener('click',e=>exportBackupDataset('passes',e.currentTarget));$('exportConfiguration').addEventListener('click',e=>exportBackupDataset('configuration',e.currentTarget));$('exportAudit').addEventListener('click',e=>exportBackupDataset('audit',e.currentTarget));$('downloadFullBackup').addEventListener('click',e=>exportBackupDataset('full',e.currentTarget));
     $('refreshAudit').addEventListener('click',e=>refreshAudit(e.currentTarget));$('auditRoomFilter').addEventListener('change',()=>refreshAudit());$('auditSearch').addEventListener('keydown',e=>{if(e.key==='Enter')refreshAudit()});$('loginButton').addEventListener('click',login);$('adminPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('refreshLive').addEventListener('click',e=>refreshLive(e.currentTarget));$('roomFilter').addEventListener('change',()=>refreshLive());$('search').addEventListener('keydown',e=>{if(e.key==='Enter')refreshLive()});$('refreshManage').addEventListener('click',e=>refreshManagement(e.currentTarget));$('refreshSchedules').addEventListener('click',e=>refreshManagement(e.currentTarget));$('addScheduleButton').addEventListener('click',()=>openSchedule());$('saveScheduleButton').addEventListener('click',saveSchedule);$('confirmScheduleReplace').addEventListener('click',confirmScheduleReplacement);$('addSchedulePeriodButton').addEventListener('click',()=>addSchedulePeriod());$('schedulePeriodBody').addEventListener('click',e=>{const b=e.target.closest('[data-remove-period]');if(b)b.closest('.scheduleEditorRow').remove()});$('onboardRoomButton').addEventListener('click',openOnboardingWizard);$('addRoomButton').addEventListener('click',()=>openRoom());$('deleteRoomFromModalButton').addEventListener('click',()=>deleteRoom($('roomEditId').value));$('addTeacherButton').addEventListener('click',()=>openTeacher());$('saveRoomButton').addEventListener('click',saveRoom);$('saveTeacherButton').addEventListener('click',saveTeacher);
