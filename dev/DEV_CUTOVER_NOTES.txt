@@ -27,9 +27,11 @@ NOT COPIED
 NEW SCHEDULING IS THE ONLY SUPPORTED DEV MODE
 - 11 active Westfield rooms retain DEV's Primary - MS bell schedules.
 - Each has Minimum - MS and Rally - MS assignments (22 in total).
-- Seven future Minimum dates were converted from production's original
-  calendar to DEV's Special Days. Normal/Regular calendar entries are
-  intentionally omitted: Primary is automatic.
+- Seven future Minimum dates were initially converted from production's
+  original calendar to DEV's Special Days. Normal/Regular calendar entries
+  were omitted: Primary is automatic. During later DEV testing, several
+  of those initial dates were deliberately removed through School Admin.
+  Refer to the current Special Days screen for the actual live DEV state.
 - Room Scheduling and automatic scheduling are ON for Westfield DEV.
 - Legacy calendar entries were cleared in DEV only.
 - School Admin and Master Admin DEV hide legacy navigation and migration
@@ -62,3 +64,29 @@ School Admin: https://app.hallpilot.net/dev/admin.html?org=wusd&school=westfield
 Master Admin: https://app.hallpilot.net/dev/master-admin.html?org=wusd&school=westfield
 Teacher:      https://app.hallpilot.net/dev/teacher.html?org=wusd&school=westfield&room=d4
 Student:      https://app.hallpilot.net/dev/?org=wusd&school=westfield&room=d4
+
+NEW — NOVEMBER 6: SCOPED SPECIAL DAYS AND REUSABLE ROOM GROUPS
+- Both School Admin DEV and Master Admin DEV now include Room Groups in the
+  Room Scheduling Manage dropdown. Admins may create/edit/delete named sets
+  of active classrooms (e.g. Middle School, Sixth Grade).
+- Special Days now accepts a schoolwide default Schedule Type (including
+  Primary) with group/individual classroom exceptions.
+- Precedence: teacher daily override > specific room date exception >
+  room group date exception > schoolwide date type > room Primary schedule.
+- Overlapping selected groups are rejected for the same room unless that
+  room has a direct override, which takes precedence.
+- Day-specific group memberships are SNAPSHOTTED at save. Editing a group
+  later does not silently modify dates already saved.
+- Preview shows all active rooms' effective bell schedules and changes for
+  each selected date. Existing dates support Skip or Replace.
+- A date save is atomic: both schoolwide and per-room records update together.
+  Removing the date removes all its group/room exceptions too.
+- New DEV tables: room_groups, room_group_members,
+  school_day_room_overrides. Row-level security is enabled and function
+  execution is restricted to the service role via verified staff Admin calls.
+- DEV staff Edge Function and public Edge Function both resolve scoped
+  dates using the same precedence rules.
+- SQL save/skip/remove and room-group lifecycle were tested against the
+  DEV test school; the QA date and room group were removed afterward.
+- Browser admin workflows still need human sign-in/UI testing. No
+  additional production changes are authorized or implemented.
