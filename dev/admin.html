@@ -569,10 +569,20 @@
       #roomSchedulePanel .rsScheduleTypeBar .actions{width:100%}
       #roomSchedulePanel .rsScheduleAssignmentBar button{flex:1 1 auto}
     }
-</style>
+
+    /* DEV final scheduling cutover: legacy calendar and mode switching are
+       retained as dormant markup for rollback only, not part of test UI. */
+    #dashboard #calendarPanel,
+    #roomSchedulePanel #rsSectionAdvanced,
+    #roomSchedulePanel #rsLegacyWarning,
+    #roomSchedulePanel #rsToggleMode,
+    #roomSchedulePanel #rsModeMessage{display:none!important}
+    #roomSchedulePanel .roomScheduleNav{padding-bottom:12px}
+    #roomSchedulePanel #rsModeStatus{margin:4px 0;color:#435669;font-size:13px}
+  </style>
 <link rel="stylesheet" href="branding.css">
 </head>
-<body><div style="background:#f4c542;color:#222;padding:8px;text-align:center;font-weight:bold">HALL PILOT DEV · SAMPLE DATA</div>
+<body><div style="background:#f4c542;color:#222;padding:8px;text-align:center;font-weight:bold">HALL PILOT DEV · LIVE SCHOOL SNAPSHOT · TEST ONLY</div>
   <!-- Hall Pass Admin v1.14.1 — canonical organization / school aware -->
   <div class="header"><h1>Hall Pilot — School Admin</h1><div id="adminName">Locked</div></div>
   <div class="container">
@@ -612,7 +622,7 @@
           <optgroup label="Scheduling">
             <option value="schedulePanel">Bell Schedules</option>
             <option value="roomSchedulePanel">Room Scheduling</option>
-            <option value="calendarPanel">Legacy Calendar</option>
+            
           </optgroup>
           <optgroup label="Reports">
             <option value="reportsPanel">Pass Reports &amp; Backup</option>
@@ -664,7 +674,7 @@
       <section id="roomSchedulePanel" class="panel">
         <div class="card">
           <div class="sectionHead">
-            <div><h2>Room Scheduling</h2><div class="muted">Normal days automatically use each room's Primary schedule. Add calendar entries only for Minimum, Rally, Testing, or other special days.</div></div>
+            <div><h2>Room Scheduling</h2><div class="muted">Every room automatically uses Primary on regular days. Select a Schedule Type, assign bell schedules, and use Special Days for exceptions.</div></div>
             <button class="gray" id="rsRefresh">Refresh</button>
           </div>
           <div id="rsModeStatus" class="muted">Loading room scheduling…</div>
@@ -675,7 +685,7 @@
         <div class="roomScheduleNav"><label for="rsSectionSelect">Manage</label><select id="rsSectionSelect" aria-label="Choose scheduling section">
           <option value="classrooms">Classroom Schedules</option>
           <option value="special">Special Days</option>
-          <option value="advanced">Advanced / Migration</option>
+          
         </select></div>
         <div id="rsSectionClassrooms">
           <div class="card">
@@ -1677,7 +1687,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
 
     function showRoomSchedulingSection(section) {
-      if (!['classrooms','special','advanced'].includes(section)) return;
+      if (!['classrooms','special'].includes(section)) return;
       $('rsSectionSelect').value=section;
       for (const [part,id] of [['classrooms','rsSectionClassrooms'],['special','rsSectionSpecial'],['advanced','rsSectionAdvanced']]) {
         $(id).classList.toggle('hidden',part!==section);
@@ -2264,7 +2274,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('schoolSelector').addEventListener('change',switchSchool);$('addSchoolButton').addEventListener('click',()=>openSchool());$('refreshOrganization').addEventListener('click',e=>refreshOrganization(e.currentTarget));$('saveSchoolButton').addEventListener('click',saveSchool);
     function openAdminPage(panelId){
       // School-only UI cannot open the organization-management panel.
-      if(panelId==='orgPanel')return;
+      if(panelId==='orgPanel'||panelId==='calendarPanel')return;
       if(!document.getElementById(panelId)?.classList.contains('panel'))return;
       $('adminPageSelect').value=panelId;
       document.querySelectorAll('.panel').forEach(panel=>panel.classList.toggle('active',panel.id===panelId));
