@@ -145,7 +145,7 @@
       padding:6px 0 8px;border-bottom:1px solid #dce3ec;
     }
     .adminStatusDock .adminPrimaryStatus{
-      grid-template-columns:repeat(3,minmax(0,1fr));
+      grid-template-columns:repeat(4,minmax(0,1fr));
       gap:8px;margin:0;
     }
     .adminStatusDock .adminPrimaryStatus .stat{
@@ -610,6 +610,32 @@
       #roomSchedulePanel .rsScopeRuleHead{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
       #roomSchedulePanel .rsScopeRuleHead button{grid-column:1/-1;justify-self:start}
     }
+
+    /* DEV status bar: campus emergency lock beside Waiting, on every Admin page. */
+    .adminStatusDock .campusLockStat{gap:5px;min-width:0}
+    .adminStatusDock .campusLockStat .label{margin:0}
+    .adminStatusDock .campusLockControl{
+      width:min(180px,100%);
+      min-height:35px;
+      font-size:14px;
+      line-height:1.15;
+      padding:7px 12px;
+      margin-top:1px;
+      color:#fff;
+      font-weight:800;
+      letter-spacing:.02em;
+    }
+    .adminStatusDock .campusLockControl.green{background:#19733c;color:#fff}
+    .adminStatusDock .campusLockControl.red{background:#b3261e;color:#fff}
+    .adminStatusDock .campusLockControl:focus-visible{outline:3px solid #1f5ea8;outline-offset:2px}
+    @media(max-width:760px){
+      .adminStatusDock .adminPrimaryStatus{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .adminStatusDock .campusLockControl{width:min(180px,100%)}
+    }
+    @media(max-width:380px){
+      .adminStatusDock .campusLockStat .label{font-size:12px}
+      .adminStatusDock .campusLockControl{font-size:12px;min-height:34px}
+    }
 </style>
 <link rel="stylesheet" href="branding.css">
 </head>
@@ -629,6 +655,7 @@
         <div class="grid adminPrimaryStatus">
           <div class="stat"><div class="label">Active Rooms</div><div id="statRooms" class="value">0</div></div>
           <div class="stat"><div class="label">Students Out</div><div id="statOut" class="value">0</div></div>
+          <div class="stat campusLockStat"><div class="label">Campus Emergency Lock</div><button id="campusLockButton" type="button" class="campusLockControl gray" disabled aria-pressed="false" title="Checking school emergency-lock status">Checking…</button></div>
           <div class="stat"><div class="label">Waiting</div><div id="statWaiting" class="value">0</div></div>
         </div>
         <div class="schoolBar adminStatusDetails schoolOnlyDetails">
@@ -679,9 +706,7 @@
         <div class="card"><h2>Waiting</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Requested</th></tr></thead><tbody id="waitingBody"></tbody></table></div></div>
         </div>
         <details class="card adminDisclosure" id="adminHistoryDisclosure"><summary>Recent Pass History</summary><div class="adminDisclosureBody"><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Left</th><th>Returned</th><th>Status</th></tr></thead><tbody id="historyBody"></tbody></table></div></div></details>
-        <div class="adminSafetyRow">
-        <div class="card adminEmergencyCard" id="adminEmergencyCard"><div class="sectionHead"><div class="adminEmergencyCopy"><div class="adminEmergencyHeading"><h2 style="margin-bottom:0">Campus Emergency Lock</h2><span id="campusLockStatus" class="campusLockIndicator" role="status" aria-live="polite">Unlocked</span></div><div class="muted">Blocks new passes campus-wide and clears waiting requests. Students already out remain visible until returned.</div></div><button id="campusLockButton" class="gray">Campus Lock: OFF</button></div><div id="campusLockMessage" class="message"></div></div>
-        </div>
+        <div id="campusLockMessage" class="message" role="status" aria-live="polite"></div>
       </section>
 
       <section id="managePanel" class="panel">
@@ -1359,7 +1384,7 @@
       const isSchoolSwitchOrLiveError=id==='message'&&
         (/switching school/i.test(String(t||''))||Boolean(e));
       if(unlocked&&adminGeneralFeedbackIds.has(id)&&
-         (isActiveFeedback||isSharedManagementFeedback||isSchoolSwitchOrLiveError)){
+         (isActiveFeedback||isSharedManagementFeedback||isSchoolSwitchOrLiveError||id==='campusLockMessage')){
         const value=String(t||'');
         if(value){
           const processing=/refreshing|loading|saving|creating|deleting|importing|updating|checking|previewing|processing|switching/i.test(value);
@@ -1409,7 +1434,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     let adminLiveRefreshBusy=false;
     const adminLiveSignatures={out:null,waiting:null,history:null,rooms:null};
     async function refreshLive(button){if(!unlocked||adminLiveRefreshBusy)return;adminLiveRefreshBusy=true;if(button)button.disabled=true;if(button)setMsg('message','Refreshing...');try{const r=await hallpassApi.call('adminState',[$('roomFilter').value,$('search').value.trim()]);if(!r.success){setMsg('message',r.message,true);return;}lastState=r;applyAdminContext(r);renderLive(r);setMsg('message','')}catch(e){setMsg('message',e.message,true)}finally{adminLiveRefreshBusy=false;if(button)button.disabled=false}}
-    function renderLive(r){$('statRooms').textContent=r.campusStats.activeRooms;$('statOut').textContent=r.campusStats.out;$('statWaiting').textContent=r.campusStats.waiting;const campusButton=$('campusLockButton');if(campusButton){campusButton.textContent=r.campusEmergencyLock?'Campus Lock: ON':'Campus Lock: OFF';campusButton.classList.toggle('red',r.campusEmergencyLock);campusButton.classList.toggle('gray',!r.campusEmergencyLock);}const campusLockStatus=$('campusLockStatus');if(campusLockStatus){campusLockStatus.textContent=r.campusEmergencyLock?'LOCKED':'Unlocked';campusLockStatus.classList.toggle('isLocked',Boolean(r.campusEmergencyLock));}const lockCard=$('adminEmergencyCard');if(lockCard)lockCard.classList.toggle('isLocked',Boolean(r.campusEmergencyLock));const sel=$('roomFilter'),cur=sel.value,roomSig=JSON.stringify(r.rooms);
+    function renderLive(r){$('statRooms').textContent=r.campusStats.activeRooms;$('statOut').textContent=r.campusStats.out;$('statWaiting').textContent=r.campusStats.waiting;const campusButton=$('campusLockButton');if(campusButton){const locked=Boolean(r.campusEmergencyLock);campusButton.textContent=locked?'LOCKED':'UNLOCKED';campusButton.classList.toggle('red',locked);campusButton.classList.toggle('green',!locked);campusButton.classList.remove('gray');campusButton.setAttribute('aria-pressed',String(locked));campusButton.setAttribute('aria-label',locked?'Campus locked. Click to unlock all classrooms.':'Campus unlocked. Click to lock all classrooms.');campusButton.title=locked?'Campus locked — click to unlock':'Campus unlocked — click to lock';campusButton.disabled=false;}const sel=$('roomFilter'),cur=sel.value,roomSig=JSON.stringify(r.rooms);
       if(adminLiveSignatures.rooms!==roomSig&&document.activeElement!==sel){
         adminLiveSignatures.rooms=roomSig;
         sel.innerHTML='<option value="">All Rooms</option>'+r.rooms.map(x=>`<option value="${esc(x.key)}">${esc(x.room)}${x.emergencyLock?' — LOCKED':''}</option>`).join('');
@@ -1586,7 +1611,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
 
 
-    async function setCampusLock(){const turnOn=!(lastState&&lastState.campusEmergencyLock);if(turnOn&&!window.confirm('Lock every room at this school?\nNew passes stop; waiting lists clear.'))return;const b=$('campusLockButton');b.disabled=true;setMsg('campusLockMessage',turnOn?'Locking campus...':'Unlocking campus...');try{const r=await hallpassApi.call('adminSetCampusLock',[turnOn]);if(!r.success){setMsg('campusLockMessage',r.message,true);return;}await Promise.all([refreshLive(),refreshSecurity()]);setMsg('campusLockMessage',r.message)}catch(e){setMsg('campusLockMessage',e.message,true)}finally{b.disabled=false}}
+    async function setCampusLock(){if(!lastState)return setMsg('campusLockMessage','Refresh campus status before changing the emergency lock.',true);const turnOn=!Boolean(lastState.campusEmergencyLock);if(turnOn&&!window.confirm('Lock every room at this school?\nNew passes stop; waiting lists clear.'))return;const b=$('campusLockButton');b.disabled=true;setMsg('campusLockMessage',turnOn?'Locking campus...':'Unlocking campus...');try{const r=await hallpassApi.call('adminSetCampusLock',[turnOn]);if(!r.success){setMsg('campusLockMessage',r.message,true);return;}await Promise.all([refreshLive(),refreshSecurity()]);setMsg('campusLockMessage',r.message)}catch(e){setMsg('campusLockMessage',e.message,true)}finally{b.disabled=false}}
 
 
     let roomRuleRows=[];
