@@ -346,34 +346,34 @@
     #roomSchedulePanel .roomScheduleNav{padding-bottom:12px}
     #roomSchedulePanel #rsModeStatus{margin:4px 0;color:#435669;font-size:13px}
       /* DEV: scoped Special Days and reusable Room Groups */
-    #roomSchedulePanel .rsScopeSection{border-top:1px solid #e2e7ed;padding-top:15px;margin-top:16px}
-    #roomSchedulePanel .rsScopeHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-    #roomSchedulePanel .rsScopeHeader h3{font-size:16px;margin:0 0 4px}
-    #roomSchedulePanel .rsScopeHeader button{font-size:14px;min-height:36px;padding:8px 12px}
-    #roomSchedulePanel .rsScopeRules{display:grid;gap:10px}
-    #roomSchedulePanel .rsScopeRule{border:1px solid #dce4ee;border-radius:9px;padding:12px;background:#f8fafc}
-    #roomSchedulePanel .rsScopeRuleHead{display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) auto;gap:10px;align-items:end}
-    #roomSchedulePanel .rsScopeRuleButton{min-height:38px;font-size:13px;padding:8px 12px}
-    #roomSchedulePanel .rsScopeRuleTargets{margin-top:10px}
-    #roomSchedulePanel .rsRoomCheckGrid,#roomSchedulePanel .rsGroupCheckGrid{
+    #specialDaysPanel .rsScopeSection{border-top:1px solid #e2e7ed;padding-top:15px;margin-top:16px}
+    #specialDaysPanel .rsScopeHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+    #specialDaysPanel .rsScopeHeader h3{font-size:16px;margin:0 0 4px}
+    #specialDaysPanel .rsScopeHeader button{font-size:14px;min-height:36px;padding:8px 12px}
+    #specialDaysPanel .rsScopeRules{display:grid;gap:10px}
+    #specialDaysPanel .rsScopeRule{border:1px solid #dce4ee;border-radius:9px;padding:12px;background:#f8fafc}
+    #specialDaysPanel .rsScopeRuleHead{display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) auto;gap:10px;align-items:end}
+    #specialDaysPanel .rsScopeRuleButton{min-height:38px;font-size:13px;padding:8px 12px}
+    #specialDaysPanel .rsScopeRuleTargets{margin-top:10px}
+    #specialDaysPanel .rsRoomCheckGrid,#roomGroupsPanel .rsGroupCheckGrid{
        display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;
        padding:10px;background:#fff;border:1px solid #e1e6ee;border-radius:8px;
     }
-    #roomSchedulePanel .rsRoomCheckGrid label,#roomSchedulePanel .rsGroupCheckGrid label{
+    #specialDaysPanel .rsRoomCheckGrid label,#roomGroupsPanel .rsGroupCheckGrid label{
        font-weight:500;margin:0;display:flex;align-items:center;gap:6px;font-size:14px;
     }
-    #roomSchedulePanel .rsRoomCheckGrid input,#roomSchedulePanel .rsGroupCheckGrid input{width:17px;height:17px;min-height:17px;margin:0}
-    #roomSchedulePanel .rsRepeatDetails{border-top:1px solid #e2e7ed;margin-top:15px;padding-top:12px}
-    #roomSchedulePanel .rsRepeatDetails summary{cursor:pointer;color:#23517d;font-size:14px;font-weight:700}
-    #roomSchedulePanel .rsPreviewTitle{font-size:16px;margin:16px 0 8px}
-    #roomSchedulePanel .rsGroupEditor{padding:14px;background:#f7fafc;border:1px solid #dce4ee;border-radius:9px;margin:12px 0}
-    #roomSchedulePanel .rsGroupEditorTop{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-    #roomSchedulePanel .rsGroupEditorTop>div:first-child{flex:1 1 220px;max-width:420px}
-    #roomSchedulePanel .rsGroupEditorTop button{min-height:38px;padding:8px 12px;font-size:14px}
-    #roomSchedulePanel #rsGroupsTable .actions{gap:6px}
+    #specialDaysPanel .rsRoomCheckGrid input,#roomGroupsPanel .rsGroupCheckGrid input{width:17px;height:17px;min-height:17px;margin:0}
+    #specialDaysPanel .rsRepeatDetails{border-top:1px solid #e2e7ed;margin-top:15px;padding-top:12px}
+    #specialDaysPanel .rsRepeatDetails summary{cursor:pointer;color:#23517d;font-size:14px;font-weight:700}
+    #specialDaysPanel .rsPreviewTitle{font-size:16px;margin:16px 0 8px}
+    #roomGroupsPanel .rsGroupEditor{padding:14px;background:#f7fafc;border:1px solid #dce4ee;border-radius:9px;margin:12px 0}
+    #roomGroupsPanel .rsGroupEditorTop{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    #roomGroupsPanel .rsGroupEditorTop>div:first-child{flex:1 1 220px;max-width:420px}
+    #roomGroupsPanel .rsGroupEditorTop button{min-height:38px;padding:8px 12px;font-size:14px}
+    #roomGroupsPanel #rsGroupsTable .actions{gap:6px}
     @media(max-width:620px){
-      #roomSchedulePanel .rsScopeRuleHead{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-      #roomSchedulePanel .rsScopeRuleHead button{grid-column:1/-1;justify-self:start}
+      #specialDaysPanel .rsScopeRuleHead{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+      #specialDaysPanel .rsScopeRuleHead button{grid-column:1/-1;justify-self:start}
     }
 
     /* DEV status bar: campus emergency lock beside Waiting, on every Admin page. */
@@ -447,6 +447,8 @@
           <optgroup label="Scheduling">
             <option value="schedulePanel">Bell Schedules</option>
             <option value="roomSchedulePanel">Room Scheduling</option>
+            <option value="roomGroupsPanel">Room Groups</option>
+            <option value="specialDaysPanel">Special Days</option>
             
           </optgroup>
           <optgroup label="Reports">
@@ -499,7 +501,7 @@
       <section id="roomSchedulePanel" class="panel">
         <div class="card">
           <div class="sectionHead">
-            <div><h2>Room Scheduling</h2><div class="muted">Every room automatically uses Primary on regular days. Select a Schedule Type, assign bell schedules, and use Special Days for exceptions.</div></div>
+            <div><h2>Room Scheduling</h2><div class="muted">Every room automatically uses Primary on regular days. Choose a Schedule Type, then assign each active room its bell schedule.</div></div>
             <button class="gray" id="rsRefresh">Refresh</button>
           </div>
           <div id="rsModeStatus" class="muted">Loading room scheduling…</div>
@@ -507,12 +509,7 @@
           <div class="actions" style="margin-top:12px"><button id="rsToggleMode" class="purple" disabled>Enable Room Scheduling</button></div>
           <div id="rsModeMessage" class="message"></div>
         </div>
-        <div class="roomScheduleNav"><label for="rsSectionSelect">Manage</label><select id="rsSectionSelect" aria-label="Choose scheduling section">
-          <option value="classrooms">Classroom Schedules</option>
-          <option value="special">Special Days</option>
-          <option value="groups">Room Groups</option>
-          
-        </select></div>
+
         <div id="rsSectionClassrooms">
           <div class="card">
             <h2>Room Schedule Assignments</h2>
@@ -550,7 +547,34 @@
             <div id="rsAssignMessage" class="message" role="status" aria-live="polite"></div>
           </div>
         </div>
-        <div id="rsSectionSpecial" class="hidden">
+        <div id="rsSectionAdvanced" class="hidden">        <div class="card">
+          <h2>Bring Existing Special Dates Forward</h2>
+          <div class="muted">The original calendar is retained. Choose an existing special schedule to copy its future dates into the new calendar preview. Normal-day dates need no copying.</div>
+          <div class="formGrid" style="margin-top:12px">
+            <div><label for="rsLegacySelect">Original Calendar Schedule</label><select id="rsLegacySelect"></select></div>
+            <div><button id="rsLegacyPrepare" class="purple" type="button">Prepare Those Dates</button></div>
+          </div>
+          <div id="rsLegacyImportMessage" class="message"></div>
+        </div>
+        </div>
+      </section>
+
+      <section id="roomGroupsPanel" class="panel">
+        <div id="rsSectionGroups">
+          <div class="card">
+            <div class="sectionHead"><div><h2>Room Groups</h2><div class="muted">Save groups such as Middle School or 6th Grade for special-day exceptions. A room may belong to multiple groups.</div></div><button id="rsNewGroup" class="green" type="button">Add Room Group</button></div>
+            <div id="rsGroupEditor" class="rsGroupEditor hidden">
+              <div class="rsGroupEditorTop"><div><label for="rsGroupName">Group Name</label><input id="rsGroupName" maxlength="80" placeholder="e.g., Middle School"></div><div class="actions"><button id="rsSaveGroup" class="green" type="button">Save Group</button><button id="rsCancelGroup" class="gray" type="button">Cancel</button></div></div>
+              <label>Select Active Rooms</label><div id="rsGroupChecks" class="rsGroupCheckGrid"></div>
+            </div>
+            <div id="rsGroupMessage" class="message" role="status" aria-live="polite"></div>
+            <div class="tableWrap"><table><thead><tr><th>Room Group</th><th>Rooms</th><th>Actions</th></tr></thead><tbody id="rsGroupsTable"></tbody></table></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="specialDaysPanel" class="panel">
+        <div id="rsSectionSpecial">
           <div class="card">
             <div class="sectionHead">
               <div><h2>Special Days</h2><div class="muted">Set a schoolwide default for a date, then add optional exceptions for room groups or individual rooms. Everyone else follows the default.</div></div>
@@ -596,27 +620,6 @@
             <div class="muted">Only dates with a schoolwide special type or scoped exceptions appear here. Normal days automatically use Primary.</div>
             <div class="tableWrap" style="margin-top:12px"><table><thead><tr><th>Date</th><th>Default</th><th>Room Exceptions</th><th>Note</th><th>Actions</th></tr></thead><tbody id="rsExceptionsBody"></tbody></table></div>
           </div>
-        </div>
-        <div id="rsSectionGroups" class="hidden">
-          <div class="card">
-            <div class="sectionHead"><div><h2>Room Groups</h2><div class="muted">Save groups such as Middle School or 6th Grade for special-day exceptions. A room may belong to multiple groups.</div></div><button id="rsNewGroup" class="green" type="button">Add Room Group</button></div>
-            <div id="rsGroupEditor" class="rsGroupEditor hidden">
-              <div class="rsGroupEditorTop"><div><label for="rsGroupName">Group Name</label><input id="rsGroupName" maxlength="80" placeholder="e.g., Middle School"></div><div class="actions"><button id="rsSaveGroup" class="green" type="button">Save Group</button><button id="rsCancelGroup" class="gray" type="button">Cancel</button></div></div>
-              <label>Select Active Rooms</label><div id="rsGroupChecks" class="rsGroupCheckGrid"></div>
-            </div>
-            <div id="rsGroupMessage" class="message" role="status" aria-live="polite"></div>
-            <div class="tableWrap"><table><thead><tr><th>Room Group</th><th>Rooms</th><th>Actions</th></tr></thead><tbody id="rsGroupsTable"></tbody></table></div>
-          </div>
-        </div>
-        <div id="rsSectionAdvanced" class="hidden">        <div class="card">
-          <h2>Bring Existing Special Dates Forward</h2>
-          <div class="muted">The original calendar is retained. Choose an existing special schedule to copy its future dates into the new calendar preview. Normal-day dates need no copying.</div>
-          <div class="formGrid" style="margin-top:12px">
-            <div><label for="rsLegacySelect">Original Calendar Schedule</label><select id="rsLegacySelect"></select></div>
-            <div><button id="rsLegacyPrepare" class="purple" type="button">Prepare Those Dates</button></div>
-          </div>
-          <div id="rsLegacyImportMessage" class="message"></div>
-        </div>
         </div>
       </section>
 
@@ -1535,13 +1538,11 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
 
     function showRoomSchedulingSection(section) {
-      if (!['classrooms','special','groups'].includes(section)) return;
-      $('rsSectionSelect').value=section;
-      for (const [part,id] of [['classrooms','rsSectionClassrooms'],['special','rsSectionSpecial'],['groups','rsSectionGroups'],['advanced','rsSectionAdvanced']]) {
-        $(id).classList.toggle('hidden',part!==section);
-      }
+      const pages={classrooms:'roomSchedulePanel',groups:'roomGroupsPanel',special:'specialDaysPanel'};
+      const page=pages[section];
+      if(!page)return;
+      if(!document.getElementById(page)?.classList.contains('active'))openAdminPage(page);
     }
-    $('rsSectionSelect').addEventListener('change',event=>showRoomSchedulingSection(event.target.value));
     $('masterScheduleBody').addEventListener('change',event=>{
       const select=event.target.closest('[data-master-schedule-menu]');
       if(!select)return;
@@ -2328,8 +2329,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('rsViewSchedule').addEventListener('click',previewSelectedSchedule);
     $('rsPreview').addEventListener('click',rsPreviewSpecialDates);
     $('rsApply').addEventListener('click',rsApplySpecialDates);
-    $('roomSchedulePanel').addEventListener('input',e=>{if(e.target.closest('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays,#rsExceptionDayType,#rsConflictMode'))rsResetPreview();});
-    $('roomSchedulePanel').addEventListener('change',e=>{if(e.target.closest('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays,#rsExceptionDayType,#rsConflictMode'))rsResetPreview();});
+    $('specialDaysPanel').addEventListener('input',e=>{if(e.target.closest('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays,#rsExceptionDayType,#rsConflictMode'))rsResetPreview();});
+    $('specialDaysPanel').addEventListener('change',e=>{if(e.target.closest('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays,#rsExceptionDayType,#rsConflictMode'))rsResetPreview();});
     $('rsExceptionsBody').addEventListener('click',e=>{
       const del=e.target.closest('[data-rs-delete-date]');
       const edit=e.target.closest('[data-rs-edit-date]');
@@ -2386,7 +2387,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       if(panelId==='destinationsPanel')refreshDestinations();
       if(panelId==='securityPanel')refreshSecurity();
       if(panelId==='calendarPanel')refreshCalendar();
-      if(panelId==='roomSchedulePanel')refreshRoomScheduling();
+      if(['roomSchedulePanel','roomGroupsPanel','specialDaysPanel'].includes(panelId))refreshRoomScheduling();
       if(panelId==='reportsPanel')refreshReportOptions();
       if(panelId==='auditPanel')refreshManagement().then(()=>refreshAudit());
       if(panelId==='orgPanel')refreshOrganization();
