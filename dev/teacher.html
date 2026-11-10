@@ -742,8 +742,9 @@
     let unlocked = false;
     let refreshRunning = false;
     let actionMessageTimer = null;
-    // Keep the restroom control stable while its server write is in flight.
+    // Keep quick controls stable while their server writes are in flight.
     let restroomActionPending = null;
+    let waitingActionPending = null;
     let currentReport = null;
     let reportDrilldownCache = {};
     let allReportSort = { key: 'studentName', direction: 'asc' };
@@ -1025,10 +1026,24 @@
           : '';
       }
       const waitingButton = document.getElementById('waitingButton');
-      waitingButton.textContent=waitingEnabled?'On':'Off';
-      waitingButton.classList.toggle('green',waitingEnabled);
-      waitingButton.classList.toggle('red',!waitingEnabled);
-      waitingButton.setAttribute('aria-pressed',String(waitingEnabled));
+      // Keep the intended state visible until a fresh dashboard response
+      // verifies the server write. Background polling may still be stale.
+      if(waitingActionPending&&waitingActionPending.accepted){
+        if(waitingEnabled===waitingActionPending.enabled){
+          waitingActionPending=null;
+        }else if(includeControls){
+          waitingActionPending=null;
+          setActionMessage('Waiting List change could not be verified. Please try again.', 'error');
+        }
+      }
+      const waitingPending=waitingActionPending;
+      const displayWaiting=waitingPending?waitingPending.enabled:waitingEnabled;
+      waitingButton.textContent=waitingPending?(displayWaiting?'Turning On...':'Turning Off...'):(waitingEnabled?'On':'Off');
+      waitingButton.disabled=Boolean(waitingPending);
+      waitingButton.classList.toggle('green',displayWaiting);
+      waitingButton.classList.toggle('red',!displayWaiting);
+      waitingButton.setAttribute('aria-pressed',String(displayWaiting));
+      waitingButton.setAttribute('aria-busy',String(Boolean(waitingPending)));
     }
 
     function saveSettings(changes, button, busyText, processingText) {
@@ -1078,8 +1093,33 @@
     }
 
     function toggleWaitingList(button) {
-      const current = String(dashboardState.settings['Waiting List Enabled'] || '').toLowerCase() === 'yes';
-      saveSettings({ 'Waiting List Enabled': current ? 'No' : 'Yes' }, button, 'CHANGING...', current ? 'Turning waiting list off...' : 'Turning waiting list on...');
+      if(waitingActionPending)return;
+      if(!dashboardState?.settings){
+        setActionMessage('Waiting List settings are not available yet.', 'error');
+        return;
+      }
+      const current=String(dashboardState.settings['Waiting List Enabled']||'').toLowerCase()==='yes';
+      const enabled=!current;
+      waitingActionPending={enabled,accepted:false};
+      renderQuickControls(dashboardState);
+      setActionMessage(enabled?'Turning waiting list on...':'Turning waiting list off...', 'processing');
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if(!result?.success){
+            waitingActionPending=null;
+            renderQuickControls(dashboardState);
+            handleActionResult(result);
+            return;
+          }
+          if(waitingActionPending)waitingActionPending.accepted=true;
+          handleActionResult(result); // Fetch the saved state before unlocking.
+        })
+        .withFailureHandler(function(error) {
+          waitingActionPending=null;
+          renderQuickControls(dashboardState);
+          handleActionFailure(error);
+        })
+        .updateSettingsFromDashboard(teacherPin,{ 'Waiting List Enabled':enabled?'Yes':'No' });
     }
 
     function renderStudentOptions(students) {
