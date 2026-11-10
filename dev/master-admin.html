@@ -698,6 +698,7 @@
                 <div class="muted">Check the summary above. Select the button below to save these schedule assignments.</div>
                 <div class="actions">
                   <button id="rsApply" class="green" type="button" disabled>Create Special Day</button>
+                  <button id="rsClearDateAfterReview" class="gray" type="button">+ New Special Day</button>
                 </div>
               </div>
             </div>
@@ -2129,6 +2130,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       rsPreviewData = null;
       $('rsApply').disabled = true;
       $('rsSaveStage').classList.add('hidden');
+      $('rsClearDateForm').classList.remove('hidden');
       $('rsPreviewWrap').classList.add('hidden');
       const message=$('rsExceptionMessage');
       if(message){message.textContent='';message.className='message';}
@@ -2222,6 +2224,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const ready=!(rsDateLoadBlocked||rsPreviewData.missingCount||policyMissing||allSkipped);
       $('rsApply').disabled=!ready;
       $('rsSaveStage').classList.toggle('hidden',!ready);
+      $('rsClearDateForm').classList.toggle('hidden',ready);
       if(allSkipped)setMsg('rsExceptionMessage','All selected dates are already configured. To change them, select Replace existing dates. No changes have been made.',true);
       else if(policyMissing)setMsg('rsExceptionMessage','Some dates already have schedules. Choose how to handle those dates before saving.');
       else setMsg('rsExceptionMessage',rsPreviewData.missingCount
@@ -2670,6 +2673,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       else if(edit){rsCloseSavedDays(false);rsEditSpecialDate(edit.dataset.rsEditDate);}
     });
     $('rsClearDateForm').addEventListener('click',rsClearSpecialForm);
+    $('rsClearDateAfterReview').addEventListener('click',rsClearSpecialForm);
     $('rsAddScopeRule').addEventListener('click',rsAddExceptionRule);
     $('rsScopeRules').addEventListener('click',e=>{
       const button=e.target.closest('[data-rs-remove-rule]');if(!button)return;
