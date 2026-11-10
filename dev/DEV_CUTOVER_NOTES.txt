@@ -128,3 +128,35 @@ NOVEMBER 9, 2026 — SPECIAL DAYS DATE-FIRST UI (DEV ONLY)
   Supabase DEV access for this chat currently returns "You do not have
   permission to perform this action"; no direct database verification
   was possible during this UI update.
+
+NOVEMBER 9, 2026 — SIMPLIFIED SINGLE-FORM SPECIAL DAYS REDESIGN (DEV ONLY)
+- Both DEV School Admin and DEV Master Admin now present one Special Day
+  per date with an assignment list. Each assignment targets the Entire
+  School, a named Room Group, or selected individual classrooms.
+- The schoolwide type is inferred from an Entire School assignment;
+  otherwise the day defaults to Primary. The backend still receives
+  defaultType plus explicit group/room overrides in the established payload.
+- Priority remains classroom > room group > schoolwide > normal Primary.
+  Duplicate room rules and conflicting overlapping group assignments are
+  rejected; specific room assignments can resolve group overlaps.
+- A compact draft summary counts rooms by effective Schedule Type.
+- Optional Preview is a standalone popup with a full classroom breakdown;
+  it is NOT necessary to save. Save automatically checks each effective bell
+  schedule and explains missing assignments.
+- New dates save directly. Editing an existing date loads its saved rooms
+  and requests explicit confirmation before replacing that date's data.
+  The pre-save state fingerprint guard, existing privileged API action,
+  and atomic scoped-date backend operation are unchanged.
+- Group memberships are saved as exact room snapshots. Existing dates with
+  changed group membership load their original members as individual room
+  assignments, protecting earlier scheduling decisions.
+- Removed the redundant New Special Day button and the mandatory preview
+  step. Legacy multi-date inputs remain dormant/hidden for rollback.
+- Static checks: inline JavaScript parses in both pages, IDs are unique,
+  and no obsolete Save-stage elements remain. Simulated assignment tests
+  covered school/group/room priority, overlapping groups, missing schedules,
+  saved group snapshots, stale data protection, and saving without preview.
+- Full authenticated DEV browser testing remains required. Group 4 Test 6
+  stays paused until the user is ready to restart.
+- No production files, production data, Supabase schema, or Edge Functions
+  were modified.
