@@ -742,6 +742,8 @@
     let unlocked = false;
     let refreshRunning = false;
     let actionMessageTimer = null;
+    // Keep the restroom control stable while its server write is in flight.
+    let restroomActionPending = null;
     let currentReport = null;
     let reportDrilldownCache = {};
     let allReportSort = { key: 'studentName', direction: 'asc' };
@@ -872,7 +874,7 @@
         renderOverrideDestinations(state.destinations || []);
         renderReportPeriods(state.schedules || []);
       }
-      renderQuickControls(state);
+      renderQuickControls(state, includeControls);
     }
 
     // Display-only browser title. Never change room scope or trigger API lookups.
@@ -968,7 +970,7 @@
       changeSchedule(name,this);
     });
 
-    function renderQuickControls(state) {
+    function renderQuickControls(state, includeControls = false) {
       const scheduleSource = String(state.settings['Schedule Source'] || 'Room Default');
       const isTeacherOverride = scheduleSource.toLowerCase() === 'teacher override';
       const effectiveSchedule = String((state.schedule && state.schedule.schedule) || state.settings["Today's Schedule"] || '').trim();
@@ -993,11 +995,26 @@
       const button=document.getElementById('restroomToggle');
       const on=Boolean(restroom&&restroom.enabled);
       const adminClosed=Boolean(restroom&&restroom.schoolwideEnabled===false);
-      button.textContent=adminClosed?'Closed by Admin':(on?'Open':'Closed');
-      button.disabled=adminClosed;
-      button.classList.toggle('green',on);
-      button.classList.toggle('red',!on);
-      button.setAttribute('aria-pressed',String(on));
+      // Background polling may be stale while a restroom change is pending.
+      // Only settle the button when the server confirms the target state.
+      if(restroomActionPending&&restroomActionPending.accepted){
+        if(on===restroomActionPending.enabled){
+          restroomActionPending=null;
+        }else if(includeControls){
+          // A fresh authoritative read disagrees with the accepted write.
+          restroomActionPending=null;
+          setActionMessage('Restroom change could not be verified. Please try again.', 'error');
+        }
+      }
+      const pending=restroomActionPending;
+      const displayOn=pending?pending.enabled:on;
+      button.textContent=pending?(displayOn?'Opening...':'Closing...'):
+        adminClosed?'Closed by Admin':(on?'Open':'Closed');
+      button.disabled=Boolean(pending)||adminClosed;
+      button.classList.toggle('green',displayOn&&!adminClosed);
+      button.classList.toggle('red',!displayOn||adminClosed);
+      button.setAttribute('aria-pressed',String(displayOn));
+      button.setAttribute('aria-busy',String(Boolean(pending)));
       const waitingEnabled=String(state.settings['Waiting List Enabled']||'').toLowerCase()==='yes';
       const emergencyLock = String(state.settings['Emergency Lock'] || '').toLowerCase() === 'yes';
       const manualOverrideButton = document.getElementById('manualOverrideButton');
@@ -1028,15 +1045,32 @@
     }
 
     function setRestroom(enabled, button) {
-      beginButtonAction(button, enabled ? 'OPENING...' : 'CLOSING...');
+      if(restroomActionPending)return;
+      restroomActionPending={enabled:Boolean(enabled),accepted:false};
+      // Show the target state/color immediately, not the previous color.
+      renderQuickControls(dashboardState);
       setActionMessage(enabled ? 'Opening restroom passes...' : 'Closing restroom passes...', 'processing');
       google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .withSuccessHandler(function(result) {
+          if(!result?.success){
+            restroomActionPending=null;
+            renderQuickControls(dashboardState);
+            handleActionResult(result);
+            return;
+          }
+          if(restroomActionPending)restroomActionPending.accepted=true;
+          handleActionResult(result); // Fetch the saved state before unlocking.
+        })
+        .withFailureHandler(function(error) {
+          restroomActionPending=null;
+          renderQuickControls(dashboardState);
+          handleActionFailure(error);
+        })
         .updateDestinationFromDashboard(teacherPin, 'Restroom', { enabled: enabled });
     }
 
     function toggleRestroom(button){
+      if(restroomActionPending)return;
       const restroom=dashboardState?.destinations?.find(d=>String(d.name||'').toLowerCase()==='restroom');
       if(!restroom){setActionMessage('Restroom destination is not configured.','error');return}
       if(restroom.schoolwideEnabled===false){setActionMessage('Restroom is disabled schoolwide.','error');return}
