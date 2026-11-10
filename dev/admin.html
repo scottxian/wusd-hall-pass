@@ -2204,7 +2204,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         const names=[...new Set(row.roomOverrides.map(x=>x.sourceGroupId?groups.get(String(x.sourceGroupId))||'Former group':'Individual rooms'))];
         const label=row.roomOverrides.length
           ? row.roomOverrides.length+' room(s)'+(names.length?' · '+names.join(', '):'')
-          : 'Everyone follows '+row.defaultType;
+          : 'None';
         return '<tr><td><strong>'+esc(row.date)+'</strong></td><td>'+esc(row.defaultType)+'</td><td>'+esc(label)+
           '</td><td>'+esc(row.note||'—')+'</td><td><div class="actions">'+
           '<button class="small gray" type="button" data-rs-edit-date="'+esc(row.date)+'">Edit</button>'+
