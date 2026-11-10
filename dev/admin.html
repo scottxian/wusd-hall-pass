@@ -710,6 +710,18 @@
     @media(max-width:620px){#specialDaysPanel .rsScheduledDaysFilters{grid-template-columns:1fr}#specialDaysPanel .rsScheduledDaysTable{max-height:340px}}
     #specialDaysPanel .rsEditingDateNotice{margin-top:12px;padding:10px 12px;border:1px solid #b8cee5;background:#f0f6fc;border-radius:8px;color:#194a80;font-size:14px;font-weight:700}
 
+
+    /* Student restrictions: room selector filters the visible saved rules. */
+    #adminRestrictionPanel .adminRuleForm{margin-top:12px}
+    #adminRestrictionPanel .adminRuleSaveRow{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:14px}
+    #adminRestrictionPanel .adminRuleSaveRow button{min-height:38px;padding:8px 15px;font-size:14px}
+    #adminRestrictionPanel .adminRuleListHead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:14px 0 8px}
+    #adminRestrictionPanel .adminRuleListHead h3{margin:0;font-size:16px}
+    #adminRestrictionPanel .adminRuleListHead button{min-height:36px;padding:7px 12px;font-size:13px}
+    #adminRestrictionPanel #adminRuleBody td:last-child{white-space:nowrap}
+    #adminRestrictionPanel #adminRuleMessage:empty{display:none}
+    @media(max-width:560px){#adminRestrictionPanel .adminRuleListHead{flex-wrap:wrap}}
+
 </style>
 <link rel="stylesheet" href="branding.css">
 </head>
@@ -987,9 +999,9 @@
         <details class="card adminDisclosure" id="adminRestrictionPanel">
           <summary>Classroom Restroom Restrictions</summary>
           <div class="adminDisclosureBody">
-            <p class="muted">Review classroom exceptions. Other students use their room defaults.</p>
-            <div class="formGrid">
-              <div><label for="restrictAdminRoom">Room</label><select id="restrictAdminRoom"><option value="">Choose Room</option></select></div>
+            <p class="muted">Choose a room to add a restriction and view its saved rules. All Rooms shows every classroom's exceptions.</p>
+            <div class="formGrid adminRuleForm">
+              <div><label for="restrictAdminRoom">Room</label><select id="restrictAdminRoom"><option value="">All Rooms (view only)</option></select></div>
               <div><label for="restrictAdminStudent">Student</label><select id="restrictAdminStudent"><option value="">Choose Student</option></select></div>
               <div><label for="restrictAdminType">Rule</label><select id="restrictAdminType" onchange="toggleAdminRuleLimit()">
                 <option value="Day">Per Day</option><option value="Period">Per Period</option>
@@ -997,8 +1009,9 @@
                 <option value="Blocked">No Restroom Passes</option></select></div>
               <div id="restrictAdminLimitWrap"><label for="restrictAdminLimit">Maximum Passes</label><input id="restrictAdminLimit" type="number" min="1" max="100" value="1"></div>
             </div>
-            <div class="buttonRow"><button id="saveAdminRule" class="green">Save Restriction</button><button id="reloadAdminRules" class="gray">Refresh List</button></div>
+            <div class="adminRuleSaveRow"><button id="saveAdminRule" class="green" type="button">Save Restriction</button></div>
             <div id="adminRuleMessage" class="message" role="status" aria-live="polite"></div>
+            <div class="adminRuleListHead"><h3>Saved Restrictions</h3><button id="reloadAdminRules" class="gray" type="button">Refresh List</button></div>
             <div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Rule</th><th>Actions</th></tr></thead>
               <tbody id="adminRuleBody"></tbody></table></div>
           </div>
@@ -1762,10 +1775,24 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function refreshAdminRuleSelectors(){
       const room=$('restrictAdminRoom'),student=$('restrictAdminStudent');
       const oldRoom=room.value,oldStudent=student.value;
-      room.innerHTML='<option value="">Choose Room</option>'+ (management.rooms||[]).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.room)+'</option>').join('');
+      room.innerHTML='<option value="">All Rooms (view only)</option>'+ (management.rooms||[]).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.room)+'</option>').join('');
       student.innerHTML='<option value="">Choose Student</option>'+ (studentsState.rows||[]).filter(x=>x.active).map(x=>'<option value="'+esc(x.studentId)+'">'+esc(x.name)+'</option>').join('');
       if([...room.options].some(x=>x.value===oldRoom))room.value=oldRoom;
       if([...student.options].some(x=>x.value===oldStudent))student.value=oldStudent;
+    }
+    function renderAdminRuleRows(){
+      const room=$('restrictAdminRoom').value;
+      // Keep the index from the complete list for Edit/Remove callbacks.
+      const rows=roomRuleRows.map((row,index)=>({row,index}))
+        .filter(x=>!room||String(x.row.roomId)===String(room));
+      $('adminRuleBody').innerHTML=rows.length?rows.map(({row:x,index:i})=>
+        '<tr><td>'+esc(x.room)+'</td><td>'+esc(x.studentName)+'</td><td>'+
+        esc(x.type==='Blocked'?'No Restroom Passes':x.limit+' per '+x.type.toLowerCase())+
+        '</td><td><button class="small" data-editrule="'+i+'">Edit</button> '+
+        '<button class="small gray" data-removerule="'+i+'">Remove</button></td></tr>'
+      ).join(''):'<tr><td colspan="4" class="emptyState">'+
+        (room?'No restroom restrictions for this classroom.':'No classroom restrictions. All students follow their room defaults.')+
+        '</td></tr>';
     }
     async function reloadAdminRules(){
       try{
@@ -1773,19 +1800,14 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         if(!result.success){setMsg('adminRuleMessage',result.message,true);return}
         roomRuleRows=result.rows||[];
         refreshAdminRuleSelectors();
-        $('adminRuleBody').innerHTML=roomRuleRows.length?roomRuleRows.map((x,i)=>
-          '<tr><td>'+esc(x.room)+'</td><td>'+esc(x.studentName)+'</td><td>'+
-          esc(x.type==='Blocked'?'No Restroom Passes':x.limit+' per '+x.type.toLowerCase())+
-          '</td><td><button class="small" data-editrule="'+i+'">Edit</button> '+
-          '<button class="small gray" data-removerule="'+i+'">Remove</button></td></tr>'
-        ).join(''):'<tr><td colspan="4" class="emptyState">No classroom exceptions. All students follow their room default.</td></tr>';
+        renderAdminRuleRows();
         setMsg('adminRuleMessage','');
       }catch(e){setMsg('adminRuleMessage',e.message,true)}
     }
     async function saveAdminRule(){
       const room=$('restrictAdminRoom').value,student=$('restrictAdminStudent').value,
         type=$('restrictAdminType').value,limit=type==='Blocked'?null:Number($('restrictAdminLimit').value);
-      if(!room||!student){setMsg('adminRuleMessage','Choose a room and student.',true);return}
+      if(!room||!student){setMsg('adminRuleMessage','Select a classroom and student to save a restriction.',true);return}
       if(type!=='Blocked'&&(!Number.isInteger(limit)||limit<1||limit>100)){setMsg('adminRuleMessage','Enter 1–100 passes.',true);return}
       const button=$('saveAdminRule');button.disabled=true;
       try{
@@ -1810,6 +1832,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         const row=roomRuleRows[Number(edit.dataset.editrule)];
         if(!row)return;
         $('restrictAdminRoom').value=row.roomId;
+        renderAdminRuleRows();
         $('restrictAdminStudent').value=String(row.studentNumber);
         $('restrictAdminType').value=row.type;
         $('restrictAdminLimit').value=String(row.limit||1);
@@ -1817,6 +1840,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       }
       if(remove)removeAdminRule(Number(remove.dataset.removerule));
     });
+    $('restrictAdminRoom').addEventListener('change',renderAdminRuleRows);
     $('saveAdminRule').addEventListener('click',saveAdminRule);
     $('reloadAdminRules').addEventListener('click',reloadAdminRules);
     async function refreshStudents(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('studentsMessage','Refreshing...');try{const r=await hallpassApi.call('adminStudentsState',[{includeInactive:true}]);if(!r.success){setMsg('studentsMessage',r.message,true);return;}studentsState=r;renderStudents();reloadAdminRules();HallPassStudentAutocomplete.refresh('studentSearch');HallPassStudentAutocomplete.refresh('search');setMsg('studentsMessage',`${r.rows.length} students loaded.`)}catch(e){setMsg('studentsMessage',e.message,true)}finally{if(button)button.disabled=false}}
