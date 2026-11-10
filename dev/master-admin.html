@@ -1182,7 +1182,17 @@
     }
     function applyAdminContext(r){if(r?.organization)adminAccess.organization=r.organization;if(Array.isArray(r?.schools))adminAccess.schools=r.schools;if(r?.selectedSchool)adminAccess.selectedSchool=r.selectedSchool;if(typeof r?.organizationAdmin==='boolean')adminAccess.organizationAdmin=r.organizationAdmin;const org=adminAccess.organization;$('organizationLabel').textContent=org?`${org.name} (${org.key})`:'—';const select=$('schoolSelector');if(select){const selected=currentSchoolKey();const activeSchools=(adminAccess.schools||[]).filter(x=>x.active!==false);select.innerHTML=activeSchools.map(x=>`<option value="${esc(x.key)}">${esc(x.name)}</option>`).join('');if(selected&&[...select.options].some(o=>o.value===selected))select.value=selected;else if(activeSchools.length){select.value=activeSchools[0].key;}}if(org){$('organizationPanelName').textContent=org.name;$('organizationPanelKey').textContent='Organization key: '+org.key;}const add=$('addSchoolButton');if(add)add.classList.toggle('hidden',adminAccess.organizationAdmin!==true);updateHallpassAdminTitle();if(window.HallPilotBranding){window.HallPilotBranding.render({organizationKey:currentOrgKey(),schoolKey:currentSchoolKey(),schoolName:adminAccess.selectedSchool?.name||''})}}
     function setSchoolInUrl(key){const url=new URL(location.href);if(currentOrgKey())url.searchParams.set('org',currentOrgKey());else url.searchParams.delete('org');if(key)url.searchParams.set('school',key);else url.searchParams.delete('school');url.searchParams.delete('room');history.replaceState(null,'',url);updateHallpassAdminTitle();if(window.HallPilotBranding){window.HallPilotBranding.render({organizationKey:currentOrgKey(),schoolKey:key,schoolName:adminAccess.selectedSchool?.name||''})}}
-    function teachersForRoom(room){return management.teachers.filter(t=>(room?.teacherIds||[]).includes(t.id))}
+    function teachersForRoom(room){
+      const ids=new Set((room?.teacherIds||[]).map(String));
+      const pool=[...(management.teachers||[]),...(management.organizationTeachers||[])];
+      const seen=new Set();
+      return pool.filter(t=>{
+        const id=String(t.id);
+        if(!ids.has(id)||seen.has(id))return false;
+        seen.add(id);
+        return true;
+      });
+    }
     function setupMessageForRoom(room){return `${adminAccess.organization?.name||'Hall Pass'}
 ${adminAccess.selectedSchool?.name||'School'} — ${room.room}
 
@@ -1225,10 +1235,15 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     async function refreshManagement(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('manageMessage','Refreshing...');try{const r=await hallpassApi.call('adminManagementState',[]);if(!r.success){setMsg('manageMessage',r.message,true);return;}management=r;applyAdminContext(r);renderManagement();refreshAuditRoomFilter();setMsg('manageMessage','')}catch(e){setMsg('manageMessage',e.message,true)}finally{if(button)button.disabled=false}}
     function assignmentTeachers(){return adminAccess.organizationAdmin===true?(management.organizationTeachers||management.teachers||[]):(management.teachers||[])} function teacherNames(ids){const pool=[...(management.teachers||[]),...(management.organizationTeachers||[])];return (ids||[]).map(id=>pool.find(t=>t.id===id)?.name).filter(Boolean).join(', ')||'—'} function roomNames(ids){return (ids||[]).map(id=>management.rooms.find(r=>r.id===id)?.room).filter(Boolean).join(', ')||'—'}
     function classroomTeacherNames(ids){
-      const staff=management.teachers||[];
-      const unique=new Set();
-      for(const id of (ids||[])){const teacher=staff.find(t=>String(t.id)===String(id));if(teacher&&teacher.role!=='admin')unique.add(teacher.name)}
-      return [...unique].join(', ')||'Not assigned';
+      // Classroom responsibility and admin permission are independent.
+      // A staff member can be assigned to a room AND be an organization admin.
+      const staff=[...(management.teachers||[]),...(management.organizationTeachers||[])];
+      const names=new Set();
+      for(const id of (ids||[])){
+        const teacher=staff.find(t=>String(t.id)===String(id));
+        if(teacher?.name)names.add(teacher.name);
+      }
+      return [...names].join(', ')||'Not assigned';
     }
     function renderManagement(){$('roomsBody').innerHTML=management.rooms.length?management.rooms.map(r=>`<tr class="${r.active?'':'inactive'}">
         <td><strong title="Room key: ${esc(r.key)}">${esc(r.room)}</strong>${r.emergencyLock?'<div class="lock">Emergency Lock</div>':''}</td>
