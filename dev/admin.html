@@ -2496,7 +2496,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           (p.missing.length?' · '+p.missing.length+' missing bell schedules':' · All bell schedules assigned');
         $('rsBulkConflicts').classList.add('hidden');
         $('rsDatePreviewDetails').classList.add('hidden');
-        $('rsRoomPreviewDetails').open=Boolean(p.missing.length);
+        $('rsRoomPreviewDetails').open=true; // Preview opens the complete effective room schedule.
         rsRenderDatePreviewActions();
         $('rsPreviewWrap').classList.remove('hidden');
         $('rsPreviewWrap').setAttribute('aria-hidden','false');
