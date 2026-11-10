@@ -2373,15 +2373,15 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       setMsg('rsLegacyImportMessage',dates.length+' original '+legacyName+' dates prepared for preview. Nothing has been saved yet; original calendar remains unchanged.');
     }
 
-    function rsResetPreview() {
-      rsPreviewData = null;
-      $('rsApply').disabled = true;
-      $('rsSaveStage').classList.add('hidden');
+    function rsClosePreview(){
       $('rsPreviewWrap').classList.add('hidden');
-      const message=$('rsExceptionMessage');
-      if(message){message.textContent='';message.className='message';}
+      $('rsPreviewWrap').setAttribute('aria-hidden','true');
     }
-
+    function rsResetPreview(){
+      rsPreviewData=null;rsClosePreview();
+      const el=$('rsExceptionMessage');if(el){el.textContent='';el.className='message';}
+      rsUpdateDraftSummary();
+    }
     async function rsAssign() {
       const ids=rsSelectedRoomIds(), type=$('rsAssignDayType').value.trim(), schedule=$('rsMasterSchedule').value;
       if (!ids.length) return setMsg('rsAssignMessage','Select one or more active rooms.',true);
@@ -2452,130 +2452,87 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
     function rsRenderDatePreviewActions(){
       if(!rsPreviewData)return;
-      const dates=rsPreviewData.dates;
-      const saved=new Map(rsConfiguredDates().map(x=>[x.date,x]));
-      const mode=rsPreviewData.conflictMode;
-      $('rsPreviewBody').innerHTML=dates.map(date=>{
-        const old=saved.get(date);
-        const action=!old?'Add':mode==='replace'?'Update':mode==='skip'?'Keep unchanged':'Choose below';
-        return '<tr><td>'+esc(date)+'</td><td>'+esc(old?.defaultType||'Normal Primary')+
-          (old?.roomOverrides.length?' + '+old.roomOverrides.length+' different rooms':'')+
-          '</td><td>'+esc(rsPreviewData.defaultType)+
-          (rsPreviewData.roomExceptionCount?' + '+rsPreviewData.roomExceptionCount+' different rooms':'')+
-          '</td><td>'+esc(action)+'</td></tr>';
-      }).join('');
-      const conflicts=dates.filter(date=>saved.has(date));
-      const policyMissing=dates.length>1&&conflicts.length&&!['skip','replace'].includes(mode);
-      const allSkipped=dates.length>1&&mode==='skip'&&conflicts.length===dates.length;
-      const ready=!(rsDateLoadBlocked||rsPreviewData.missingCount||policyMissing||allSkipped);
-      $('rsApply').disabled=!ready;
-      $('rsSaveStage').classList.toggle('hidden',!ready);
-      if(allSkipped)setMsg('rsExceptionMessage','All selected dates are already configured. To change them, select Replace existing dates. No changes have been made.',true);
-      else if(policyMissing)setMsg('rsExceptionMessage','Some dates already have schedules. Choose how to handle those dates before saving.');
-      else setMsg('rsExceptionMessage',rsPreviewData.missingCount
-        ? 'Assign the missing classroom bell schedules under Room Scheduling, then preview again.'
-        : 'Preview is valid. Nothing has been saved yet.');
+      const date=rsPreviewData.dates[0];
+      const old=rsConfiguredDates().find(x=>x.date===date);
+      $('rsPreviewBody').innerHTML='<tr><td>'+esc(date)+'</td><td>'+esc(old?.defaultType||'Primary')+
+        '</td><td>'+esc(rsPreviewData.defaultType)+'</td><td>'+(old?'Update':'Add')+'</td></tr>';
+    }
+    function rsMakeSpecialDraft(){
+      if(!rsState)throw Error('Scheduling data has not loaded. Refresh and try again.');
+      const date=$('rsOneDate').value;
+      if(!date||!parseCalendarDateToken(date))throw Error('Choose a valid date.');
+      const preview=rsBuildScopedPreview();
+      return {dates:[date],defaultType:preview.defaultType,preview,
+        overrides:rsExceptionRules.filter(x=>x.scope!=='school').map(x=>({
+          scope:x.scope,groupId:x.groupId||'',roomIds:[...(x.roomIds||[])],dayType:x.dayType
+        })),note:$('rsNote').value.trim(),
+        baseline:rsSpecialDateFingerprint(rsState,[date])};
     }
     function rsPreviewSpecialDates(){
-      rsResetPreview();
-      if(!rsState)return setMsg('rsExceptionMessage','Scheduling data has not loaded. Refresh and try again.',true);
+      rsClosePreview();
       try{
-        if(!$('rsOneDate').value)throw Error('Choose a date first.');
-        const dates=rsDateCollection();
-        const preview=rsBuildScopedPreview();
-        const saved=new Map(rsConfiguredDates().map(x=>[x.date,x]));
-        const conflicts=dates.filter(date=>saved.has(date));
-        const single=dates.length===1;
-        const mode=single?(conflicts.length?'replace':'skip'):(conflicts.length?'':'skip');
-        $('rsConflictMode').value=mode;
-        const rules=rsExceptionRules.map(x=>({
-          scope:x.scope,groupId:x.groupId||'',roomIds:[...(x.roomIds||[])],dayType:x.dayType
-        }));
-        rsPreviewData={
-          dates,defaultType:preview.defaultType,overrides:rules,
-          note:$('rsNote').value.trim(),conflictMode:mode,
-          baseline:rsSpecialDateFingerprint(rsState,dates),
-          missingCount:preview.missing.length,
-          roomExceptionCount:preview.overrides.size
-        };
-        const activeRooms=preview.rows;
-        const rawGroups=new Map((rsState?.roomGroups||[]).map(g=>[String(g.id),g.name]));
-        const summary=[
-          ['Schoolwide Schedule',preview.defaultType],
-          ...rsExceptionRules.map(rule=>[
-            rule.scope==='group'?('Group: '+(rawGroups.get(String(rule.groupId))||'Unknown group')):
-              'Rooms: '+rule.roomIds.map(id=>activeRooms.find(r=>String(r.roomId)===String(id))?.name||'Unknown').join(', '),
-            rule.dayType
-          ])
-        ];
-        $('rsSimpleSummary').innerHTML=summary.map(([who,schedule])=>
-          '<div class="rsSummaryRow"><span>'+esc(who)+'</span><strong>'+esc(schedule)+'</strong></div>'
-        ).join('');
-        $('rsRoomPreviewBody').innerHTML=activeRooms.map(x=>
-          '<tr><td><strong>'+esc(x.name)+'</strong></td><td>'+esc(x.dayType)+
-          '</td><td>'+esc(x.bell)+'</td><td>'+esc(x.source)+'</td></tr>'
-        ).join('');
-        $('rsMissingSchedules').textContent=preview.missing.length?
-          'Cannot save: '+preview.missing.map(x=>x.name+' needs a '+x.dayType+' bell schedule').join('; ')+'.':'';
-        $('rsPreviewSummary').textContent=dates.length+' selected date(s) · '+activeRooms.length+
-          ' active classrooms · '+preview.overrides.size+' classrooms with different schedules'+
-          (preview.missing.length?' · '+preview.missing.length+' missing bell schedules':' · No missing bell schedules');
-        const multiConflicts=dates.length>1&&conflicts.length>0;
-        $('rsBulkConflicts').classList.toggle('hidden',!multiConflicts);
-        $('rsDatePreviewDetails').open=dates.length>1;
-        $('rsRoomPreviewDetails').open=preview.missing.length>0;
-        document.querySelectorAll('[name="rsBulkConflictChoice"]').forEach(x=>x.checked=false);
-        if(multiConflicts){
-          $('rsBulkConflictTitle').textContent=conflicts.length+' of '+dates.length+' dates already have special schedules.';
-          $('rsBulkConflictDates').textContent='Existing: '+conflicts.join(', ')+'. Select whether to preserve or update these dates.';
-        }
-        $('rsPreviewWrap').classList.remove('hidden');
+        const draft=rsMakeSpecialDraft(),p=draft.preview;
+        rsPreviewData=draft;
+        const groups=new Map((rsState.roomGroups||[]).map(x=>[String(x.id),x.name]));
+        const rooms=new Map(p.rows.map(x=>[String(x.roomId),x.name]));
+        $('rsSimpleSummary').innerHTML=rsExceptionRules.map(rule=>{
+          const who=rule.scope==='school'?'Entire School':
+            rule.scope==='group'?'Group: '+(groups.get(String(rule.groupId))||'Unknown'):
+              'Rooms: '+rule.roomIds.map(id=>rooms.get(String(id))||'Unknown').join(', ');
+          return '<div class="rsSummaryRow"><span>'+esc(who)+'</span><strong>'+esc(rule.dayType)+'</strong></div>';
+        }).join('');
+        $('rsRoomPreviewBody').innerHTML=p.rows.map(x=>'<tr><td><strong>'+esc(x.name)+
+          '</strong></td><td>'+esc(x.dayType)+'</td><td>'+esc(x.bell)+'</td><td>'+esc(x.source)+'</td></tr>').join('');
+        $('rsMissingSchedules').textContent=p.missing.length?'Cannot save: '+
+          p.missing.map(x=>x.name+' needs a '+x.dayType+' bell schedule').join('; ')+'.':'';
+        const counts=new Map();p.rows.forEach(x=>counts.set(x.dayType,(counts.get(x.dayType)||0)+1));
+        $('rsPreviewSummary').textContent=p.rows.length+' active classrooms · '+
+          [...counts].map(([type,n])=>n+' '+type).join(' · ')+
+          (p.missing.length?' · '+p.missing.length+' missing bell schedules':' · All bell schedules assigned');
+        $('rsBulkConflicts').classList.add('hidden');
+        $('rsDatePreviewDetails').classList.add('hidden');
+        $('rsRoomPreviewDetails').open=Boolean(p.missing.length);
         rsRenderDatePreviewActions();
-        $('rsReviewTitle').scrollIntoView({behavior:'smooth',block:'start'});
-        $('rsReviewTitle').focus({preventScroll:true});
-      }catch(e){setMsg('rsExceptionMessage',e.message,true)}
+        $('rsPreviewWrap').classList.remove('hidden');
+        $('rsPreviewWrap').setAttribute('aria-hidden','false');
+        $('rsClosePreview').focus();
+        setMsg('rsExceptionMessage','');
+      }catch(e){setMsg('rsExceptionMessage',e.message,true);}
     }
-
     async function rsApplySpecialDates(){
-      if(!rsPreviewData||$('rsApply').disabled)
-        return setMsg('rsExceptionMessage','Preview a valid schedule before saving.',true);
-      const b=$('rsApply');b.disabled=true;
+      const button=$('rsApply');if(button.disabled)return;
       try{
-        if(!['skip','replace'].includes(rsPreviewData.conflictMode))
-          throw Error('Choose how to handle existing dates.');
-        // Refresh current state just before saving. If a second administrator has
-        // edited a selected date or any referenced schedules, abort rather than
-        // silently overwrite a configuration the user has not seen.
+        const draft=rsMakeSpecialDraft();
+        if(draft.preview.missing.length)
+          throw Error('Missing bell schedules: '+draft.preview.missing.map(x=>x.name+
+            ' needs '+x.dayType).join('; ')+'. Assign these under Room Scheduling before saving.');
+        const date=draft.dates[0],old=rsConfiguredDates().find(x=>x.date===date);
+        if(old&&!window.confirm('Replace the existing schedule assignments for '+date+' with these changes?'))return;
+        button.disabled=true;
+        setMsg('rsExceptionMessage','Checking the latest schedules before saving…');
         const fresh=await hallpassApi.call('adminRoomSchedulingState',[]);
-        if(!fresh.success)throw Error(fresh.message||'Could not confirm the latest schedules. Nothing was saved.');
-        if(rsSpecialDateFingerprint(fresh,rsPreviewData.dates)!==rsPreviewData.baseline){
-          rsState=fresh;
-          renderRoomScheduling();
-          throw Error('The selected dates or classroom schedules changed since your preview. Nothing was saved. Reload the date and preview again.');
+        if(!fresh.success)throw Error(fresh.message||'Could not verify current schedules. Nothing was saved.');
+        if(rsSpecialDateFingerprint(fresh,draft.dates)!==draft.baseline){
+          rsState=fresh;renderRoomScheduling();
+          throw Error('The date or classroom schedules changed while editing. Nothing was saved. Reload and try again.');
         }
-        const payload={
-          dates:rsPreviewData.dates,defaultType:rsPreviewData.defaultType,
-          overrides:rsPreviewData.overrides,note:rsPreviewData.note,
-          conflictMode:rsPreviewData.conflictMode
-        };
-        const r=await hallpassApi.call('adminSaveScopedSpecialDays',[payload]);
-        if(!r.success)throw Error(r.message);
+        const payload={dates:draft.dates,defaultType:draft.defaultType,overrides:draft.overrides,
+          note:draft.note,conflictMode:old?'replace':'skip'};
+        const result=await hallpassApi.call('adminSaveScopedSpecialDays',[payload]);
+        if(!result.success)throw Error(result.message||'Could not save the Special Day.');
         await refreshRoomScheduling();
-        if(r.skipped&&!(r.saved))setMsg('rsExceptionMessage','No changes saved. '+r.skipped+' existing date(s) were kept unchanged.');
-        else setMsg('rsExceptionMessage',r.message||'Special day saved.');
-      }catch(e){
-        rsResetPreview();
-        setMsg('rsExceptionMessage',e.message,true);
-      }finally{b.disabled=true}
+        rsLoadSpecialDate(date);
+        setMsg('rsExceptionMessage',result.message||'Special Day saved.');
+      }catch(e){setMsg('rsExceptionMessage',e.message,true);}
+      finally{button.disabled=false;}
     }
-
     async function rsDeleteSpecialDate(date){
       if(!window.confirm('Remove the schoolwide date and ALL room/group exceptions on '+date+'? Every room will use its Primary schedule.'))return;
       try{
         const r=await hallpassApi.call('adminDeleteDayException',[date]);
         if(!r.success)throw Error(r.message);
         await refreshRoomScheduling();
-        if($('rsOneDate').value===date)rsClearSpecialForm();
+        if($('rsOneDate').value===date)rsLoadSpecialDate('');
         setMsg('rsExceptionMessage',r.message);
       }catch(e){setMsg('rsExceptionMessage',e.message,true)}
     }
@@ -2882,6 +2839,9 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('rsDeleteTypeButton').addEventListener('click', rsDeleteType);
     $('rsViewSchedule').addEventListener('click',previewSelectedSchedule);
     $('rsPreview').addEventListener('click',rsPreviewSpecialDates);
+    $('rsClosePreview').addEventListener('click',()=>{rsClosePreview();$('rsPreview').focus();});
+    $('rsDonePreview').addEventListener('click',()=>{rsClosePreview();$('rsPreview').focus();});
+    $('rsPreviewWrap').addEventListener('click',e=>{if(e.target===$('rsPreviewWrap'))rsClosePreview();});
     $('rsApply').addEventListener('click',rsApplySpecialDates);
     $('specialDaysPanel').addEventListener('input',e=>{
       if(e.target.matches('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays input,#rsExceptionDayType'))rsResetPreview();
@@ -2894,12 +2854,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         rsResetPreview();
       }
     });
-    $('rsBulkConflicts').addEventListener('change',e=>{
-      if(!e.target.matches('[name="rsBulkConflictChoice"]')||!rsPreviewData)return;
-      rsPreviewData.conflictMode=e.target.value;
-      $('rsConflictMode').value=e.target.value;
-      rsRenderDatePreviewActions();
-    });
+
     $('rsShowSavedDays').addEventListener('click',rsOpenSavedDays);
     $('rsCloseSavedDays').addEventListener('click',rsCloseSavedDays);
     $('rsDoneSavedDays').addEventListener('click',rsCloseSavedDays);
@@ -2907,6 +2862,9 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('rsSavedDaysPeriod').addEventListener('change',rsRenderConfiguredDates);
     $('rsSavedDaysModal').addEventListener('click',e=>{if(e.target===$('rsSavedDaysModal'))rsCloseSavedDays()});
     document.addEventListener('keydown',e=>{
+      if(e.key==='Escape'&&!$('rsPreviewWrap').classList.contains('hidden')){
+        e.preventDefault();rsClosePreview();$('rsPreview').focus();return;
+      }
       if(e.key==='Escape'&&!$('rsSavedDaysModal').classList.contains('hidden')){
         e.preventDefault();
         rsCloseSavedDays();
