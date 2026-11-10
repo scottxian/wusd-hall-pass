@@ -432,9 +432,6 @@
     #specialDaysPanel .rsPreviewDetails{margin-top:12px;padding:9px 0;border-top:1px solid #e6ebf1}
     #specialDaysPanel .rsPreviewDetails .tableWrap{margin-top:9px}
     #specialDaysPanel .rsReviewHint{margin:13px 0 0;color:#4e6070;font-size:14px}
-    #specialDaysPanel .rsSaveStage{margin-top:18px;padding-top:16px;border-top:1px solid #dce5ed}
-    #specialDaysPanel .rsSaveStage h3{font-size:17px;margin:0 0 6px}
-    #specialDaysPanel .rsSaveStage .actions{margin-top:12px}
     #specialDaysPanel #rsExceptionsBody td:last-child{min-width:145px}
     @media(max-width:800px){#specialDaysPanel .rsSpecialForm{grid-template-columns:1fr 1fr}}
     @media(max-width:620px){#specialDaysPanel .rsSpecialForm{grid-template-columns:1fr}#specialDaysPanel .rsScopeRuleHead{grid-template-columns:1fr 1fr}#specialDaysPanel .rsScopeRuleHead button{grid-column:1/-1;justify-self:start}}
@@ -448,7 +445,15 @@
     #specialDaysPanel .rsRepeatDetails{display:none}
     #rsPreviewWrap{z-index:45;align-items:center;padding:18px}
     #rsPreviewWrap .rsSpecialPreviewDialog{width:min(960px,100%);max-height:calc(100vh - 36px);overflow:auto}
-    #rsPreviewWrap .rsSimpleSummary{margin-top:13px}
+    #rsPreviewWrap .rsSimpleSummary{margin-top:13px;padding:13px;border:1px solid #dce4eb;border-radius:10px;background:#fafcfe;display:grid;gap:9px}
+    #rsPreviewWrap .rsSummaryRow{display:flex;justify-content:space-between;gap:12px;align-items:baseline;font-size:14px}
+    #rsPreviewWrap .rsSummaryRow strong{text-align:right}
+    #rsPreviewWrap .rsMissingSchedules{font-size:13px;font-weight:700;color:#a52720;margin:10px 0}
+    #rsPreviewWrap .rsMissingSchedules:empty{display:none}
+    #rsPreviewWrap .rsPreviewDetails{margin-top:12px;padding:9px 0;border-top:1px solid #e6ebf1}
+    #rsPreviewWrap .rsPreviewDetails summary{cursor:pointer;font-size:14px;font-weight:700;color:#245178}
+    #rsPreviewWrap .rsPreviewDetails .tableWrap{max-height:52vh;overflow:auto;margin-top:10px}
+
     @media(max-width:620px){#specialDaysPanel .rsSpecialForm{grid-template-columns:1fr}}
     /* Keep the Special Days editor compact; use a scrollable, searchable viewer for saved dates. */
     #rsSavedDaysModal{z-index:40;align-items:center;padding:18px}
@@ -723,7 +728,7 @@
             <input id="rsSavedDaysSearch" type="search" placeholder="Search date, schedule, group, or note" autocomplete="off">
           </div>
           <div class="tableWrap rsSavedDaysTable" style="margin-top:12px">
-            <table><thead><tr><th>Date</th><th>Schoolwide Schedule</th><th>Different Schedules</th><th>Note</th><th>Actions</th></tr></thead><tbody id="rsExceptionsBody"></tbody></table>
+            <table><thead><tr><th>Date</th><th>Schoolwide Schedule</th><th>Room / Group Assignments</th><th>Note</th><th>Actions</th></tr></thead><tbody id="rsExceptionsBody"></tbody></table>
           </div>
           <div class="modalActions"><button type="button" class="gray" id="rsDoneSavedDays">Done</button></div>
         </div>
