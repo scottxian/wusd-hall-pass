@@ -2039,6 +2039,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       showRoomSchedulingSection('special');
       rsLoadSpecialDate(date);
       $('rsSpecialEditor').scrollIntoView({behavior:'smooth',block:'start'});
+      $('rsOneDate').focus({preventScroll:true});
     }
 
     function rsBuildScopedPreview(){
