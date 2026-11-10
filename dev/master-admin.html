@@ -2075,9 +2075,14 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         'Existing date loaded. Edit assignments and select Save Changes.');
     }
     function rsEditSpecialDate(date){
-      showRoomSchedulingSection('special');rsLoadSpecialDate(date);
-      $('rsSpecialEditor').scrollIntoView({behavior:'smooth',block:'start'});
-      $('rsOneDate').focus({preventScroll:true});
+      showRoomSchedulingSection('special');
+      rsLoadSpecialDate(date);
+      // Bring the editable fields into view without snapping the entire card
+      // to the top. Keep keyboard focus from triggering a second scroll.
+      const field=$('rsOneDate');
+      const reduceMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      field.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'center'});
+      field.focus({preventScroll:true});
     }
     function rsBuildScopedPreview(){
       if(rsDateLoadBlocked)throw Error('This saved configuration cannot be edited safely until missing rooms or schedules are resolved.');
