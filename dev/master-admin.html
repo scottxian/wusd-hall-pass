@@ -2562,8 +2562,23 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('rsViewSchedule').addEventListener('click',previewSelectedSchedule);
     $('rsPreview').addEventListener('click',rsPreviewSpecialDates);
     $('rsApply').addEventListener('click',rsApplySpecialDates);
-    $('specialDaysPanel').addEventListener('input',e=>{if(e.target.closest('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays,#rsExceptionDayType,#rsConflictMode'))rsResetPreview();});
-    $('specialDaysPanel').addEventListener('change',e=>{if(e.target.closest('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays,#rsExceptionDayType,#rsConflictMode'))rsResetPreview();});
+    $('specialDaysPanel').addEventListener('input',e=>{
+      if(e.target.matches('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays input,#rsExceptionDayType'))rsResetPreview();
+    });
+    $('specialDaysPanel').addEventListener('change',e=>{
+      if(e.target.id==='rsOneDate'){
+        rsLoadSpecialDate(e.target.value);
+        setMsg('rsExceptionMessage','');
+      }else if(e.target.matches('#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays input,#rsExceptionDayType')){
+        rsResetPreview();
+      }
+    });
+    $('rsBulkConflicts').addEventListener('change',e=>{
+      if(!e.target.matches('[name="rsBulkConflictChoice"]')||!rsPreviewData)return;
+      rsPreviewData.conflictMode=e.target.value;
+      $('rsConflictMode').value=e.target.value;
+      rsRenderDatePreviewActions();
+    });
     $('rsExceptionsBody').addEventListener('click',e=>{
       const del=e.target.closest('[data-rs-delete-date]');
       const edit=e.target.closest('[data-rs-edit-date]');
@@ -2582,11 +2597,13 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const row=e.target.closest('[data-rs-rule]');if(!row)return;
       const rule=rsExceptionRules.find(x=>x.id===Number(row.dataset.rsRule));if(!rule)return;
       const el=e.target;
-      if(el.matches('[data-rs-rule-scope]')){
-        rule.scope=el.value;rule.groupId='';rule.roomIds=[];
+      if(el.matches('[data-rs-rule-who]')){
+        const value=String(el.value||'');
+        rule.scope=value==='room'?'room':'group';
+        rule.groupId=value.startsWith('group:')?value.slice(6):'';
+        rule.roomIds=[];
         rsRenderExceptionRules();
       }else if(el.matches('[data-rs-rule-type]'))rule.dayType=el.value;
-      else if(el.matches('[data-rs-rule-group]'))rule.groupId=el.value;
       else if(el.matches('[data-rs-rule-room]')){
         if(el.checked)rule.roomIds=[...new Set([...(rule.roomIds||[]),el.dataset.rsRuleRoom])];
         else rule.roomIds=(rule.roomIds||[]).filter(id=>id!==el.dataset.rsRuleRoom);
