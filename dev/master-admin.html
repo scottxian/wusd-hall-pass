@@ -2063,6 +2063,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       rsPreviewData = null;
       $('rsApply').disabled = true;
       $('rsPreviewWrap').classList.add('hidden');
+      const message=$('rsExceptionMessage');
+      if(message){message.textContent='';message.className='message';}
     }
 
     async function rsAssign() {
