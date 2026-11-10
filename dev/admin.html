@@ -936,10 +936,6 @@
           <div id="rsMissingSchedules" class="rsMissingSchedules" role="status"></div>
           <div id="rsPreviewSummary" class="muted"></div>
           <div id="rsBulkConflicts" class="rsBulkConflicts hidden"></div>
-          <details class="rsPreviewDetails" id="rsRoomPreviewDetails">
-            <summary>View each classroom's bell schedule</summary>
-            <div class="tableWrap"><table><thead><tr><th>Room</th><th>Schedule Type</th><th>Bell Schedule</th><th>Why</th></tr></thead><tbody id="rsRoomPreviewBody"></tbody></table></div>
-          </details>
           <details class="rsPreviewDetails hidden" id="rsDatePreviewDetails">
             <summary>Date actions</summary>
             <div class="tableWrap"><table><thead><tr><th>Date</th><th>Current</th><th>Requested</th><th>Action</th></tr></thead><tbody id="rsPreviewBody"></tbody></table></div>
@@ -2486,8 +2482,6 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
               'Rooms: '+rule.roomIds.map(id=>rooms.get(String(id))||'Unknown').join(', ');
           return '<div class="rsSummaryRow"><span>'+esc(who)+'</span><strong>'+esc(rule.dayType)+'</strong></div>';
         }).join('');
-        $('rsRoomPreviewBody').innerHTML=p.rows.map(x=>'<tr><td><strong>'+esc(x.name)+
-          '</strong></td><td>'+esc(x.dayType)+'</td><td>'+esc(x.bell)+'</td><td>'+esc(x.source)+'</td></tr>').join('');
         $('rsMissingSchedules').textContent=p.missing.length?'Cannot save: '+
           p.missing.map(x=>x.name+' needs a '+x.dayType+' bell schedule').join('; ')+'.':'';
         const counts=new Map();p.rows.forEach(x=>counts.set(x.dayType,(counts.get(x.dayType)||0)+1));
@@ -2496,7 +2490,6 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           (p.missing.length?' · '+p.missing.length+' missing bell schedules':' · All bell schedules assigned');
         $('rsBulkConflicts').classList.add('hidden');
         $('rsDatePreviewDetails').classList.add('hidden');
-        $('rsRoomPreviewDetails').open=true; // Preview opens the complete effective room schedule.
         rsRenderDatePreviewActions();
         $('rsPreviewWrap').classList.remove('hidden');
         $('rsPreviewWrap').setAttribute('aria-hidden','false');
