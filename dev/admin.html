@@ -1846,6 +1846,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         if (!r.success) { setMsg('rsModeMessage', r.message, true); return; }
         rsState = r; rsPreviewData = null;
         renderRoomScheduling();
+        if($('rsOneDate').value)rsLoadSpecialDate($('rsOneDate').value);
+        else rsUpdateSpecialSaveLabel();
         setMsg('rsModeMessage', '');
       } catch(e) { setMsg('rsModeMessage', e.message, true); }
       finally { if (button) button.disabled = false; }
@@ -2017,43 +2019,42 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function rsTypeOptions(selected){
       return rsAvailableTypes().map(type=>'<option value="'+esc(type)+'"'+(type===selected?' selected':'')+'>'+esc(type)+'</option>').join('');
     }
+
     function rsRenderExceptionRules(){
       const host=$('rsScopeRules');
       const groups=rsState?.roomGroups||[];
       const rooms=(rsState?.rooms||[]).filter(r=>r.active);
       host.innerHTML=rsExceptionRules.map(rule=>{
-        const groupChoice='<option value="">Choose Room Group</option>'+
-          groups.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===rule.groupId?' selected':'')+'>'+esc(g.name)+'</option>').join('');
-        const roomChecks=rooms.map(r=>'<label><input type="checkbox" data-rs-rule-room="'+esc(r.id)+'"'+
-          ((rule.roomIds||[]).includes(r.id)?' checked':'')+'> '+esc(r.name)+'</label>').join('');
+        const whoOptions='<option value="">Choose a room group or individual rooms…</option>'+
+          groups.map(g=>'<option value="group:'+esc(g.id)+'"'+
+            (rule.scope==='group'&&String(g.id)===String(rule.groupId)?' selected':'')+
+            '>Group: '+esc(g.name)+'</option>').join('')+
+          '<option value="room"'+(rule.scope==='room'?' selected':'')+'>Select individual classrooms</option>';
+        const checks=rooms.map(r=>'<label><input type="checkbox" data-rs-rule-room="'+esc(r.id)+'"'+
+          ((rule.roomIds||[]).some(x=>String(x)===String(r.id))?' checked':'')+'> '+esc(r.name)+'</label>').join('');
         return '<div class="rsScopeRule" data-rs-rule="'+rule.id+'"><div class="rsScopeRuleHead">'+
-          '<div><label>Applies To</label><select data-rs-rule-scope><option value="group"'+
-          (rule.scope==='group'?' selected':'')+'>Room Group</option><option value="room"'+
-          (rule.scope==='room'?' selected':'')+'>Selected Rooms</option></select></div>'+
-          '<div><label>Schedule Type</label><select data-rs-rule-type>'+rsTypeOptions(rule.dayType)+'</select></div>'+
+          '<div><label>Who follows a different schedule?</label><select data-rs-rule-who>'+whoOptions+'</select></div>'+
+          '<div><label>Which schedule?</label><select data-rs-rule-type>'+rsTypeOptions(rule.dayType)+'</select></div>'+
           '<button class="gray rsScopeRuleButton" type="button" data-rs-remove-rule>Remove</button>'+
-          '</div><div class="rsScopeRuleTargets">'+(rule.scope==='group'?
-            '<div><label>Room Group</label><select data-rs-rule-group>'+groupChoice+'</select></div>':
-            '<div><label>Rooms</label><div class="rsRoomCheckGrid">'+roomChecks+'</div></div>')+
-          '</div></div>';
+          '</div>'+(rule.scope==='room'?
+            '<div class="rsScopeRuleTargets"><label>Choose classrooms</label><div class="rsRoomCheckGrid">'+checks+'</div></div>':'')+
+          '</div>';
       }).join('');
-      $('rsScopeNote').textContent=groups.length
-        ? 'Room groups are reusable. Each saved date keeps its selected rooms, even if group membership changes later.'
-        : 'Create a reusable group on the Room Groups page, or select individual rooms here.';
+      $('rsScopeNote').textContent=rsExceptionRules.length
+        ? 'Only these selected groups or classrooms follow a different schedule. Other classrooms keep the schoolwide selection.'
+        : 'No different schedules selected. All classrooms follow the schoolwide schedule above.';
     }
     function rsAddExceptionRule(){
       const types=rsAvailableTypes();
-      rsExceptionRules.push({id:++rsRuleCounter,scope:(rsState?.roomGroups||[]).length?'group':'room',
-        groupId:'',roomIds:[],dayType:types.find(x=>x.toLowerCase()==='rally')||types.find(x=>x.toLowerCase()!=='primary')||'Primary'});
+      rsExceptionRules.push({id:++rsRuleCounter,scope:'group',groupId:'',roomIds:[],
+        dayType:types.find(x=>x.toLowerCase()==='rally')||
+          types.find(x=>x.toLowerCase()!=='primary')||'Primary'});
       rsRenderExceptionRules();rsResetPreview();
     }
     function rsClearSpecialForm(){
-      $('rsOneDate').value='';$('rsExceptionDayType').value='Primary';
-      $('rsConflictMode').value='skip';$('rsNote').value='';
-      $('rsRepeatStart').value='';$('rsRepeatEnd').value='';$('rsDateList').value='';
-      document.querySelectorAll('#rsWeekdays input').forEach(x=>x.checked=false);
-      rsExceptionRules=[];rsRenderExceptionRules();rsResetPreview();
+      rsLoadSpecialDate('');
       setMsg('rsExceptionMessage','');
+      $('rsOneDate').focus();
     }
     function rsRenderRoomGroups(){
       const host=$('rsGroupsTable'), groups=rsState?.roomGroups||[];
@@ -2102,61 +2103,124 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         setMsg('rsGroupMessage',r.message);
       }catch(e){setMsg('rsGroupMessage',e.message,true)}
     }
-    function rsConfiguredDates(){
-      const found=new Map();
-      for(const row of rsState?.exceptions||[]){
-        if(row.active!==false)found.set(row.date,{date:row.date,defaultType:row.dayType,note:row.note||'',roomOverrides:[]});
+
+    // A saved date is a snapshot of explicit room assignments, not a live
+    // reference to the current membership of a named group.
+    let rsDateLoadBlocked=false;
+    let rsEditingDateKey='';
+    function rsSavedDatesFor(state){
+      const dates=new Map();
+      for(const row of state?.exceptions||[]){
+        if(row.active!==false)dates.set(row.date,{date:row.date,defaultType:row.dayType,note:row.note||'',roomOverrides:[]});
       }
-      for(const row of rsState?.roomOverrides||[]){
-        if(!found.has(row.date))found.set(row.date,{date:row.date,defaultType:'Primary',note:'',roomOverrides:[]});
-        found.get(row.date).roomOverrides.push(row);
+      for(const row of state?.roomOverrides||[]){
+        if(!dates.has(row.date))dates.set(row.date,{date:row.date,defaultType:'Primary',note:'',roomOverrides:[]});
+        dates.get(row.date).roomOverrides.push(row);
       }
-      return [...found.values()].sort((a,b)=>a.date.localeCompare(b.date));
+      return [...dates.values()].sort((a,b)=>a.date.localeCompare(b.date));
     }
+    function rsConfiguredDates(){return rsSavedDatesFor(rsState)}
     function rsRenderConfiguredDates(){
-      const rows=rsConfiguredDates(),groups=new Map((rsState?.roomGroups||[]).map(g=>[g.id,g.name]));
+      const rows=rsConfiguredDates(),groups=new Map((rsState?.roomGroups||[]).map(g=>[String(g.id),g.name]));
       $('rsExceptionsBody').innerHTML=rows.length?rows.map(row=>{
-        const names=[...new Set(row.roomOverrides.map(x=>x.sourceGroupId?groups.get(x.sourceGroupId)||'Former Group':'Individual Rooms'))];
-        const label=row.roomOverrides.length?row.roomOverrides.length+' room(s)'+(names.length?' · '+names.join(', '):''):'None';
-        return '<tr><td>'+esc(row.date)+'</td><td>'+esc(row.defaultType)+'</td><td>'+esc(label)+
+        const names=[...new Set(row.roomOverrides.map(x=>x.sourceGroupId?groups.get(String(x.sourceGroupId))||'Former group':'Individual rooms'))];
+        const label=row.roomOverrides.length
+          ? row.roomOverrides.length+' room(s)'+(names.length?' · '+names.join(', '):'')
+          : 'Everyone follows '+row.defaultType;
+        return '<tr><td><strong>'+esc(row.date)+'</strong></td><td>'+esc(row.defaultType)+'</td><td>'+esc(label)+
           '</td><td>'+esc(row.note||'—')+'</td><td><div class="actions">'+
           '<button class="small gray" type="button" data-rs-edit-date="'+esc(row.date)+'">Edit</button>'+
           '<button class="small red" type="button" data-rs-delete-date="'+esc(row.date)+'">Remove</button>'+
           '</div></td></tr>';
-      }).join(''):'<tr><td colspan="5" class="emptyState">No special dates. All rooms use their Primary schedules.</td></tr>';
+      }).join(''):'<tr><td colspan="5" class="emptyState">No special days configured. Click New Special Day to create one.</td></tr>';
+    }
+    function rsSpecialDateStatus(message,error=false){
+      const el=$('rsDateStatus');
+      el.textContent=message;
+      el.classList.toggle('isError',Boolean(error));
+    }
+    function rsUpdateSpecialSaveLabel(){
+      const date=$('rsOneDate').value;
+      const saved=rsConfiguredDates().some(x=>x.date===date);
+      const text=saved?'Save Changes':'Create Special Day';
+      $('rsFormHeading').textContent=text;
+      $('rsApply').textContent=text;
+    }
+    function rsLoadSpecialDate(date){
+      rsResetPreview();
+      rsDateLoadBlocked=false;
+      rsEditingDateKey='';
+      rsExceptionRules=[];
+      $('rsOneDate').value=date||'';
+      $('rsExceptionDayType').value='Primary';
+      $('rsNote').value='';
+      $('rsDateList').value='';
+      $('rsRepeatStart').value='';
+      $('rsRepeatEnd').value='';
+      document.querySelectorAll('#rsWeekdays input').forEach(x=>x.checked=false);
+      const repeated=$('rsRepeatDetails');
+      if(repeated)repeated.open=false;
+      const old=rsConfiguredDates().find(x=>x.date===date);
+      if(!date){
+        rsSpecialDateStatus('Choose a date to create a special day.');
+        rsRenderExceptionRules();rsUpdateSpecialSaveLabel();
+        return;
+      }
+      if(!rsState){
+        rsDateLoadBlocked=true;
+        rsSpecialDateStatus('Scheduling could not be loaded. Refresh before making changes.',true);
+        rsRenderExceptionRules();rsUpdateSpecialSaveLabel();
+        return;
+      }
+      if(!old){
+        rsSpecialDateStatus('No special schedule exists for this date. Creating a new day with Primary as the default.');
+        rsRenderExceptionRules();rsUpdateSpecialSaveLabel();
+        return;
+      }
+      rsEditingDateKey=date;
+      $('rsExceptionDayType').value=old.defaultType;
+      $('rsNote').value=old.note||'';
+      const availableTypes=rsAvailableTypes();
+      const activeRooms=new Set((rsState?.rooms||[]).filter(x=>x.active).map(x=>String(x.id)));
+      const invalidRoom=old.roomOverrides.filter(x=>!activeRooms.has(String(x.roomId)));
+      const invalidType=[old.defaultType,...old.roomOverrides.map(x=>x.dayType)].filter(x=>!availableTypes.some(y=>String(y).toLowerCase()===String(x).toLowerCase()));
+      if(invalidRoom.length||invalidType.length){
+        rsDateLoadBlocked=true;
+        rsSpecialDateStatus('Saved date contains an inactive/missing classroom or schedule type. Changes are blocked to avoid losing it. Resolve this configuration before editing.',true);
+        rsRenderExceptionRules();rsUpdateSpecialSaveLabel();
+        return;
+      }
+      const remaining=new Set(old.roomOverrides.map(x=>String(x.roomId)));
+      let changedGroups=0;
+      const allGroups=rsState.roomGroups||[];
+      for(const group of allGroups){
+        const original=old.roomOverrides.filter(x=>String(x.sourceGroupId||'')===String(group.id));
+        if(!original.length)continue;
+        const current=(group.roomIds||[]).filter(x=>activeRooms.has(String(x))).map(String);
+        const ids=new Set(original.map(x=>String(x.roomId)));
+        const types=[...new Set(original.map(x=>x.dayType))];
+        if(types.length===1&&ids.size===current.length&&current.every(x=>ids.has(x))){
+          rsExceptionRules.push({id:++rsRuleCounter,scope:'group',groupId:group.id,roomIds:[],dayType:types[0]});
+          original.forEach(x=>remaining.delete(String(x.roomId)));
+        }else changedGroups++;
+      }
+      // Preserve exact stored member selection if group membership has since changed.
+      const byType=new Map();
+      for(const x of old.roomOverrides)if(remaining.has(String(x.roomId))){
+        if(!byType.has(x.dayType))byType.set(x.dayType,[]);
+        byType.get(x.dayType).push(String(x.roomId));
+      }
+      for(const [dayType,roomIds] of byType)rsExceptionRules.push({
+        id:++rsRuleCounter,scope:'room',groupId:'',roomIds,dayType
+      });
+      rsRenderExceptionRules();rsUpdateSpecialSaveLabel();
+      if(changedGroups)rsSpecialDateStatus('Existing schedule loaded. Group membership has changed since it was saved, so original affected rooms are shown as individual assignments to preserve them.');
+      else rsSpecialDateStatus('Existing special day found and loaded. Edit the schedules, preview, then select Save Changes.');
     }
     function rsEditSpecialDate(date){
-      const saved=rsConfiguredDates().find(row=>row.date===date);
-      if(!saved)return;
-      rsClearSpecialForm();showRoomSchedulingSection('special');
-      $('rsOneDate').value=saved.date;
-      $('rsExceptionDayType').value=saved.defaultType||'Primary';
-      $('rsConflictMode').value='replace';
-      $('rsNote').value=saved.note||'';
-      const groups=rsState?.roomGroups||[];
-      const leftover=new Set(saved.roomOverrides.map(x=>String(x.roomId)));
-      rsExceptionRules=[];
-      for(const group of groups){
-        const original=saved.roomOverrides.filter(x=>x.sourceGroupId===group.id);
-        const current=group.roomIds.filter(id=>(rsState.rooms||[]).some(r=>r.id===id&&r.active));
-        const types=[...new Set(original.map(x=>x.dayType))];
-        const originalIds=new Set(original.map(x=>x.roomId));
-        if(original.length&&types.length===1&&originalIds.size===current.length&&current.every(x=>originalIds.has(x))){
-          rsExceptionRules.push({id:++rsRuleCounter,scope:'group',groupId:group.id,roomIds:[],dayType:types[0]});
-          original.forEach(x=>leftover.delete(String(x.roomId)));
-        }
-      }
-      const others=new Map();
-      for(const x of saved.roomOverrides)if(leftover.has(String(x.roomId))){
-        if(!others.has(x.dayType))others.set(x.dayType,[]);
-        others.get(x.dayType).push(x.roomId);
-      }
-      for(const [dayType,roomIds] of others){
-        rsExceptionRules.push({id:++rsRuleCounter,scope:'room',groupId:'',roomIds,dayType});
-      }
-      rsRenderExceptionRules();rsResetPreview();
-      setMsg('rsExceptionMessage','Editing '+date+'. Preview the final room schedules before saving.');
-      $('rsOneDate').scrollIntoView({behavior:'smooth',block:'center'});
+      showRoomSchedulingSection('special');
+      rsLoadSpecialDate(date);
+      $('rsSpecialEditor').scrollIntoView({behavior:'smooth',block:'start'});
     }
     function rsBuildScopedPreview(){
       const type=$('rsExceptionDayType').value||'Primary';
