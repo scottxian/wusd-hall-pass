@@ -455,17 +455,24 @@
     #rsPreviewWrap .rsPreviewDetails .tableWrap{max-height:52vh;overflow:auto;margin-top:10px}
 
     @media(max-width:620px){#specialDaysPanel .rsSpecialForm{grid-template-columns:1fr}}
-    /* Keep the Special Days editor compact; use a scrollable, searchable viewer for saved dates. */
-    #rsSavedDaysModal{z-index:40;align-items:center;padding:18px}
-    #rsSavedDaysModal .rsSavedDaysDialog{width:min(1100px,100%);max-height:calc(100vh - 36px);display:flex;flex-direction:column;overflow:hidden}
-    #rsSavedDaysModal .rsSavedDaysTable{overflow:auto;min-height:0;flex:1;max-height:65vh}
-    #rsSavedDaysModal .rsSavedDaysTable thead{position:sticky;top:0;z-index:1;background:#f5f7fa}
-    #rsSavedDaysModal .rsSavedDaysTable td{vertical-align:middle}
-    #rsSavedDaysModal .rsSavedDaysTable td:last-child{white-space:nowrap}
-    #rsSavedDaysModal .rsSavedDaysTable .actions{flex-wrap:nowrap}
-    #rsSavedDaysModal #rsSavedDaysSearch{width:100%;box-sizing:border-box}
-    #rsSavedDaysCount{font-weight:600}
-    @media(max-width:620px){#rsSavedDaysModal{padding:8px}#rsSavedDaysModal .rsSavedDaysDialog{max-height:calc(100vh - 16px);padding:14px}#rsSavedDaysModal .rsSavedDaysTable{max-height:60vh}}
+
+    /* Saved Special Days live below the editor in a compact scrollable table. */
+    #specialDaysPanel #rsScheduledDaysCard{margin-top:16px}
+    #specialDaysPanel .rsScheduledDaysFilters{display:grid;grid-template-columns:minmax(210px,1fr) minmax(150px,190px);gap:12px;align-items:end;margin-top:12px}
+    #specialDaysPanel .rsScheduledDaysFilters input,#specialDaysPanel .rsScheduledDaysFilters select{width:100%;box-sizing:border-box}
+    #specialDaysPanel .rsScheduledDaysTable{max-height:390px;overflow:auto;margin-top:14px;border:1px solid #e0e6ee;border-radius:9px}
+    #specialDaysPanel .rsScheduledDaysTable table{margin:0;min-width:720px}
+    #specialDaysPanel .rsScheduledDaysTable thead{position:sticky;top:0;background:#f5f7fa;z-index:2}
+    #specialDaysPanel .rsScheduledDaysTable td{vertical-align:top}
+    #specialDaysPanel .rsScheduledDaysTable td:last-child{white-space:nowrap}
+    #specialDaysPanel .rsScheduledDaysTable .actions{flex-wrap:nowrap}
+    #specialDaysPanel .rsScheduledDaysTable .rsScheduleLines{display:grid;gap:7px}
+    #specialDaysPanel .rsScheduledDaysTable .rsScheduleLine{display:grid;grid-template-columns:minmax(95px,auto) minmax(0,1fr);gap:10px;align-items:baseline;font-size:13px}
+    #specialDaysPanel .rsScheduledDaysTable .rsScheduleLine strong{white-space:nowrap;color:#24486d}
+    #specialDaysPanel .rsScheduledDaysTable .rsScheduleRooms{line-height:1.4;overflow-wrap:anywhere}
+    #specialDaysPanel .rsScheduledDaysTable .rsScheduledNote{max-width:210px;overflow-wrap:anywhere}
+    #specialDaysPanel #rsSavedDaysCount{font-weight:600}
+    @media(max-width:620px){#specialDaysPanel .rsScheduledDaysFilters{grid-template-columns:1fr}#specialDaysPanel .rsScheduledDaysTable{max-height:340px}}
 
 </style>
 <link rel="stylesheet" href="branding.css">
@@ -643,8 +650,7 @@
         <div id="rsSectionSpecial">
           <div class="card" id="rsSpecialEditor">
             <div class="sectionHead">
-              <div><h2>Special Days</h2><div class="muted">Choose a date and set the schedules. Existing days can be viewed or edited without filling the screen with a long list.</div></div>
-              <button id="rsShowSavedDays" type="button" class="softButton">View Special Days <span id="rsSavedDaysCount"></span></button>
+              <div><h2>Special Days</h2><div class="muted">Create or edit dates here. Saved dates and their schedules are listed below.</div></div>
             </div>
             <div class="sectionHead">
               <div>
@@ -690,6 +696,34 @@
             </div>
             <div id="rsExceptionMessage" class="message" role="status" aria-live="polite"></div>
           </div>
+          <div class="card" id="rsScheduledDaysCard">
+            <div class="sectionHead">
+              <div>
+                <h2 id="rsSavedDaysTitle">Scheduled Special Days <span id="rsSavedDaysCount"></span></h2>
+                <div class="muted">See exactly which classrooms follow each schedule. Edit or remove a date below.</div>
+              </div>
+            </div>
+            <div class="rsScheduledDaysFilters">
+              <div>
+                <label for="rsSavedDaysSearch">Find a special day</label>
+                <input id="rsSavedDaysSearch" type="search" placeholder="Search date, schedule, room, group, or note" autocomplete="off">
+              </div>
+              <div>
+                <label for="rsSavedDaysPeriod">Show dates</label>
+                <select id="rsSavedDaysPeriod">
+                  <option value="upcoming">Upcoming</option>
+                  <option value="past">Past</option>
+                  <option value="all">All Dates</option>
+                </select>
+              </div>
+            </div>
+            <div class="rsScheduledDaysTable tableWrap" role="region" aria-label="Scrollable scheduled special days" tabindex="0">
+              <table>
+                <thead><tr><th>Date</th><th>Rooms by Schedule</th><th>Note</th><th>Actions</th></tr></thead>
+                <tbody id="rsExceptionsBody"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
       <div id="rsPreviewWrap" class="modalBackdrop hidden" aria-hidden="true">
@@ -709,27 +743,6 @@
           <div class="actions" style="margin-top:16px"><button id="rsDonePreview" class="gray" type="button">Done</button></div>
         </div>
       </div>
-
-      <div id="rsSavedDaysModal" class="modalBackdrop hidden" aria-hidden="true">
-        <div class="modal rsSavedDaysDialog" role="dialog" aria-modal="true" aria-labelledby="rsSavedDaysTitle" tabindex="-1">
-          <div class="sectionHead">
-            <div>
-              <h2 id="rsSavedDaysTitle">Configured Special Days</h2>
-              <div class="muted">Select Edit to load that date into the main form, or Remove to delete it.</div>
-            </div>
-            <button id="rsCloseSavedDays" class="gray" type="button" aria-label="Close Special Days viewer">Close</button>
-          </div>
-          <div style="margin-top:14px">
-            <label for="rsSavedDaysSearch">Find a special day</label>
-            <input id="rsSavedDaysSearch" type="search" placeholder="Search date, schedule, group, or note" autocomplete="off">
-          </div>
-          <div class="tableWrap rsSavedDaysTable" style="margin-top:12px">
-            <table><thead><tr><th>Date</th><th>Schoolwide Schedule</th><th>Room / Group Assignments</th><th>Note</th><th>Actions</th></tr></thead><tbody id="rsExceptionsBody"></tbody></table>
-          </div>
-          <div class="modalActions"><button type="button" class="gray" id="rsDoneSavedDays">Done</button></div>
-        </div>
-      </div>
-
 
       <section id="studentsPanel" class="panel">
         <div class="card">
@@ -1922,43 +1935,77 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
     function rsConfiguredDates(){return rsSavedDatesFor(rsState)}
 
-    let rsSavedDaysReturnFocus=null;
-    function rsOpenSavedDays(){
-      rsSavedDaysReturnFocus=document.activeElement;
-      $('rsSavedDaysSearch').value='';
-      rsRenderConfiguredDates();
-      const modal=$('rsSavedDaysModal');
-      modal.classList.remove('hidden');
-      modal.setAttribute('aria-hidden','false');
-      $('rsCloseSavedDays').focus();
-    }
-    function rsCloseSavedDays(restoreFocus=true){
-      const modal=$('rsSavedDaysModal');
-      modal.classList.add('hidden');
-      modal.setAttribute('aria-hidden','true');
-      if(restoreFocus)(rsSavedDaysReturnFocus||$('rsShowSavedDays')).focus();
+    // Render each saved date using saved room-level overrides, NOT the
+    // room group's current membership. This preserves historical snapshots.
+    function rsSavedDayEffectiveSchedules(row){
+      const active=(rsState?.rooms||[]).filter(x=>x.active);
+      const roomNames=new Map((rsState?.rooms||[]).map(room=>[String(room.id),room.name]));
+      const chosen=new Map();
+      for(const x of row.roomOverrides||[]){
+        const key=String(x.roomId),previous=chosen.get(key);
+        if(!previous||(!x.sourceGroupId&&previous.sourceGroupId))chosen.set(key,x);
+      }
+      const byType=new Map();
+      const add=(type,name)=>{
+        const key=String(type||'Primary');
+        if(!byType.has(key))byType.set(key,[]);
+        byType.get(key).push(name);
+      };
+      const activeIds=new Set(active.map(room=>String(room.id)));
+      active.forEach(room=>{
+        const rule=chosen.get(String(room.id));
+        add(rule?.dayType||row.defaultType,room.name);
+      });
+      for(const [key,assignment] of chosen){
+        if(!activeIds.has(key))
+          add(assignment.dayType,(roomNames.get(key)||'Unavailable classroom')+' (inactive)');
+      }
+      return [...byType].map(([type,names])=>({type,rooms:names.sort((a,b)=>a.localeCompare(b))}))
+        .sort((a,b)=>{
+          const ap=a.type.toLowerCase()==='primary',bp=b.type.toLowerCase()==='primary';
+          return ap!==bp?(ap?1:-1):a.type.localeCompare(b.type);
+        });
     }
     function rsRenderConfiguredDates(){
-      const rows=rsConfiguredDates(),groups=new Map((rsState?.roomGroups||[]).map(g=>[String(g.id),g.name]));
-      $('rsSavedDaysCount').textContent=rows.length?'('+rows.length+')':'(0)';
+      const rows=rsConfiguredDates();
+      const groups=new Map((rsState?.roomGroups||[]).map(g=>[String(g.id),g.name]));
+      const roomNames=new Map((rsState?.rooms||[]).map(r=>[String(r.id),r.name]));
+      $('rsSavedDaysCount').textContent='('+rows.length+')';
+      const now=new Date();
+      const today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+      const period=$('rsSavedDaysPeriod').value||'upcoming';
       const query=($('rsSavedDaysSearch').value||'').trim().toLowerCase();
-      const filtered=rows.filter(row=>{
+      const sorted=[...rows].sort((a,b)=>{
+        const af=a.date>=today,bf=b.date>=today;
+        return af!==bf?(af?-1:1):af?a.date.localeCompare(b.date):b.date.localeCompare(a.date);
+      });
+      const filtered=sorted.filter(row=>{
+        if(period==='upcoming'&&row.date<today)return false;
+        if(period==='past'&&row.date>=today)return false;
         if(!query)return true;
-        const groupNames=row.roomOverrides.map(x=>x.sourceGroupId?groups.get(String(x.sourceGroupId))||'Former group':'Individual rooms');
-        return [row.date,row.defaultType,row.note||'',...groupNames].join(' ').toLowerCase().includes(query);
+        const groupNames=row.roomOverrides.map(x=>x.sourceGroupId?(groups.get(String(x.sourceGroupId))||'Former group'):'Individual rooms');
+        const overrideNames=row.roomOverrides.map(x=>roomNames.get(String(x.roomId))||'Unavailable classroom');
+        return [row.date,row.defaultType,row.note||'',...groupNames,...overrideNames,
+          ...rsSavedDayEffectiveSchedules(row).map(x=>x.type+' '+x.rooms.join(' '))]
+          .join(' ').toLowerCase().includes(query);
       });
       $('rsExceptionsBody').innerHTML=filtered.length?filtered.map(row=>{
-        const names=[...new Set(row.roomOverrides.map(x=>x.sourceGroupId?groups.get(String(x.sourceGroupId))||'Former group':'Individual rooms'))];
-        const label=row.roomOverrides.length
-          ? row.roomOverrides.length+' room(s)'+(names.length?' · '+names.join(', '):'')
-          : 'None';
-        return '<tr><td><strong>'+esc(row.date)+'</strong></td><td>'+esc(row.defaultType)+'</td><td>'+esc(label)+
-          '</td><td>'+esc(row.note||'—')+'</td><td><div class="actions">'+
+        const breakdown=rsSavedDayEffectiveSchedules(row).map(item=>
+          '<div class="rsScheduleLine"><strong>'+esc(item.type)+' ('+item.rooms.length+')</strong>'+
+          '<span class="rsScheduleRooms">'+esc(item.rooms.join(', '))+'</span></div>'
+        ).join('');
+        return '<tr><td><strong>'+esc(row.date)+'</strong></td>'+
+          '<td><div class="rsScheduleLines">'+breakdown+'</div></td>'+
+          '<td><span class="rsScheduledNote">'+esc(row.note||'—')+'</span></td>'+
+          '<td><div class="actions">'+
           '<button class="small gray" type="button" data-rs-edit-date="'+esc(row.date)+'">Edit</button>'+
           '<button class="small red" type="button" data-rs-delete-date="'+esc(row.date)+'">Remove</button>'+
           '</div></td></tr>';
-      }).join(''):'<tr><td colspan="5" class="emptyState">'+
-        (rows.length?'No special days match the search.':'No special days configured yet.')+'</td></tr>';
+      }).join(''):'<tr><td colspan="4" class="emptyState">'+
+        (!rows.length?'No special days configured yet.':query?'No special days match your search.':
+          period==='upcoming'?'No upcoming special days. Choose Past or All Dates.':
+          period==='past'?'No past special days. Choose Upcoming or All Dates.':
+          'No special days match these filters.')+'</td></tr>';
     }
     function rsSpecialDateStatus(message,error=false){
       const el=$('rsDateStatus');
@@ -2591,25 +2638,18 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       }
     });
 
-    $('rsShowSavedDays').addEventListener('click',rsOpenSavedDays);
-    $('rsCloseSavedDays').addEventListener('click',rsCloseSavedDays);
-    $('rsDoneSavedDays').addEventListener('click',rsCloseSavedDays);
     $('rsSavedDaysSearch').addEventListener('input',rsRenderConfiguredDates);
-    $('rsSavedDaysModal').addEventListener('click',e=>{if(e.target===$('rsSavedDaysModal'))rsCloseSavedDays()});
+    $('rsSavedDaysPeriod').addEventListener('change',rsRenderConfiguredDates);
     document.addEventListener('keydown',e=>{
       if(e.key==='Escape'&&!$('rsPreviewWrap').classList.contains('hidden')){
-        e.preventDefault();rsClosePreview();$('rsPreview').focus();return;
-      }
-      if(e.key==='Escape'&&!$('rsSavedDaysModal').classList.contains('hidden')){
-        e.preventDefault();
-        rsCloseSavedDays();
+        e.preventDefault();rsClosePreview();$('rsPreview').focus();
       }
     });
     $('rsExceptionsBody').addEventListener('click',e=>{
       const del=e.target.closest('[data-rs-delete-date]');
       const edit=e.target.closest('[data-rs-edit-date]');
       if(del)rsDeleteSpecialDate(del.dataset.rsDeleteDate);
-      else if(edit){rsCloseSavedDays(false);rsEditSpecialDate(edit.dataset.rsEditDate);}
+      else if(edit)rsEditSpecialDate(edit.dataset.rsEditDate);
     });
 
     $('rsAddScopeRule').addEventListener('click',rsAddExceptionRule);
