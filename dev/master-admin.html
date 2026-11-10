@@ -440,6 +440,16 @@
     @media(max-width:620px){#specialDaysPanel .rsSpecialForm{grid-template-columns:1fr}#specialDaysPanel .rsScopeRuleHead{grid-template-columns:1fr 1fr}#specialDaysPanel .rsScopeRuleHead button{grid-column:1/-1;justify-self:start}}
 
 
+
+    /* Single-form Special Days; optional modal preview and compact draft totals. */
+    #specialDaysPanel .rsSpecialForm{grid-template-columns:minmax(175px,1fr) minmax(185px,1.5fr)}
+    #specialDaysPanel .rsDraftSummary{margin-top:12px;padding:12px;border:1px solid #dce4eb;border-radius:9px;background:#f8fafc;font-size:14px}
+    #specialDaysPanel .rsDraftWarning{font-weight:600;color:#a52720;margin-top:6px}
+    #specialDaysPanel .rsRepeatDetails{display:none}
+    #rsPreviewWrap{z-index:45;align-items:center;padding:18px}
+    #rsPreviewWrap .rsSpecialPreviewDialog{width:min(960px,100%);max-height:calc(100vh - 36px);overflow:auto}
+    #rsPreviewWrap .rsSimpleSummary{margin-top:13px}
+    @media(max-width:620px){#specialDaysPanel .rsSpecialForm{grid-template-columns:1fr}}
     /* Keep the Special Days editor compact; use a scrollable, searchable viewer for saved dates. */
     #rsSavedDaysModal{z-index:40;align-items:center;padding:18px}
     #rsSavedDaysModal .rsSavedDaysDialog{width:min(1100px,100%);max-height:calc(100vh - 36px);display:flex;flex-direction:column;overflow:hidden}
@@ -634,13 +644,12 @@
             <div class="sectionHead">
               <div>
                 <h2 id="rsFormHeading">Create Special Day</h2>
-                <div class="muted">Choose a date, select schedules, review, and save.</div>
+                <div class="muted">Choose a date, select who follows which schedule, and save. Preview is optional.</div>
               </div>
-              <button id="rsClearDateForm" class="softButton hidden" type="button">+ New Special Day</button>
             </div>
             <div class="formGrid rsSpecialForm" style="margin-top:14px">
-              <div><label for="rsOneDate">1. Date</label><input id="rsOneDate" type="date"></div>
-              <div><label for="rsExceptionDayType">Schoolwide Schedule</label><select id="rsExceptionDayType"></select></div>
+              <div><label for="rsOneDate">Date</label><input id="rsOneDate" type="date"></div>
+              <select id="rsExceptionDayType" class="hidden" aria-hidden="true" tabindex="-1"></select>
               <div><label for="rsNote">Note (optional)</label><input id="rsNote" maxlength="250" placeholder="e.g. Middle School Rally"></div>
             </div>
             <div id="rsDateStatus" class="rsDateStatus" role="status" aria-live="polite">Choose a date to begin.</div>
@@ -648,11 +657,12 @@
 
             <div class="rsScopeSection">
               <div class="rsScopeHeader">
-                <div><h3>2. Different Schedules</h3><div class="muted">Only add classrooms or groups that need a schedule different from the schoolwide selection.</div></div>
-                <button id="rsAddScopeRule" class="softButton" type="button">+ Add Another Assignment</button>
+                <div><h3>Schedule Assignments</h3><div class="muted">Choose the entire school, a room group, or individual classrooms. Add additional assignments only when needed.</div></div>
+                <button id="rsAddScopeRule" class="softButton" type="button">+ Add Schedule Assignment</button>
               </div>
               <div id="rsScopeRules" class="rsScopeRules"></div>
-              <div id="rsScopeNote" class="muted">No different schedules selected. All classrooms follow the schoolwide schedule above.</div>
+              <div id="rsScopeNote" class="muted">Classrooms with no assignment use Primary.</div>
+              <div id="rsDraftSummary" class="rsDraftSummary" role="status" aria-live="polite">Complete the assignment to see affected classroom counts.</div>
             </div>
 
             <details id="rsRepeatDetails" class="rsRepeatDetails">
@@ -668,42 +678,36 @@
               <div style="margin-top:12px"><label for="rsDateList">Or paste additional dates (one per line)</label><textarea id="rsDateList" rows="3" placeholder="11/18/2027&#10;12/2/2027"></textarea></div>
             </details>
 
-            <p class="rsReviewHint">Review the affected classrooms and bell schedules before saving. Nothing changes until you confirm.</p>
+            <p class="rsReviewHint">Preview is optional. Save validates all classrooms automatically.</p>
             <div class="actions" style="margin-top:12px">
-              <button id="rsPreview" class="purple" type="button">Review &amp; Continue</button>
+              <button id="rsPreview" class="purple" type="button">Preview</button>
+              <button id="rsApply" class="green" type="button">Save Special Day</button>
             </div>
             <div id="rsExceptionMessage" class="message" role="status" aria-live="polite"></div>
-
-            <div id="rsPreviewWrap" class="hidden">
-              <h3 class="rsPreviewTitle" id="rsReviewTitle" tabindex="-1">Review Schedules</h3>
-              <div id="rsSimpleSummary" class="rsSimpleSummary"></div>
-              <div id="rsMissingSchedules" class="rsMissingSchedules" role="status" aria-live="polite"></div>
-              <div id="rsPreviewSummary" class="muted"></div>
-              <div id="rsBulkConflicts" class="rsBulkConflicts hidden" role="group" aria-label="Existing date conflicts">
-                <strong id="rsBulkConflictTitle">Some dates already have special schedules.</strong>
-                <p class="muted" id="rsBulkConflictDates"></p>
-                <label><input type="radio" name="rsBulkConflictChoice" value="skip"> Keep existing dates unchanged; apply only to new dates</label>
-                <label><input type="radio" name="rsBulkConflictChoice" value="replace"> Replace those existing dates with this configuration</label>
-              </div>
-              <details class="rsPreviewDetails" id="rsRoomPreviewDetails">
-                <summary>View each classroom's actual bell schedule</summary>
-                <div class="tableWrap"><table><thead><tr><th>Room</th><th>Schedule Type</th><th>Bell Schedule</th><th>Why</th></tr></thead><tbody id="rsRoomPreviewBody"></tbody></table></div>
-              </details>
-              <details class="rsPreviewDetails" id="rsDatePreviewDetails">
-                <summary>View dates that will be added, kept, or updated</summary>
-                <div class="tableWrap"><table><thead><tr><th>Date</th><th>Current</th><th>Requested</th><th>Action</th></tr></thead><tbody id="rsPreviewBody"></tbody></table></div>
-              </details>
-              <div id="rsSaveStage" class="rsSaveStage hidden">
-                <h3>Confirm &amp; Save</h3>
-                <div class="muted">Check the summary above. Select the button below to save these schedule assignments.</div>
-                <div class="actions">
-                  <button id="rsApply" class="green" type="button" disabled>Create Special Day</button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
+      <div id="rsPreviewWrap" class="modalBackdrop hidden" aria-hidden="true">
+        <div class="modal rsSpecialPreviewDialog" role="dialog" aria-modal="true" aria-labelledby="rsReviewTitle">
+          <div class="sectionHead">
+            <div><h2 id="rsReviewTitle">Special Day Preview</h2><div class="muted">Actual classroom schedules. Nothing has been saved.</div></div>
+            <button id="rsClosePreview" class="gray" type="button">Close</button>
+          </div>
+          <div id="rsSimpleSummary" class="rsSimpleSummary"></div>
+          <div id="rsMissingSchedules" class="rsMissingSchedules" role="status"></div>
+          <div id="rsPreviewSummary" class="muted"></div>
+          <div id="rsBulkConflicts" class="rsBulkConflicts hidden"></div>
+          <details class="rsPreviewDetails" id="rsRoomPreviewDetails">
+            <summary>View each classroom's bell schedule</summary>
+            <div class="tableWrap"><table><thead><tr><th>Room</th><th>Schedule Type</th><th>Bell Schedule</th><th>Why</th></tr></thead><tbody id="rsRoomPreviewBody"></tbody></table></div>
+          </details>
+          <details class="rsPreviewDetails hidden" id="rsDatePreviewDetails">
+            <summary>Date actions</summary>
+            <div class="tableWrap"><table><thead><tr><th>Date</th><th>Current</th><th>Requested</th><th>Action</th></tr></thead><tbody id="rsPreviewBody"></tbody></table></div>
+          </details>
+          <div class="actions" style="margin-top:16px"><button id="rsDonePreview" class="gray" type="button">Done</button></div>
+        </div>
+      </div>
 
       <div id="rsSavedDaysModal" class="modalBackdrop hidden" aria-hidden="true">
         <div class="modal rsSavedDaysDialog" role="dialog" aria-modal="true" aria-labelledby="rsSavedDaysTitle" tabindex="-1">
@@ -2669,7 +2673,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       if(del)rsDeleteSpecialDate(del.dataset.rsDeleteDate);
       else if(edit){rsCloseSavedDays(false);rsEditSpecialDate(edit.dataset.rsEditDate);}
     });
-    $('rsClearDateForm').addEventListener('click',rsClearSpecialForm);
+
     $('rsAddScopeRule').addEventListener('click',rsAddExceptionRule);
     $('rsScopeRules').addEventListener('click',e=>{
       const button=e.target.closest('[data-rs-remove-rule]');if(!button)return;
