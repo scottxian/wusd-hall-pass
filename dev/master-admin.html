@@ -431,6 +431,10 @@
     #specialDaysPanel .rsBulkConflicts input{width:18px;min-width:18px;height:18px;min-height:18px;margin:1px 0 0}
     #specialDaysPanel .rsPreviewDetails{margin-top:12px;padding:9px 0;border-top:1px solid #e6ebf1}
     #specialDaysPanel .rsPreviewDetails .tableWrap{margin-top:9px}
+    #specialDaysPanel .rsReviewHint{margin:13px 0 0;color:#4e6070;font-size:14px}
+    #specialDaysPanel .rsSaveStage{margin-top:18px;padding-top:16px;border-top:1px solid #dce5ed}
+    #specialDaysPanel .rsSaveStage h3{font-size:17px;margin:0 0 6px}
+    #specialDaysPanel .rsSaveStage .actions{margin-top:12px}
     #specialDaysPanel #rsExceptionsBody td:last-child{min-width:145px}
     @media(max-width:800px){#specialDaysPanel .rsSpecialForm{grid-template-columns:1fr 1fr}}
     @media(max-width:620px){#specialDaysPanel .rsSpecialForm{grid-template-columns:1fr}#specialDaysPanel .rsScopeRuleHead{grid-template-columns:1fr 1fr}#specialDaysPanel .rsScopeRuleHead button{grid-column:1/-1;justify-self:start}}
@@ -663,15 +667,15 @@
               <div style="margin-top:12px"><label for="rsDateList">Or paste additional dates (one per line)</label><textarea id="rsDateList" rows="3" placeholder="11/18/2027&#10;12/2/2027"></textarea></div>
             </details>
 
-            <div class="actions" style="margin-top:16px">
-              <button id="rsPreview" class="purple" type="button">3. Preview Schedules</button>
-              <button id="rsApply" class="green" type="button" disabled>Create Special Day</button>
+            <p class="rsReviewHint">Review the affected classrooms and bell schedules before saving. Nothing changes until you confirm.</p>
+            <div class="actions" style="margin-top:12px">
+              <button id="rsPreview" class="purple" type="button">Review &amp; Continue</button>
               <button id="rsClearDateForm" class="gray" type="button">+ New Special Day</button>
             </div>
             <div id="rsExceptionMessage" class="message" role="status" aria-live="polite"></div>
 
             <div id="rsPreviewWrap" class="hidden">
-              <h3 class="rsPreviewTitle">Schedule Summary</h3>
+              <h3 class="rsPreviewTitle" id="rsReviewTitle" tabindex="-1">Review Schedules</h3>
               <div id="rsSimpleSummary" class="rsSimpleSummary"></div>
               <div id="rsMissingSchedules" class="rsMissingSchedules" role="status" aria-live="polite"></div>
               <div id="rsPreviewSummary" class="muted"></div>
@@ -689,6 +693,13 @@
                 <summary>View dates that will be added, kept, or updated</summary>
                 <div class="tableWrap"><table><thead><tr><th>Date</th><th>Current</th><th>Requested</th><th>Action</th></tr></thead><tbody id="rsPreviewBody"></tbody></table></div>
               </details>
+              <div id="rsSaveStage" class="rsSaveStage hidden">
+                <h3>Confirm &amp; Save</h3>
+                <div class="muted">Check the summary above. Select the button below to save these schedule assignments.</div>
+                <div class="actions">
+                  <button id="rsApply" class="green" type="button" disabled>Create Special Day</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2117,6 +2128,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function rsResetPreview() {
       rsPreviewData = null;
       $('rsApply').disabled = true;
+      $('rsSaveStage').classList.add('hidden');
       $('rsPreviewWrap').classList.add('hidden');
       const message=$('rsExceptionMessage');
       if(message){message.textContent='';message.className='message';}
@@ -2207,7 +2219,9 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const conflicts=dates.filter(date=>saved.has(date));
       const policyMissing=dates.length>1&&conflicts.length&&!['skip','replace'].includes(mode);
       const allSkipped=dates.length>1&&mode==='skip'&&conflicts.length===dates.length;
-      $('rsApply').disabled=Boolean(rsDateLoadBlocked||rsPreviewData.missingCount||policyMissing||allSkipped);
+      const ready=!(rsDateLoadBlocked||rsPreviewData.missingCount||policyMissing||allSkipped);
+      $('rsApply').disabled=!ready;
+      $('rsSaveStage').classList.toggle('hidden',!ready);
       if(allSkipped)setMsg('rsExceptionMessage','All selected dates are already configured. To change them, select Replace existing dates. No changes have been made.',true);
       else if(policyMissing)setMsg('rsExceptionMessage','Some dates already have schedules. Choose how to handle those dates before saving.');
       else setMsg('rsExceptionMessage',rsPreviewData.missingCount
@@ -2269,6 +2283,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         }
         $('rsPreviewWrap').classList.remove('hidden');
         rsRenderDatePreviewActions();
+        $('rsReviewTitle').scrollIntoView({behavior:'smooth',block:'start'});
+        $('rsReviewTitle').focus({preventScroll:true});
       }catch(e){setMsg('rsExceptionMessage',e.message,true)}
     }
 
