@@ -2263,7 +2263,9 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         if(!result.success)throw Error(result.message||'Could not save the Special Day.');
         await refreshRoomScheduling();
         rsLoadSpecialDate(date);
-        setMsg('rsExceptionMessage',result.message||'Special Day saved.');
+        if(result.skipped&&!result.saved)
+          setMsg('rsExceptionMessage','No changes saved. The date was already configured; reload and try again.',true);
+        else setMsg('rsExceptionMessage',result.message||'Special Day saved.');
       }catch(e){setMsg('rsExceptionMessage',e.message,true);}
       finally{button.disabled=false;}
     }
