@@ -680,8 +680,10 @@
     #rsSavedDaysModal .rsSavedDaysTable td:last-child{white-space:nowrap}
     #rsSavedDaysModal .rsSavedDaysTable .actions{flex-wrap:nowrap}
     #rsSavedDaysModal #rsSavedDaysSearch{width:100%;box-sizing:border-box}
+    #rsSavedDaysModal .rsSavedDaysFilters{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,220px);gap:12px;align-items:end;margin-top:14px}
     #rsSavedDaysCount{font-weight:600}
-    @media(max-width:620px){#rsSavedDaysModal{padding:8px}#rsSavedDaysModal .rsSavedDaysDialog{max-height:calc(100vh - 16px);padding:14px}#rsSavedDaysModal .rsSavedDaysTable{max-height:60vh}}
+    #specialDaysPanel .rsEditingDateNotice{margin-top:12px;padding:10px 12px;border:1px solid #b8cee5;background:#f0f6fc;border-radius:8px;color:#194a80;font-size:14px;font-weight:700}
+    @media(max-width:620px){#rsSavedDaysModal{padding:8px}#rsSavedDaysModal .rsSavedDaysDialog{max-height:calc(100vh - 16px);padding:14px}#rsSavedDaysModal .rsSavedDaysTable{max-height:60vh}#rsSavedDaysModal .rsSavedDaysFilters{grid-template-columns:1fr}}
 
 </style>
 <link rel="stylesheet" href="branding.css">
@@ -864,6 +866,7 @@
                 <div class="muted">Choose a date, decide who follows which schedule, preview, and save.</div>
               </div>
             </div>
+            <div id="rsEditingDateNotice" class="rsEditingDateNotice hidden" role="status" aria-live="polite"></div>
             <div class="formGrid rsSpecialForm" style="margin-top:14px">
               <div><label for="rsOneDate">1. Date</label><input id="rsOneDate" type="date"></div>
               <div><label for="rsExceptionDayType">All other classrooms follow</label><select id="rsExceptionDayType"></select></div>
@@ -934,9 +937,19 @@
             </div>
             <button id="rsCloseSavedDays" class="gray" type="button" aria-label="Close Special Days viewer">Close</button>
           </div>
-          <div style="margin-top:14px">
-            <label for="rsSavedDaysSearch">Find a special day</label>
-            <input id="rsSavedDaysSearch" type="search" placeholder="Search date, schedule, group, or note" autocomplete="off">
+          <div class="rsSavedDaysFilters">
+            <div>
+              <label for="rsSavedDaysSearch">Find a special day</label>
+              <input id="rsSavedDaysSearch" type="search" placeholder="Search date, schedule, room, group, or note" autocomplete="off">
+            </div>
+            <div>
+              <label for="rsSavedDaysPeriod">Show dates</label>
+              <select id="rsSavedDaysPeriod">
+                <option value="upcoming">Upcoming</option>
+                <option value="past">Past</option>
+                <option value="all">All Dates</option>
+              </select>
+            </div>
           </div>
           <div class="tableWrap rsSavedDaysTable" style="margin-top:12px">
             <table><thead><tr><th>Date</th><th>Schoolwide Schedule</th><th>Different Schedules</th><th>Note</th><th>Actions</th></tr></thead><tbody id="rsExceptionsBody"></tbody></table>
@@ -2154,6 +2167,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function rsOpenSavedDays(){
       rsSavedDaysReturnFocus=document.activeElement;
       $('rsSavedDaysSearch').value='';
+      $('rsSavedDaysPeriod').value='upcoming';
       rsRenderConfiguredDates();
       const modal=$('rsSavedDaysModal');
       modal.classList.remove('hidden');
@@ -2168,12 +2182,23 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
     function rsRenderConfiguredDates(){
       const rows=rsConfiguredDates(),groups=new Map((rsState?.roomGroups||[]).map(g=>[String(g.id),g.name]));
-      $('rsSavedDaysCount').textContent=rows.length?'('+rows.length+')':'(0)';
+      const roomNames=new Map((rsState?.rooms||[]).map(r=>[String(r.id),r.name]));
+      $('rsSavedDaysCount').textContent='('+rows.length+')';
+      const now=new Date();
+      const today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+      const period=$('rsSavedDaysPeriod').value;
       const query=($('rsSavedDaysSearch').value||'').trim().toLowerCase();
-      const filtered=rows.filter(row=>{
+      const sorted=[...rows].sort((a,b)=>{
+        const aFuture=a.date>=today,bFuture=b.date>=today;
+        return aFuture!==bFuture?(aFuture?-1:1):aFuture?a.date.localeCompare(b.date):b.date.localeCompare(a.date);
+      });
+      const filtered=sorted.filter(row=>{
+        if(period==='upcoming'&&row.date<today)return false;
+        if(period==='past'&&row.date>=today)return false;
         if(!query)return true;
         const groupNames=row.roomOverrides.map(x=>x.sourceGroupId?groups.get(String(x.sourceGroupId))||'Former group':'Individual rooms');
-        return [row.date,row.defaultType,row.note||'',...groupNames].join(' ').toLowerCase().includes(query);
+        const rooms=row.roomOverrides.map(x=>roomNames.get(String(x.roomId))||'');
+        return [row.date,row.defaultType,row.note||'',...groupNames,...rooms].join(' ').toLowerCase().includes(query);
       });
       $('rsExceptionsBody').innerHTML=filtered.length?filtered.map(row=>{
         const names=[...new Set(row.roomOverrides.map(x=>x.sourceGroupId?groups.get(String(x.sourceGroupId))||'Former group':'Individual rooms'))];
@@ -2186,7 +2211,10 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           '<button class="small red" type="button" data-rs-delete-date="'+esc(row.date)+'">Remove</button>'+
           '</div></td></tr>';
       }).join(''):'<tr><td colspan="5" class="emptyState">'+
-        (rows.length?'No special days match the search.':'No special days configured yet.')+'</td></tr>';
+        (!rows.length?'No special days configured yet.':query?'No special days match your search.':
+           period==='upcoming'?'No upcoming special days. Choose Past or All Dates.':
+           period==='past'?'No past special days. Choose Upcoming or All Dates.':
+           'No special days match the selected filters.')+'</td></tr>';
     }
     function rsSpecialDateStatus(message,error=false){
       const el=$('rsDateStatus');
@@ -2195,10 +2223,13 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
     function rsUpdateSpecialSaveLabel(){
       const date=$('rsOneDate').value;
-      const saved=rsConfiguredDates().some(x=>x.date===date);
+      const saved=rsConfiguredDates().find(x=>x.date===date);
       const text=saved?'Save Changes':'Create Special Day';
       $('rsFormHeading').textContent=text;
       $('rsApply').textContent=text;
+      const notice=$('rsEditingDateNotice');
+      notice.classList.toggle('hidden',!saved);
+      if(saved)notice.textContent='Editing: '+saved.date+' — '+saved.defaultType+(saved.note?' · '+saved.note:'');
     }
     function rsLoadSpecialDate(date){
       rsResetPreview();
@@ -2876,6 +2907,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('rsCloseSavedDays').addEventListener('click',rsCloseSavedDays);
     $('rsDoneSavedDays').addEventListener('click',rsCloseSavedDays);
     $('rsSavedDaysSearch').addEventListener('input',rsRenderConfiguredDates);
+    $('rsSavedDaysPeriod').addEventListener('change',rsRenderConfiguredDates);
     $('rsSavedDaysModal').addEventListener('click',e=>{if(e.target===$('rsSavedDaysModal'))rsCloseSavedDays()});
     document.addEventListener('keydown',e=>{
       if(e.key==='Escape'&&!$('rsSavedDaysModal').classList.contains('hidden')){
