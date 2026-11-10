@@ -2049,11 +2049,19 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       if(old.defaultType.toLowerCase()!=='primary'||!old.roomOverrides.length)
         rsExceptionRules.push({id:++rsRuleCounter,scope:'school',groupId:'',roomIds:[],dayType:old.defaultType});
       const remaining=new Set(old.roomOverrides.map(x=>String(x.roomId)));
+      // Direct room overrides replace the group's saved row for that room.
+      // Exclude those rooms when comparing saved group membership, otherwise
+      // a room's temporary override wrongly makes the group appear changed
+      // and removing that override falls back to Primary instead of Rally.
+      const directOverrideIds=new Set(old.roomOverrides
+        .filter(x=>!x.sourceGroupId).map(x=>String(x.roomId)));
       let changedGroups=0;
       for(const group of rsState.roomGroups||[]){
         const originals=old.roomOverrides.filter(x=>String(x.sourceGroupId||'')===String(group.id));
         if(!originals.length)continue;
-        const current=(group.roomIds||[]).filter(id=>rooms.has(String(id))).map(String);
+        const current=(group.roomIds||[])
+          .filter(id=>rooms.has(String(id))&&!directOverrideIds.has(String(id)))
+          .map(String);
         const ids=new Set(originals.map(x=>String(x.roomId)));
         const values=[...new Set(originals.map(x=>x.dayType))];
         if(values.length===1&&ids.size===current.length&&current.every(x=>ids.has(x))){
