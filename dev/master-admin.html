@@ -635,7 +635,7 @@
             </div>
             <div class="formGrid rsSpecialForm" style="margin-top:14px">
               <div><label for="rsOneDate">1. Date</label><input id="rsOneDate" type="date"></div>
-              <div><label for="rsExceptionDayType">All other classrooms follow</label><select id="rsExceptionDayType"></select></div>
+              <div><label for="rsExceptionDayType">Schoolwide Schedule</label><select id="rsExceptionDayType"></select></div>
               <div><label for="rsNote">Note (optional)</label><input id="rsNote" maxlength="250" placeholder="e.g. Middle School Rally"></div>
             </div>
             <div id="rsDateStatus" class="rsDateStatus" role="status" aria-live="polite">Choose a date to begin.</div>
@@ -2088,7 +2088,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
             x.dayType.toLowerCase()===dayType.toLowerCase())?.schedule;
         const ready=Boolean(bell)&&available.has(String(bell).toLowerCase());
         return {name:room.name,dayType,bell:ready?bell:'NOT ASSIGNED',
-          source:picked?.source||'All other classrooms',roomId:room.id,ready};
+          source:picked?.source||'Schoolwide default',roomId:room.id,ready};
       });
       return {rows,overrides,defaultType:type,missing:rows.filter(r=>!r.ready)};
     }
@@ -2239,7 +2239,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         const activeRooms=preview.rows;
         const rawGroups=new Map((rsState?.roomGroups||[]).map(g=>[String(g.id),g.name]));
         const summary=[
-          ['All other classrooms',preview.defaultType],
+          ['Schoolwide Schedule',preview.defaultType],
           ...rsExceptionRules.map(rule=>[
             rule.scope==='group'?('Group: '+(rawGroups.get(String(rule.groupId))||'Unknown group')):
               'Rooms: '+rule.roomIds.map(id=>activeRooms.find(r=>String(r.roomId)===String(id))?.name||'Unknown').join(', '),
