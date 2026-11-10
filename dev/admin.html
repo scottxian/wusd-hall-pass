@@ -2065,53 +2065,45 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
 
 
-    // Special-day rules are drafted in the UI and expanded to exact room IDs on
-    // Save. A later group membership change does not alter an existing date.
-    let rsExceptionRules=[];
-    let rsRuleCounter=0;
-    let rsEditingGroupId='';
-    function rsAvailableTypes(){
-      return Array.isArray(rsState?.scheduleTypes) && rsState.scheduleTypes.length ? rsState.scheduleTypes : ['Primary'];
-    }
+    // Schoolwide selection becomes defaultType; group/room rules are snapshotted.
+    let rsExceptionRules=[],rsRuleCounter=0,rsEditingGroupId='';
+    function rsAvailableTypes(){return Array.isArray(rsState?.scheduleTypes)&&rsState.scheduleTypes.length?rsState.scheduleTypes:['Primary'];}
     function rsTypeOptions(selected){
-      return rsAvailableTypes().map(type=>'<option value="'+esc(type)+'"'+(type===selected?' selected':'')+'>'+esc(type)+'</option>').join('');
+      return '<option value="">Choose a schedule…</option>'+
+        rsAvailableTypes().map(x=>'<option value="'+esc(x)+'"'+(x===selected?' selected':'')+'>'+esc(x)+'</option>').join('');
     }
-
+    function rsBlankRule(){return {id:++rsRuleCounter,scope:'',groupId:'',roomIds:[],dayType:''};}
     function rsRenderExceptionRules(){
-      const host=$('rsScopeRules');
-      const groups=rsState?.roomGroups||[];
-      const rooms=(rsState?.rooms||[]).filter(r=>r.active);
-      host.innerHTML=rsExceptionRules.map(rule=>{
-        const whoOptions='<option value="">Choose a room group or individual rooms…</option>'+
-          groups.map(g=>'<option value="group:'+esc(g.id)+'"'+
-            (rule.scope==='group'&&String(g.id)===String(rule.groupId)?' selected':'')+
+      const groups=rsState?.roomGroups||[],rooms=(rsState?.rooms||[]).filter(x=>x.active);
+      $('rsScopeRules').innerHTML=rsExceptionRules.map(rule=>{
+        const options='<option value="">Choose school, group, or rooms…</option>'+
+          '<option value="school"'+(rule.scope==='school'?' selected':'')+'>Entire School</option>'+
+          groups.map(g=>'<option value="group:'+esc(g.id)+'"'+(rule.scope==='group'&&String(rule.groupId)===String(g.id)?' selected':'')+
             '>Group: '+esc(g.name)+'</option>').join('')+
-          '<option value="room"'+(rule.scope==='room'?' selected':'')+'>Select individual classrooms</option>';
-        const checks=rooms.map(r=>'<label><input type="checkbox" data-rs-rule-room="'+esc(r.id)+'"'+
-          ((rule.roomIds||[]).some(x=>String(x)===String(r.id))?' checked':'')+'> '+esc(r.name)+'</label>').join('');
+          '<option value="room"'+(rule.scope==='room'?' selected':'')+'>Select Individual Classrooms</option>';
+        const checks=rooms.map(x=>'<label><input type="checkbox" data-rs-rule-room="'+esc(x.id)+'"'+
+          ((rule.roomIds||[]).some(id=>String(id)===String(x.id))?' checked':'')+'> '+esc(x.name)+'</label>').join('');
         return '<div class="rsScopeRule" data-rs-rule="'+rule.id+'"><div class="rsScopeRuleHead">'+
-          '<div><label>Who follows a different schedule?</label><select data-rs-rule-who>'+whoOptions+'</select></div>'+
-          '<div><label>Which schedule?</label><select data-rs-rule-type>'+rsTypeOptions(rule.dayType)+'</select></div>'+
+          '<div><label>Applies To</label><select data-rs-rule-who>'+options+'</select></div>'+
+          '<div><label>Schedule Type</label><select data-rs-rule-type>'+rsTypeOptions(rule.dayType)+'</select></div>'+
           '<button class="gray rsScopeRuleButton" type="button" data-rs-remove-rule>Remove</button>'+
-          '</div>'+(rule.scope==='room'?
-            '<div class="rsScopeRuleTargets"><label>Choose classrooms</label><div class="rsRoomCheckGrid">'+checks+'</div></div>':'')+
-          '</div>';
+          '</div>'+(rule.scope==='room'?'<div class="rsScopeRuleTargets"><label>Classrooms</label><div class="rsRoomCheckGrid">'+checks+'</div></div>':'')+'</div>';
       }).join('');
-      $('rsScopeNote').textContent=rsExceptionRules.length
-        ? 'Only these selected groups or classrooms follow a different schedule. Other classrooms keep the schoolwide selection.'
-        : 'No different schedules selected. All classrooms follow the schoolwide schedule above.';
+      $('rsScopeNote').textContent='Unassigned classrooms use Primary. Individual classrooms override groups; groups override Entire School.';
+      rsUpdateDraftSummary();
     }
-    function rsAddExceptionRule(){
-      const types=rsAvailableTypes();
-      rsExceptionRules.push({id:++rsRuleCounter,scope:'group',groupId:'',roomIds:[],
-        dayType:types.find(x=>x.toLowerCase()==='rally')||
-          types.find(x=>x.toLowerCase()!=='primary')||'Primary'});
-      rsRenderExceptionRules();rsResetPreview();
-    }
-    function rsClearSpecialForm(){
-      rsLoadSpecialDate('');
-      setMsg('rsExceptionMessage','');
-      $('rsOneDate').focus();
+    function rsAddExceptionRule(){rsExceptionRules.push(rsBlankRule());rsRenderExceptionRules();rsResetPreview();}
+    function rsUpdateDraftSummary(){
+      const node=$('rsDraftSummary');if(!node)return;
+      if(!rsExceptionRules.length){node.textContent='Add a schedule assignment to get started.';return;}
+      try{
+        const p=rsBuildScopedPreview(),counts=new Map();
+        p.rows.forEach(x=>counts.set(x.dayType,(counts.get(x.dayType)||0)+1));
+        node.innerHTML='<strong>Classroom summary:</strong> '+
+          [...counts].map(([type,n])=>esc(n+' '+type)).join(' · ')+
+          ' <span class="muted">('+p.rows.length+' active classrooms)</span>'+
+          (p.missing.length?'<div class="rsDraftWarning">'+esc(p.missing.length+' classrooms need a bell schedule.')+'</div>':'');
+      }catch(e){node.textContent='Complete each assignment to see affected classroom counts.';}
     }
     function rsRenderRoomGroups(){
       const host=$('rsGroupsTable'), groups=rsState?.roomGroups||[];
@@ -2237,142 +2229,127 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       el.classList.toggle('isError',Boolean(error));
     }
     function rsUpdateSpecialSaveLabel(){
-      const date=$('rsOneDate').value;
-      const saved=rsConfiguredDates().find(x=>x.date===date);
+      const saved=rsConfiguredDates().find(x=>x.date===$('rsOneDate').value);
       $('rsFormHeading').textContent=saved?'Edit Special Day':'Create Special Day';
-      $('rsApply').textContent=saved?'Save Changes':'Create Special Day';
-      $('rsClearDateForm').classList.toggle('hidden',!saved);
+      $('rsApply').textContent=saved?'Save Changes':'Save Special Day';
       const notice=$('rsEditingDateNotice');
-      notice.classList.toggle('hidden',!saved);
-      if(saved)notice.textContent='Editing: '+saved.date+' — '+saved.defaultType+(saved.note?' · '+saved.note:'');
+      if(notice){notice.classList.toggle('hidden',!saved);
+        if(saved)notice.textContent='Editing: '+saved.date+' — '+saved.defaultType+(saved.note?' · '+saved.note:'');}
     }
     function rsLoadSpecialDate(date){
-      rsResetPreview();
-      rsDateLoadBlocked=false;
-      rsEditingDateKey='';
-      rsExceptionRules=[];
+      rsResetPreview();rsDateLoadBlocked=false;rsEditingDateKey='';rsExceptionRules=[];
       $('rsOneDate').value=date||'';
       $('rsExceptionDayType').value='Primary';
-      $('rsNote').value='';
-      $('rsDateList').value='';
-      $('rsRepeatStart').value='';
-      $('rsRepeatEnd').value='';
+      $('rsNote').value='';$('rsDateList').value='';
+      $('rsRepeatStart').value='';$('rsRepeatEnd').value='';
       document.querySelectorAll('#rsWeekdays input').forEach(x=>x.checked=false);
-      const repeated=$('rsRepeatDetails');
-      if(repeated)repeated.open=false;
+      if($('rsRepeatDetails'))$('rsRepeatDetails').open=false;
       const old=rsConfiguredDates().find(x=>x.date===date);
-      if(!date){
-        rsSpecialDateStatus('Choose a date to create a special day.');
-        rsRenderExceptionRules();rsUpdateSpecialSaveLabel();
-        return;
-      }
-      if(!rsState){
-        rsDateLoadBlocked=true;
-        rsSpecialDateStatus('Scheduling could not be loaded. Refresh before making changes.',true);
-        rsRenderExceptionRules();rsUpdateSpecialSaveLabel();
-        return;
-      }
-      if(!old){
-        rsSpecialDateStatus('No special schedule exists for this date. Creating a new day with Primary as the default.');
-        rsRenderExceptionRules();rsUpdateSpecialSaveLabel();
-        return;
-      }
+      if(!date){rsExceptionRules.push(rsBlankRule());rsSpecialDateStatus('Choose a date to create a Special Day.');
+        rsRenderExceptionRules();rsUpdateSpecialSaveLabel();return;}
+      if(!rsState){rsDateLoadBlocked=true;rsSpecialDateStatus('Scheduling data could not load.',true);
+        rsRenderExceptionRules();rsUpdateSpecialSaveLabel();return;}
+      if(!old){rsExceptionRules.push(rsBlankRule());
+        rsSpecialDateStatus('New date. Classrooms without an assignment use Primary.');
+        rsRenderExceptionRules();rsUpdateSpecialSaveLabel();return;}
       rsEditingDateKey=date;
       $('rsExceptionDayType').value=old.defaultType;
       $('rsNote').value=old.note||'';
-      const availableTypes=rsAvailableTypes();
-      const activeRooms=new Set((rsState?.rooms||[]).filter(x=>x.active).map(x=>String(x.id)));
-      const invalidRoom=old.roomOverrides.filter(x=>!activeRooms.has(String(x.roomId)));
-      const invalidType=[old.defaultType,...old.roomOverrides.map(x=>x.dayType)].filter(x=>!availableTypes.some(y=>String(y).toLowerCase()===String(x).toLowerCase()));
-      if(invalidRoom.length||invalidType.length){
+      const types=rsAvailableTypes(),rooms=new Set((rsState.rooms||[]).filter(x=>x.active).map(x=>String(x.id)));
+      if(old.roomOverrides.some(x=>!rooms.has(String(x.roomId)))||
+        [old.defaultType,...old.roomOverrides.map(x=>x.dayType)].some(x=>!types.some(t=>String(t).toLowerCase()===String(x).toLowerCase()))){
         rsDateLoadBlocked=true;
-        rsSpecialDateStatus('Saved date contains an inactive/missing classroom or schedule type. Changes are blocked to avoid losing it. Resolve this configuration before editing.',true);
-        rsRenderExceptionRules();rsUpdateSpecialSaveLabel();
-        return;
+        rsSpecialDateStatus('Saved date has missing/inactive rooms or unknown Schedule Types. Resolve these before editing.',true);
+        rsRenderExceptionRules();rsUpdateSpecialSaveLabel();return;
       }
+      if(old.defaultType.toLowerCase()!=='primary'||!old.roomOverrides.length)
+        rsExceptionRules.push({id:++rsRuleCounter,scope:'school',groupId:'',roomIds:[],dayType:old.defaultType});
       const remaining=new Set(old.roomOverrides.map(x=>String(x.roomId)));
       let changedGroups=0;
-      const allGroups=rsState.roomGroups||[];
-      for(const group of allGroups){
-        const original=old.roomOverrides.filter(x=>String(x.sourceGroupId||'')===String(group.id));
-        if(!original.length)continue;
-        const current=(group.roomIds||[]).filter(x=>activeRooms.has(String(x))).map(String);
-        const ids=new Set(original.map(x=>String(x.roomId)));
-        const types=[...new Set(original.map(x=>x.dayType))];
-        if(types.length===1&&ids.size===current.length&&current.every(x=>ids.has(x))){
-          rsExceptionRules.push({id:++rsRuleCounter,scope:'group',groupId:group.id,roomIds:[],dayType:types[0]});
-          original.forEach(x=>remaining.delete(String(x.roomId)));
+      for(const group of rsState.roomGroups||[]){
+        const originals=old.roomOverrides.filter(x=>String(x.sourceGroupId||'')===String(group.id));
+        if(!originals.length)continue;
+        const current=(group.roomIds||[]).filter(id=>rooms.has(String(id))).map(String);
+        const ids=new Set(originals.map(x=>String(x.roomId)));
+        const values=[...new Set(originals.map(x=>x.dayType))];
+        if(values.length===1&&ids.size===current.length&&current.every(x=>ids.has(x))){
+          rsExceptionRules.push({id:++rsRuleCounter,scope:'group',groupId:group.id,roomIds:[],dayType:values[0]});
+          originals.forEach(x=>remaining.delete(String(x.roomId)));
         }else changedGroups++;
       }
-      // Preserve exact stored member selection if group membership has since changed.
+      // Preserve saved exact member IDs even if group membership changed later.
       const byType=new Map();
       for(const x of old.roomOverrides)if(remaining.has(String(x.roomId))){
         if(!byType.has(x.dayType))byType.set(x.dayType,[]);
         byType.get(x.dayType).push(String(x.roomId));
       }
-      for(const [dayType,roomIds] of byType)rsExceptionRules.push({
-        id:++rsRuleCounter,scope:'room',groupId:'',roomIds,dayType
-      });
+      for(const [dayType,roomIds] of byType)
+        rsExceptionRules.push({id:++rsRuleCounter,scope:'room',groupId:'',roomIds,dayType});
       rsRenderExceptionRules();rsUpdateSpecialSaveLabel();
-      if(changedGroups)rsSpecialDateStatus('Existing schedule loaded. Group membership has changed since it was saved, so original affected rooms are shown as individual assignments to preserve them.');
-      else rsSpecialDateStatus('Existing special day found and loaded. Edit the schedules, preview, then select Save Changes.');
+      rsSpecialDateStatus(changedGroups?
+        'Group membership changed after saving. The original classrooms are preserved as individual assignments.':
+        'Existing date loaded. Edit assignments and select Save Changes.');
     }
     function rsEditSpecialDate(date){
-      showRoomSchedulingSection('special');
-      rsLoadSpecialDate(date);
+      showRoomSchedulingSection('special');rsLoadSpecialDate(date);
       $('rsSpecialEditor').scrollIntoView({behavior:'smooth',block:'start'});
       $('rsOneDate').focus({preventScroll:true});
     }
-
     function rsBuildScopedPreview(){
-      if(rsDateLoadBlocked)throw Error('This saved configuration could not be loaded safely. Fix the missing rooms or schedule types before making changes.');
-      const type=$('rsExceptionDayType').value||'Primary';
-      const types=rsAvailableTypes();
-      if(!types.includes(type))throw Error('Choose a valid schoolwide schedule.');
-      const rooms=(rsState?.rooms||[]).filter(x=>x.active);
-      if(!rooms.length)throw Error('No active classrooms were found. Cannot configure this day.');
+      if(rsDateLoadBlocked)throw Error('This saved configuration cannot be edited safely until missing rooms or schedules are resolved.');
+      if(!rsState)throw Error('Scheduling data has not loaded.');
+      const types=rsAvailableTypes(),rooms=(rsState.rooms||[]).filter(x=>x.active);
+      if(!rooms.length)throw Error('There are no active classrooms.');
+      if(!rsExceptionRules.length)throw Error('Add at least one schedule assignment.');
       const byId=new Map(rooms.map(x=>[String(x.id),x]));
-      const groups=new Map((rsState?.roomGroups||[]).map(x=>[String(x.id),x]));
-      const overrides=new Map(),usedGroups=new Map();
-      const directIds=new Set();
+      const groups=new Map((rsState.roomGroups||[]).map(x=>[String(x.id),x]));
+      const school=rsExceptionRules.filter(x=>x.scope==='school');
+      if(school.length>1)throw Error('Only one Entire School assignment is allowed.');
+      const type=school.length?school[0].dayType:'Primary';
+      if(!types.includes(type))throw Error('Choose a valid schedule for Entire School.');
+      const directIds=new Set(),usedGroups=new Map(),overrides=new Map();
+      for(const rule of rsExceptionRules){
+        if(!['school','group','room'].includes(rule.scope))throw Error('Choose who each schedule applies to.');
+        if(!types.includes(rule.dayType))throw Error('Choose a Schedule Type for each assignment.');
+      }
       for(const rule of rsExceptionRules.filter(x=>x.scope==='room')){
-        if(!types.includes(rule.dayType)||!(rule.roomIds||[]).length)
-          throw Error('Select at least one classroom and a schedule for each individual-room assignment.');
+        if(!(rule.roomIds||[]).length)throw Error('Choose at least one classroom for each room assignment.');
         for(const id of rule.roomIds){
-          if(!byId.has(String(id)))throw Error('An assignment refers to an inactive or unknown classroom.');
-          if(directIds.has(String(id)))throw Error('Classroom '+byId.get(String(id)).name+' appears in multiple individual-room assignments.');
-          directIds.add(String(id));
+          const key=String(id);
+          if(!byId.has(key))throw Error('An assignment includes an inactive or unknown classroom.');
+          if(directIds.has(key))throw Error('Room '+byId.get(key).name+' appears in more than one individual assignment.');
+          directIds.add(key);
         }
       }
       for(const rule of rsExceptionRules.filter(x=>x.scope==='group')){
         const group=groups.get(String(rule.groupId||''));
-        if(!group||!types.includes(rule.dayType))throw Error('Choose a room group and schedule for each assignment.');
+        if(!group)throw Error('Select a room group for each group assignment.');
         const members=(group.roomIds||[]).filter(id=>byId.has(String(id)));
-        if(!members.length)throw Error('Group '+group.name+' has no active classrooms.');
+        if(!members.length)throw Error('Group '+group.name+' has no active rooms.');
         for(const id of members){
           const key=String(id);
           if(usedGroups.has(key)&&!directIds.has(key))
-            throw Error('Room '+byId.get(key).name+' belongs to two selected groups. Add an individual-room assignment to resolve it.');
+            throw Error('Room '+byId.get(key).name+' belongs to overlapping groups. Add an individual-room assignment to resolve the conflict.');
           usedGroups.set(key,group.id);
           overrides.set(key,{dayType:rule.dayType,sourceGroupId:group.id,source:group.name+' group'});
         }
       }
       for(const rule of rsExceptionRules.filter(x=>x.scope==='room'))
-        for(const id of rule.roomIds)overrides.set(String(id),{dayType:rule.dayType,sourceGroupId:null,source:'Individual room'});
-      if(!overrides.size&&String(type).toLowerCase()==='primary')
-        throw Error('All rooms already use Primary on a normal day. Choose a different schoolwide schedule or add a different schedule for a group or room.');
-      const available=new Set((rsState.schedules||[]).map(x=>x.toLowerCase()));
+        for(const id of rule.roomIds)
+          overrides.set(String(id),{dayType:rule.dayType,sourceGroupId:null,source:'Individual classroom'});
+      if(!overrides.size&&type.toLowerCase()==='primary')
+        throw Error('All classrooms already use Primary. Choose a different schoolwide schedule or assign a group or room.');
+      const available=new Set((rsState.schedules||[]).map(x=>String(x).toLowerCase()));
       const rows=rooms.map(room=>{
-        const picked=overrides.get(String(room.id));
-        const dayType=picked?.dayType||type;
+        const selected=overrides.get(String(room.id)),dayType=selected?.dayType||type;
         const bell=dayType.toLowerCase()==='primary'?room.defaultSchedule:
           (rsState.assignments||[]).find(x=>String(x.roomId)===String(room.id)&&
             x.dayType.toLowerCase()===dayType.toLowerCase())?.schedule;
         const ready=Boolean(bell)&&available.has(String(bell).toLowerCase());
-        return {name:room.name,dayType,bell:ready?bell:'NOT ASSIGNED',
-          source:picked?.source||'Schoolwide default',roomId:room.id,ready};
+        return {roomId:room.id,name:room.name,dayType,bell:ready?bell:'NOT ASSIGNED',
+          ready,source:selected?.source||(school.length?'Entire School':'Normal Primary')};
       });
-      return {rows,overrides,defaultType:type,missing:rows.filter(r=>!r.ready)};
+      return {rows,overrides,defaultType:type,missing:rows.filter(x=>!x.ready)};
     }
 
     function rsPrepareLegacyDates(){
@@ -2955,7 +2932,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const el=e.target;
       if(el.matches('[data-rs-rule-who]')){
         const value=String(el.value||'');
-        rule.scope=value==='room'?'room':'group';
+        rule.scope=value==='school'?'school':value==='room'?'room':value.startsWith('group:')?'group':'';
         rule.groupId=value.startsWith('group:')?value.slice(6):'';
         rule.roomIds=[];
         rsRenderExceptionRules();
