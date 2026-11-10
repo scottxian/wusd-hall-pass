@@ -634,8 +634,9 @@
             <div class="sectionHead">
               <div>
                 <h2 id="rsFormHeading">Create Special Day</h2>
-                <div class="muted">Choose a date, decide who follows which schedule, preview, and save.</div>
+                <div class="muted">Choose a date, select schedules, review, and save.</div>
               </div>
+              <button id="rsClearDateForm" class="softButton hidden" type="button">+ New Special Day</button>
             </div>
             <div class="formGrid rsSpecialForm" style="margin-top:14px">
               <div><label for="rsOneDate">1. Date</label><input id="rsOneDate" type="date"></div>
@@ -697,7 +698,6 @@
                 <div class="muted">Check the summary above. Select the button below to save these schedule assignments.</div>
                 <div class="actions">
                   <button id="rsApply" class="green" type="button" disabled>Create Special Day</button>
-                  <button id="rsClearDateForm" class="gray" type="button">+ New Special Day</button>
                 </div>
               </div>
             </div>
@@ -1971,9 +1971,9 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function rsUpdateSpecialSaveLabel(){
       const date=$('rsOneDate').value;
       const saved=rsConfiguredDates().some(x=>x.date===date);
-      const text=saved?'Save Changes':'Create Special Day';
-      $('rsFormHeading').textContent=text;
-      $('rsApply').textContent=text;
+      $('rsFormHeading').textContent=saved?'Edit Special Day':'Create Special Day';
+      $('rsApply').textContent=saved?'Save Changes':'Create Special Day';
+      $('rsClearDateForm').classList.toggle('hidden',!saved);
     }
     function rsLoadSpecialDate(date){
       rsResetPreview();
