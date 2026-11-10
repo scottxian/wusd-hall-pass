@@ -90,3 +90,41 @@ NEW — NOVEMBER 6: SCOPED SPECIAL DAYS AND REUSABLE ROOM GROUPS
   DEV test school; the QA date and room group were removed afterward.
 - Browser admin workflows still need human sign-in/UI testing. No
   additional production changes are authorized or implemented.
+
+
+NOVEMBER 9, 2026 — SPECIAL DAYS DATE-FIRST UI (DEV ONLY)
+- Redesigned Special Days in School Admin and Master Admin; existing
+  configured dates appear first, with Edit/Remove actions.
+- Date selection automatically checks already-loaded school scheduling
+  state. Existing dates load saved schoolwide type, note, group selections,
+  and room-specific schedules. New dates default to Primary.
+- Editor labels are now "All other classrooms follow" and "Different
+  Schedules". The Who picker supports named Room Groups or selected rooms,
+  with a single Which Schedule picker. Editing a saved date shows Save
+  Changes instead of Create Special Day.
+- Group membership changes do not silently rewrite saved dates. When a
+  group changed after the date was saved, the original affected rooms are
+  shown as individual room selections to preserve the saved configuration.
+  Missing/inactive saved rooms or unknown schedule types block editing.
+- The preview groups high-level assignments together; detailed per-room
+  bell schedules remain visible in an expandable table. Missing schedules
+  appear explicitly and block Save.
+- For a single date, the interface automatically adds or updates without
+  a Skip/Replace dropdown. For multiple dates, any existing dates require
+  an explicit "Keep existing"/"Replace existing" radio choice and show
+  the exact affected dates and proposed actions before Save is enabled.
+- Right before Save, the admin client refetches scheduling state and
+  rejects a stale preview if selected dates, room assignments, or group
+  membership changed. This reduces accidental overwrites; an atomic
+  database compare-and-swap has not been added.
+- Existing adminSaveScopedSpecialDays backend action is retained;
+  no schema changes or production deployment were performed.
+- Tests: both inline scripts parse, key elements exist uniquely.
+  Focused in-code simulated tests passed for saved-date loading, a
+  new-date Primary default, room vs group priority, changed group
+  membership preservation, missing schedule identification, explicit
+  multi-date conflicts, and stale-data rejection.
+- Authenticated full-browser testing remains required before rollout.
+  Supabase DEV access for this chat currently returns "You do not have
+  permission to perform this action"; no direct database verification
+  was possible during this UI update.
