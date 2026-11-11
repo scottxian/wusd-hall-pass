@@ -574,6 +574,8 @@
        control and its warnings/errors for production activation and rollback. */
     #dashboard #calendarPanel,
     #roomSchedulePanel #rsSectionAdvanced{display:none!important}
+    #roomSchedulePanel .rsHeaderActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    #roomSchedulePanel .rsHeaderActions button{min-height:38px;padding:8px 12px;font-size:14px;line-height:20px}
     #roomSchedulePanel .roomScheduleNav{padding-bottom:12px}
     #roomSchedulePanel #rsModeStatus{margin:4px 0;color:#435669;font-size:13px}
   
@@ -863,11 +865,13 @@
         <div class="card">
           <div class="sectionHead">
             <div><h2>Room Scheduling</h2><div class="muted">Every room automatically uses Primary on regular days. Choose a Schedule Type, then assign each active room its bell schedule.</div></div>
-            <button class="gray" id="rsRefresh">Refresh</button>
+            <div class="actions rsHeaderActions">
+              <button id="rsToggleMode" class="purple" disabled>Enable Room Scheduling</button>
+              <button class="gray" id="rsRefresh">Refresh</button>
+            </div>
           </div>
           <div id="rsModeStatus" class="muted">Loading room scheduling…</div>
           <div id="rsLegacyWarning" class="muted" style="margin-top:8px"></div>
-          <div class="actions" style="margin-top:12px"><button id="rsToggleMode" class="purple" disabled>Enable Room Scheduling</button></div>
           <div id="rsModeMessage" class="message"></div>
         </div>
 
