@@ -711,6 +711,19 @@
     #specialDaysPanel .rsEditingDateNotice{margin-top:12px;padding:10px 12px;border:1px solid #b8cee5;background:#f0f6fc;border-radius:8px;color:#194a80;font-size:14px;font-weight:700}
 
 
+    /* Students and restrictions are parallel collapsible panels on desktop.
+       Their data tables scroll within their own columns instead of stretching the page. */
+    #studentsPanel .adminStudentColumns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+    #studentsPanel .adminStudentColumns>.adminDisclosure{min-width:0;width:100%;margin:0}
+    #studentsPanel .adminStudentColumns .adminDisclosureBody{min-width:0}
+    #studentsPanel .adminStudentColumns .tableWrap{max-width:100%;overflow-x:auto}
+    #studentsPanel .adminStudentColumns .adminToolbar{flex-wrap:wrap}
+    #studentsPanel .adminStudentColumns .adminRuleListTools{justify-content:flex-start}
+    @media(max-width:1050px){
+      #studentsPanel .adminStudentColumns{grid-template-columns:minmax(0,1fr)}
+      #studentsPanel .adminStudentColumns>.adminDisclosure{margin-bottom:0}
+    }
+
     /* Student restrictions: room selector filters the visible saved rules. */
     #adminRestrictionPanel .adminRuleForm{margin-top:12px}
     #adminRestrictionPanel .adminRuleSaveRow{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:14px}
@@ -1004,6 +1017,7 @@
       </div>
 
       <section id="studentsPanel" class="panel">
+        <div class="adminStudentColumns">
         <details class="card adminDisclosure" id="adminStudentsDisclosure">
           <summary>All Students <span id="adminStudentsCount" class="muted"></span></summary>
           <div class="adminDisclosureBody">
@@ -1043,6 +1057,7 @@
               <tbody id="adminRuleBody"></tbody></table></div>
           </div>
         </details>
+        </div>
       </section>
 
       <section id="destinationsPanel" class="panel">
