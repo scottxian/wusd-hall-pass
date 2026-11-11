@@ -750,6 +750,7 @@
     // Student-facing live availability is authoritative for which
     // destinations a teacher may offer in the override picker.
     let publicDestinationNames = null;
+    let publicCampusEmergencyLocked = null;
     let publicDestinationCheckInFlight = false;
     let lastPublicDestinationCheck = 0;
     let currentReport = null;
@@ -1078,7 +1079,7 @@
       button.setAttribute('aria-pressed',String(displayOn));
       button.setAttribute('aria-busy',String(Boolean(pending)));
       const waitingEnabled=String(state.settings['Waiting List Enabled']||'').toLowerCase()==='yes';
-      const emergencyLock = String(state.settings['Emergency Lock'] || '').toLowerCase() === 'yes';
+      const emergencyLock = isCampusEmergencyLockActive(state);
       const manualOverrideButton = document.getElementById('manualOverrideButton');
       if (manualOverrideButton) {
         manualOverrideButton.disabled = emergencyLock;
@@ -1350,6 +1351,11 @@
       }
     });
 
+    function isCampusEmergencyLockActive(state=dashboardState) {
+      const teacherFlag=String(state?.settings?.['Emergency Lock']||'').trim().toLowerCase()==='yes';
+      const teacherReason=/campus emergency lock/i.test(String(state?.schedule?.reason||''));
+      return teacherFlag||teacherReason||publicCampusEmergencyLocked===true;
+    }
     function teacherOverrideDestinationAvailable(destination) {
       // A teacher may override student/time limits, never a schoolwide
       // destination shutdown or a locally closed destination.
@@ -1379,9 +1385,15 @@
           publicDestinationNames=new Set(state.destinations
             .filter(function(destination){return Boolean(destination&&destination.enabled);})
             .map(function(destination){return String(destination.name||'').trim().toLowerCase();}));
-          if(status)status.textContent='';
+          // Student-facing campus lock status takes precedence over an
+          // apparently open Test schedule or available destination list.
+          publicCampusEmergencyLocked=
+            String(state.settings?.['Emergency Lock']||'').trim().toLowerCase()==='yes'||
+            /campus emergency lock/i.test(String(state.schedule?.reason||''));
+          if(status&&status.textContent==='Schoolwide destination availability could not be verified. Please retry.')status.textContent='';
           if(dashboardState&&Array.isArray(dashboardState.destinations)){
             renderOverrideDestinations(dashboardState.destinations);
+            renderQuickControls(dashboardState);
           }
         })
         .withFailureHandler(function(error) {
@@ -1394,26 +1406,32 @@
     }
     function renderOverrideDestinations(destinations) {
       const select=document.getElementById('overrideDestination');
-      const available=(destinations||[]).filter(teacherOverrideDestinationAvailable);
+      const status=document.getElementById('overrideDestinationAvailabilityStatus');
+      const emergencyLock=isCampusEmergencyLockActive();
+      const available=emergencyLock?[]:(destinations||[]).filter(teacherOverrideDestinationAvailable);
+      const label=emergencyLock?'Campus Emergency Lock — Passes Closed':'Choose Destination';
       const desired=['',...available.map(x=>String(x.name))];
       const existing=Array.from(select.options).map(x=>x.value);
-      // Leave a teacher's in-progress choice untouched during routine polling
-      // unless the option set really changes.
-      if(existing.length===desired.length&&existing.every((x,i)=>x===desired[i]))return;
+      const unchanged=existing.length===desired.length&&existing.every((x,i)=>x===desired[i])&&
+        select.options[0]?.textContent===label;
+      select.disabled=emergencyLock;
+      if(status){
+        if(emergencyLock)status.textContent='Campus Emergency Lock active. Teacher overrides are unavailable.';
+        else if(status.textContent==='Campus Emergency Lock active. Teacher overrides are unavailable.')status.textContent='';
+      }
+      // Preserve ordinary in-progress choices during polling, but remove any
+      // destination selections as soon as a campus emergency lock activates.
+      if(unchanged)return;
       const previous=select.value;
       select.replaceChildren();
-      select.add(new Option('Choose Destination',''));
+      select.add(new Option(label,''));
       available.forEach(destination=>select.add(new Option(destination.name,destination.name)));
-      if(desired.includes(previous))select.value=previous;
+      if(!emergencyLock&&desired.includes(previous))select.value=previous;
       else select.value='';
     }
 
     function startManualOverride(button) {
-      const emergencyLock = Boolean(
-        dashboardState &&
-        dashboardState.settings &&
-        String(dashboardState.settings['Emergency Lock'] || '').toLowerCase() === 'yes'
-      );
+      const emergencyLock = isCampusEmergencyLockActive();
 
       if (emergencyLock) {
         setActionMessage('Passes are paused by the administrator. Contact an administrator to reopen.', 'error');
