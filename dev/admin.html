@@ -1914,13 +1914,27 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       if(edit){
         const row=roomRuleRows[Number(edit.dataset.editrule)];
         if(!row)return;
-        $('restrictAdminRoom').value=row.roomId;
+        $('restrictAdminRoom').value=String(row.roomId);
         // Editing a saved row selects its room in the editor only.
         // The saved-list view filter remains unchanged.
         $('restrictAdminStudent').value=String(row.studentNumber);
         $('restrictAdminType').value=row.type;
         $('restrictAdminLimit').value=String(row.limit||1);
         toggleAdminRuleLimit();
+        // Edit is in the saved list below the form: bring the populated editor
+        // into view so the button has a visible, discoverable result.
+        const editor=$('adminRestrictionPanel').querySelector('.adminRuleEditor');
+        const studentSelected=$('restrictAdminStudent').value===String(row.studentNumber);
+        const roomSelected=$('restrictAdminRoom').value===String(row.roomId);
+        if(!studentSelected||!roomSelected){
+          setMsg('adminRuleMessage','Cannot edit this rule because its room or student is not available in the editor. Refresh the classroom and student lists.',true);
+          $('adminRuleMessage').scrollIntoView({behavior:'smooth',block:'center'});
+          return;
+        }
+        setMsg('adminRuleMessage','Editing '+row.studentName+' in '+row.room+'. Change the rule above and select Save Restriction.');
+        editor.scrollIntoView({behavior:'smooth',block:'start'});
+        $('restrictAdminType').focus({preventScroll:true});
+        return;
       }
       if(remove)removeAdminRule(Number(remove.dataset.removerule));
     });
