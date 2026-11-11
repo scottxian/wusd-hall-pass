@@ -160,3 +160,39 @@ NOVEMBER 9, 2026 — SIMPLIFIED SINGLE-FORM SPECIAL DAYS REDESIGN (DEV ONLY)
   stays paused until the user is ready to restart.
 - No production files, production data, Supabase schema, or Edge Functions
   were modified.
+
+NOVEMBER 10, 2026 — DEV DESTINATION APPROVAL & RESTROOM LIMIT ENFORCEMENT
+- DEV Supabase project: hqupogtzyepdobrcunuq. LIVE was not modified.
+- Admin Teacher Approval Required is canonical on destination_catalog but
+  pass RPCs read room-level destinations.teacher_approval. Installed private
+  trigger hp_sync_catalog_teacher_approval and function
+  hallpilot_private.sync_destination_catalog_teacher_approval(); synchronized
+  all existing room rows. Verified all 11 Restroom room records matched the
+  school setting. An update/rollback test verified future propagation.
+- Room-level numeric restroom restrictions were ignored on the Test schedule
+  because hallpilot_private.restroom_status() excluded test_data passes.
+- Added a five-argument overload of hallpilot_private.restroom_status:
+  (room_id uuid, student_id uuid, period text, at timestamptz,
+   test_data boolean). The original four-argument version remains intact.
+  The new overload counts passes only from the requested test_data category:
+  Test-mode requests count Test passes; normal requests count normal passes.
+- Updated DEV DB RPCs hp_request_pass_v2, hp_start_pass_v2, and
+  hp_teacher_override_v2 to pass p_test_data into that new overload.
+  This enforces Period, Day, Week and Month numerical restrictions in Test
+  mode and in production mode without mixing the two histories. Blocked
+  remains immediately enforced, regardless of previous pass count.
+- Teacher and Admin per-room restriction saves share the same
+  student_restroom_restrictions table, scoped by room_id and student_id.
+- DEV verification: D4 Per Day 1 saw 2 previous Test passes and was denied;
+  Per Period 1 saw 3 previous Test passes and was denied; Blocked was denied.
+  The same cases remained unaffected by Test passes when evaluated as
+  normal school-day usage. Week and Month mode DB/RPC tests passed using
+  temporary transaction-only changes, rolled back. All 11 existing Blocked
+  room restrictions were reported as blocked by the database in both modes.
+- CUTOVER REQUIREMENTS: AFTER the final LIVE data synchronization,
+  install/reconcile the teacher-approval trigger and room values; deploy
+  the five-argument private restroom_status overload and the three
+  updated RPC functions into LIVE. Recheck Week/Month/day/period/blocked
+  restrictions and teacher approval BEFORE public cutover.
+- User browser verification of the revised numeric restriction enforcement
+  remains pending. No LIVE SQL or LIVE frontend files were modified.
