@@ -452,6 +452,7 @@
             <div>
               <label for="overrideDestination">Destination</label>
               <select id="overrideDestination"><option value="">Choose Destination</option></select>
+        <div id="overrideDestinationAvailabilityStatus" class="subtle" role="status" aria-live="polite"></div>
             </div>
             <div class="checkboxLabel">
               <label><input id="overrideDailyLimit" type="checkbox">Override pass limit for this pass</label>
@@ -1361,28 +1362,35 @@
     function refreshPublicDestinationAvailability(force=false) {
       if(!unlocked||publicDestinationCheckInFlight)return;
       const now=Date.now();
-      if(!force&&now-lastPublicDestinationCheck<10000)return;
+      if(!force&&now-lastPublicDestinationCheck<15000)return;
       lastPublicDestinationCheck=now;
       publicDestinationCheckInFlight=true;
+      const status=document.getElementById('overrideDestinationAvailabilityStatus');
       google.script.run
         .withSuccessHandler(function(state) {
           publicDestinationCheckInFlight=false;
-          // Never treat a failed or incomplete public fetch as an empty catalog.
-          if(!state||!Array.isArray(state.destinations))return;
+          // The Student page initially obtains its authoritative destination
+          // catalog from getPageState. getLiveState can omit catalog details,
+          // so use the SAME complete endpoint here.
+          if(!state||!Array.isArray(state.destinations)){
+            if(status)status.textContent='Schoolwide destination availability could not be verified. Please retry.';
+            return;
+          }
           publicDestinationNames=new Set(state.destinations
             .filter(function(destination){return Boolean(destination&&destination.enabled);})
             .map(function(destination){return String(destination.name||'').trim().toLowerCase();}));
+          if(status)status.textContent='';
           if(dashboardState&&Array.isArray(dashboardState.destinations)){
             renderOverrideDestinations(dashboardState.destinations);
           }
         })
         .withFailureHandler(function(error) {
           publicDestinationCheckInFlight=false;
-          // The backend still checks every attempted override. Retry next poll
-          // without resetting a previously verified availability snapshot.
+          if(status)status.textContent='Schoolwide destination availability could not be verified. Please retry.';
+          // Backend restrictions still apply to every attempted override.
           console.warn('Could not refresh student destination availability:',error);
         })
-        .getLiveState();
+        .getPageState();
     }
     function renderOverrideDestinations(destinations) {
       const select=document.getElementById('overrideDestination');
@@ -1421,6 +1429,9 @@
       if (!destination) { setActionMessage('Choose a destination.', 'error'); return; }
       const destinationInfo=(dashboardState?.destinations||[])
         .find(item=>String(item.name||'').toLowerCase()===String(destination).toLowerCase());
+      // If the roster is stale, fetch the student catalog immediately too.
+      // Backend remains the authority for the final create action.
+      refreshPublicDestinationAvailability(true);
       if(!teacherOverrideDestinationAvailable(destinationInfo)){
         renderOverrideDestinations(dashboardState?.destinations||[]);
         setActionMessage('This destination is disabled for this classroom or school. Choose an available destination.','error');
