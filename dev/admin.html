@@ -1004,18 +1004,21 @@
       </div>
 
       <section id="studentsPanel" class="panel">
-        <div class="card">
-          <div class="sectionHead"><div><h2 style="margin-bottom:4px">Students</h2><div class="muted">Every active student can use every active room. Disable students instead of deleting them so pass history remains intact.</div></div></div>
+        <details class="card adminDisclosure" id="adminStudentsDisclosure">
+          <summary>All Students <span id="adminStudentsCount" class="muted"></span></summary>
+          <div class="adminDisclosureBody">
+            <div class="muted" style="margin-bottom:12px">Every active student can use every active room. Disable students instead of deleting them so pass history remains intact.</div>
           <div class="adminToolbar adminStudentToolbar"><div class="controls adminFilterFields"><div><label for="studentSearch">Search</label><input id="studentSearch" placeholder="Student name or ID"></div><div><label for="studentStatusFilter">Status</label><select id="studentStatusFilter"><option value="all">All Students</option><option value="active">Active Only</option><option value="inactive">Disabled Only</option></select></div></div><div class="actions"><button id="addStudentButton" class="green">Add Student</button><button id="importStudentsButton" class="purple">Import CSV</button><button id="refreshStudents" class="gray">Refresh</button></div></div>
           <div id="studentsMessage" class="message"></div>
           <div class="tableWrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Default Restroom</th><th>Actions</th></tr></thead><tbody id="studentsBody"></tbody></table></div>
-        </div>
+          </div>
+        </details>
         <details class="card adminDisclosure" id="adminRestrictionPanel">
           <summary>Classroom Restroom Restrictions</summary>
           <div class="adminDisclosureBody">
-            <div class="adminRuleEditor">
-              <h3>Add or Edit Restriction</h3>
-              <div class="muted">Choose a student and where the restriction applies. This is independent of the list filter below.</div>
+            <div class="adminRuleEditor hidden" id="adminRuleEditor">
+              <h3 id="adminRuleEditorTitle">Add Restriction</h3>
+              <div id="adminRuleEditorHelp" class="muted">Choose a student, the classroom(s), and a restroom pass limit.</div>
               <div class="formGrid adminRuleForm">
                 <div><label for="restrictAdminRoom">Apply Restriction To</label><select id="restrictAdminRoom"><option value="">Choose Classroom</option><option value="__ALL_ACTIVE_ROOMS__">All Active Rooms</option></select></div>
               <div><label for="restrictAdminStudent">Student</label><select id="restrictAdminStudent"><option value="">Choose Student</option></select></div>
@@ -1026,14 +1029,14 @@
               <div id="restrictAdminLimitWrap"><label for="restrictAdminLimit">Maximum Passes</label><input id="restrictAdminLimit" type="number" min="1" max="100" value="1"></div>
             </div>
               <div id="adminRuleApplyHint" class="muted adminRuleApplyHint">All Active Rooms applies the restriction to every currently active classroom. New classrooms are not automatically included.</div>
-              <div class="adminRuleSaveRow"><button id="saveAdminRule" class="green" type="button">Save Restriction</button></div>
+              <div class="adminRuleSaveRow"><button id="cancelAdminRule" class="gray" type="button">Cancel</button><button id="saveAdminRule" class="green" type="button">Add Restriction</button></div>
             </div>
             <div id="adminRuleMessage" class="message" role="status" aria-live="polite"></div>
             <div class="adminRuleListHead">
-              <h3>Saved Restrictions</h3>
+              <div><h3>Saved Restrictions</h3><div class="muted">Select Edit to modify a rule, or Remove to return the student to the classroom default.</div></div>
               <div class="adminRuleListTools">
                 <div><label for="restrictAdminViewRoom">View Restrictions For</label><select id="restrictAdminViewRoom"><option value="">All Rooms</option></select></div>
-                <button id="reloadAdminRules" class="gray" type="button">Refresh List</button>
+                <button id="addAdminRule" class="green" type="button">Add Restriction</button><button id="reloadAdminRules" class="gray" type="button">Refresh List</button>
               </div>
             </div>
             <div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Rule</th><th>Actions</th></tr></thead>
@@ -1792,7 +1795,43 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     async function setCampusLock(){if(!lastState)return setMsg('campusLockMessage','Refresh campus status before changing the emergency lock.',true);const turnOn=!Boolean(lastState.campusEmergencyLock);if(turnOn&&!window.confirm('Lock every room at this school?\nNew passes stop; waiting lists clear.'))return;const b=$('campusLockButton');b.disabled=true;setMsg('campusLockMessage',turnOn?'Locking campus...':'Unlocking campus...');try{const r=await hallpassApi.call('adminSetCampusLock',[turnOn]);if(!r.success){setMsg('campusLockMessage',r.message,true);return;}await Promise.all([refreshLive(),refreshSecurity()]);setMsg('campusLockMessage',r.message)}catch(e){setMsg('campusLockMessage',e.message,true)}finally{b.disabled=false}}
 
 
-    let roomRuleRows=[];
+    let roomRuleRows=[],adminRuleEditing=null;
+    function resetAdminRuleEditor(){
+      adminRuleEditing=null;
+      $('adminRuleEditor').classList.add('hidden');
+      $('restrictAdminRoom').disabled=false;
+      $('restrictAdminStudent').disabled=false;
+      $('restrictAdminRoom').value='';
+      $('restrictAdminStudent').value='';
+      $('restrictAdminType').value='Day';
+      $('restrictAdminLimit').value='1';
+      toggleAdminRuleLimit();
+    }
+    function openAdminRuleEditor(row=null){
+      adminRuleEditing=row?{roomId:String(row.roomId),studentNumber:String(row.studentNumber)}:null;
+      const editing=Boolean(row);
+      $('restrictAdminRoom').disabled=false;
+      $('restrictAdminStudent').disabled=false;
+      $('restrictAdminRoom').value=editing?String(row.roomId):'';
+      $('restrictAdminStudent').value=editing?String(row.studentNumber):'';
+      $('restrictAdminType').value=editing?row.type:'Day';
+      $('restrictAdminLimit').value=editing?String(row.limit||1):'1';
+      toggleAdminRuleLimit();
+      if(editing && ($('restrictAdminRoom').value!==String(row.roomId)||$('restrictAdminStudent').value!==String(row.studentNumber))){
+        setMsg('adminRuleMessage','This restriction cannot be edited until its room and student are available. Refresh the lists.',true);
+        return;
+      }
+      $('restrictAdminRoom').disabled=editing;
+      $('restrictAdminStudent').disabled=editing;
+      $('adminRuleEditorTitle').textContent=editing?'Edit Restriction':'Add Restriction';
+      $('adminRuleEditorHelp').textContent=editing
+        ?'Editing '+row.studentName+' in '+row.room+'. Change the rule or limit, then save or cancel.'
+        :'Choose a student, the classroom(s), and a restroom pass limit.';
+      $('saveAdminRule').textContent=editing?'Save Changes':'Add Restriction';
+      $('adminRuleEditor').classList.remove('hidden');
+      $('adminRuleEditor').scrollIntoView({behavior:'smooth',block:'start'});
+      (editing?$('restrictAdminType'):$('restrictAdminRoom')).focus({preventScroll:true});
+    }
     function toggleAdminRuleLimit(){
       $('restrictAdminLimitWrap').classList.toggle('hidden',$('restrictAdminType').value==='Blocked');
     }
@@ -1834,7 +1873,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       }catch(e){setMsg('adminRuleMessage',e.message,true)}
     }
     async function saveAdminRule(){
-      const room=$('restrictAdminRoom').value,student=$('restrictAdminStudent').value,
+      const room=adminRuleEditing?adminRuleEditing.roomId:$('restrictAdminRoom').value,
+        student=adminRuleEditing?adminRuleEditing.studentNumber:$('restrictAdminStudent').value,
         type=$('restrictAdminType').value,limit=type==='Blocked'?null:Number($('restrictAdminLimit').value);
       if(!room||!student){setMsg('adminRuleMessage','Select where to apply the restriction and choose a student.',true);return}
       if(type!=='Blocked'&&(!Number.isInteger(limit)||limit<1||limit>100)){setMsg('adminRuleMessage','Enter 1–100 passes.',true);return}
@@ -1846,6 +1886,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           const result=await hallpassApi.call('adminSaveRoomRestriction',[room,student,type,limit]);
           if(!result.success){setMsg('adminRuleMessage',result.message,true);return}
           await reloadAdminRules();
+          resetAdminRuleEditor();
           setMsg('adminRuleMessage',result.message);
           return;
         }
@@ -1894,6 +1935,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           setMsg('adminRuleMessage',saved+' of '+toSave.length+' classroom changes saved. '
             +failures.length+' failed: '+failures.join('; ')+'. Other saved restrictions were left intact.',true);
         }else{
+          resetAdminRuleEditor();
           setMsg('adminRuleMessage','Restriction verified for '+rooms.length+' active classrooms ('
             +saved+' saved, '+(rooms.length-toSave.length)+' already matched).');
         }
@@ -1913,37 +1955,19 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const edit=event.target.closest('[data-editrule]'),remove=event.target.closest('[data-removerule]');
       if(edit){
         const row=roomRuleRows[Number(edit.dataset.editrule)];
-        if(!row)return;
-        $('restrictAdminRoom').value=String(row.roomId);
-        // Editing a saved row selects its room in the editor only.
-        // The saved-list view filter remains unchanged.
-        $('restrictAdminStudent').value=String(row.studentNumber);
-        $('restrictAdminType').value=row.type;
-        $('restrictAdminLimit').value=String(row.limit||1);
-        toggleAdminRuleLimit();
-        // Edit is in the saved list below the form: bring the populated editor
-        // into view so the button has a visible, discoverable result.
-        const editor=$('adminRestrictionPanel').querySelector('.adminRuleEditor');
-        const studentSelected=$('restrictAdminStudent').value===String(row.studentNumber);
-        const roomSelected=$('restrictAdminRoom').value===String(row.roomId);
-        if(!studentSelected||!roomSelected){
-          setMsg('adminRuleMessage','Cannot edit this rule because its room or student is not available in the editor. Refresh the classroom and student lists.',true);
-          $('adminRuleMessage').scrollIntoView({behavior:'smooth',block:'center'});
-          return;
-        }
-        setMsg('adminRuleMessage','Editing '+row.studentName+' in '+row.room+'. Change the rule above and select Save Restriction.');
-        editor.scrollIntoView({behavior:'smooth',block:'start'});
-        $('restrictAdminType').focus({preventScroll:true});
+        if(row)openAdminRuleEditor(row);
         return;
       }
       if(remove)removeAdminRule(Number(remove.dataset.removerule));
     });
     $('restrictAdminViewRoom').addEventListener('change',renderAdminRuleRows);
+    $('addAdminRule').addEventListener('click',()=>openAdminRuleEditor());
+    $('cancelAdminRule').addEventListener('click',()=>{resetAdminRuleEditor();setMsg('adminRuleMessage','Changes canceled. No restriction was changed.');});
     $('saveAdminRule').addEventListener('click',saveAdminRule);
     $('reloadAdminRules').addEventListener('click',reloadAdminRules);
     async function refreshStudents(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('studentsMessage','Refreshing...');try{const r=await hallpassApi.call('adminStudentsState',[{includeInactive:true}]);if(!r.success){setMsg('studentsMessage',r.message,true);return;}studentsState=r;renderStudents();reloadAdminRules();HallPassStudentAutocomplete.refresh('studentSearch');HallPassStudentAutocomplete.refresh('search');setMsg('studentsMessage',`${r.rows.length} students loaded.`)}catch(e){setMsg('studentsMessage',e.message,true)}finally{if(button)button.disabled=false}}
     function visibleStudents(){const term=$('studentSearch').value.trim().toLowerCase(),status=$('studentStatusFilter').value;return (studentsState.rows||[]).filter(x=>(status==='all'||(status==='active'&&x.active)||(status==='inactive'&&!x.active))&&(!term||(`${x.studentId} ${x.name}`).toLowerCase().includes(term)))}
-    function renderStudents(){const rows=visibleStudents();$('studentsBody').innerHTML=rows.length?rows.map(x=>`<tr class="${x.active?'':'inactive'}"><td>${esc(x.studentId)}</td><td><strong>${esc(x.name)}</strong></td><td>${x.active?'Active':'Disabled'}</td><td>${x.restroomAllowed?'Allowed':'Disabled'}</td><td><button class="small" data-edit-student="${esc(x.id)}">Edit</button></td></tr>`).join(''):'<tr><td colspan="5">No students found.</td></tr>'}
+    function renderStudents(){const rows=visibleStudents();$('adminStudentsCount').textContent='('+(studentsState.rows||[]).length+')';$('studentsBody').innerHTML=rows.length?rows.map(x=>`<tr class="${x.active?'':'inactive'}"><td>${esc(x.studentId)}</td><td><strong>${esc(x.name)}</strong></td><td>${x.active?'Active':'Disabled'}</td><td>${x.restroomAllowed?'Allowed':'Disabled'}</td><td><button class="small" data-edit-student="${esc(x.id)}">Edit</button></td></tr>`).join(''):'<tr><td colspan="5">No students found.</td></tr>'}
     function openStudent(id=''){const x=(studentsState.rows||[]).find(s=>s.id===id);$('studentEditUuid').value=x?.id||'';$('studentModalTitle').textContent=x?'Edit Student':'Add Student';$('studentIdInput').value=x?.studentId||'';$('studentNameInput').value=x?.name||'';$('studentActiveInput').value=String(x?.active!==false);$('studentRestroomInput').value=String(x?.restroomAllowed!==false);setMsg('studentModalMessage','');showModal('studentModal')}
     async function saveStudent(){const b=$('saveStudentButton'),id=$('studentEditUuid').value,data={studentId:$('studentIdInput').value.trim(),name:$('studentNameInput').value.trim(),active:$('studentActiveInput').value==='true',restroomAllowed:$('studentRestroomInput').value==='true'};b.disabled=true;setMsg('studentModalMessage','Saving...');try{const r=await hallpassApi.call('adminSaveStudent',[id||null,data]);if(!r.success){setMsg('studentModalMessage',r.message,true);return;}hideModal('studentModal');await refreshStudents();setMsg('studentsMessage',r.message)}catch(e){setMsg('studentModalMessage',e.message,true)}finally{b.disabled=false}}
     function parseCsvLine(line){const cells=[];let cur='',quoted=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(quoted&&line[i+1]==='"'){cur+='"';i++;}else quoted=!quoted;}else if(ch===','&&!quoted){cells.push(cur);cur='';}else cur+=ch;}cells.push(cur);return cells.map(x=>x.trim())}
@@ -3086,7 +3110,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       });
       if(panelId==='studentsPanel'){
         // The editor target and saved-list viewer are independent.
-        toggleAdminRuleLimit();
+        resetAdminRuleEditor();
         renderStudents();
         renderAdminRuleRows();
       }else if(panelId==='roomSchedulePanel'){
