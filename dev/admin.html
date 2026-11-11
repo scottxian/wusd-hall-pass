@@ -738,6 +738,7 @@
     #adminRuleModal .adminRuleEditor{width:min(760px,100%);max-height:min(88vh,850px);overflow-y:auto;position:relative;padding:22px;border:0;margin:0;background:white}
     #adminRuleModal .adminRuleEditor h3{font-size:20px;margin:0 0 8px}
     #adminRuleModal .adminRuleEditor .adminRuleForm{margin-top:18px}
+    #adminRuleModal .adminRuleApplyHint{margin-top:12px;font-size:12px;line-height:1.45}
     #adminRuleModal .adminRuleSaveRow{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
     #adminRuleModal .adminRuleSaveRow button{min-height:40px}
     #adminRuleModal #adminRuleModalMessage:empty{display:none}
@@ -2017,7 +2018,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
             +saved+' saved, '+(rooms.length-toSave.length)+' already matched).');
         }
       }catch(e){adminRuleMessage(e?.message||String(e),true)}
-      finally{button.disabled=false;button.textContent=originalText}
+      finally{button.disabled=false;button.textContent=adminRuleEditing?'Save Changes':'Add Restriction'}
     }
     async function removeAdminRule(i){
       const row=roomRuleRows[i];if(!row)return;
