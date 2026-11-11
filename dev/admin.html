@@ -676,7 +676,7 @@
     #specialDaysPanel .rsSpecialForm{grid-template-columns:minmax(175px,1fr) minmax(185px,1.5fr)}
     #specialDaysPanel .rsDraftSummary{margin-top:12px;padding:12px;border:1px solid #dce4eb;border-radius:9px;background:#f8fafc;font-size:14px}
     #specialDaysPanel .rsDraftWarning{font-weight:600;color:#a52720;margin-top:6px}
-    #specialDaysPanel .rsRepeatDetails{display:none}
+    #specialDaysPanel .rsRepeatDetails{display:block}
     #rsPreviewWrap{z-index:45;align-items:center;padding:18px}
     #rsPreviewWrap .rsSpecialPreviewDialog{width:min(960px,100%);max-height:calc(100vh - 36px);overflow:auto}
     #rsPreviewWrap .rsSimpleSummary{margin-top:13px;padding:13px;border:1px solid #dce4eb;border-radius:10px;background:#fafcfe;display:grid;gap:9px}
@@ -952,12 +952,12 @@
             </div>
             <div id="rsEditingDateNotice" class="rsEditingDateNotice hidden" role="status" aria-live="polite"></div>
             <div class="formGrid rsSpecialForm" style="margin-top:14px">
-              <div><label for="rsOneDate">Date</label><input id="rsOneDate" type="date"></div>
+              <div><label for="rsOneDate">Single Date (optional when repeating)</label><input id="rsOneDate" type="date"></div>
               <select id="rsExceptionDayType" class="hidden" aria-hidden="true" tabindex="-1"></select>
               <div><label for="rsNote">Note (optional)</label><input id="rsNote" maxlength="250" placeholder="e.g. Middle School Rally"></div>
             </div>
             <div id="rsDateStatus" class="rsDateStatus" role="status" aria-live="polite">Choose a date to begin.</div>
-            <input id="rsConflictMode" type="hidden" value="skip">
+            
 
             <div class="rsScopeSection">
               <div class="rsScopeHeader">
@@ -970,7 +970,7 @@
             </div>
 
             <details id="rsRepeatDetails" class="rsRepeatDetails">
-              <summary>Optional: Repeat this schedule on additional dates</summary>
+              <summary>Repeat weekly or schedule multiple dates</summary>
               <div class="muted" style="margin-top:8px">Multiple-date changes are previewed before saving. Existing dates cannot be replaced without your explicit choice.</div>
               <div class="formGrid" style="margin-top:12px">
                 <div><label for="rsRepeatStart">Repeat — Start Date</label><input id="rsRepeatStart" type="date"></div>
@@ -980,9 +980,10 @@
                 <label><input type="checkbox" value="1">Monday</label><label><input type="checkbox" value="2">Tuesday</label><label><input type="checkbox" value="3">Wednesday</label><label><input type="checkbox" value="4">Thursday</label><label><input type="checkbox" value="5">Friday</label>
               </div></div>
               <div style="margin-top:12px"><label for="rsDateList">Or paste additional dates (one per line)</label><textarea id="rsDateList" rows="3" placeholder="11/18/2027&#10;12/2/2027"></textarea></div>
+              <div style="margin-top:12px"><label for="rsConflictMode">When a selected date already exists</label><select id="rsConflictMode"><option value="skip">Keep its existing schedule (recommended)</option><option value="replace">Replace it with these assignments</option></select></div>
             </details>
 
-            <p class="rsReviewHint">Preview is optional. Save validates all classrooms automatically.</p>
+            <p class="rsReviewHint">For repeats, select weekdays and a date range above. Preview all dates before saving. Existing dates are kept unless you select Replace.</p>
             <div class="actions" style="margin-top:12px">
               <button id="rsPreview" class="purple" type="button">Preview</button>
               <button id="rsApply" class="green" type="button">Save Special Day</button>
@@ -2488,7 +2489,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       $('rsOneDate').value=date||'';
       $('rsExceptionDayType').value='Primary';
       $('rsNote').value='';$('rsDateList').value='';
-      $('rsRepeatStart').value='';$('rsRepeatEnd').value='';
+      $('rsRepeatStart').value='';$('rsRepeatEnd').value='';$('rsConflictMode').value='skip';
       document.querySelectorAll('#rsWeekdays input').forEach(x=>x.checked=false);
       if($('rsRepeatDetails'))$('rsRepeatDetails').open=false;
       const old=rsConfiguredDates().find(x=>x.date===date);
@@ -2712,21 +2713,24 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
     function rsRenderDatePreviewActions(){
       if(!rsPreviewData)return;
-      const date=rsPreviewData.dates[0];
-      const old=rsConfiguredDates().find(x=>x.date===date);
-      $('rsPreviewBody').innerHTML='<tr><td>'+esc(date)+'</td><td>'+esc(old?.defaultType||'Primary')+
-        '</td><td>'+esc(rsPreviewData.defaultType)+'</td><td>'+(old?'Update':'Add')+'</td></tr>';
+      const saved=new Map(rsConfiguredDates().map(x=>[x.date,x]));
+      const replace=rsPreviewData.conflictMode==='replace';
+      $('rsPreviewBody').innerHTML=rsPreviewData.dates.map(date=>{
+        const old=saved.get(date);
+        return '<tr><td>'+esc(date)+'</td><td>'+esc(old?.defaultType||'Not scheduled')+
+          '</td><td>'+esc(rsPreviewData.defaultType)+'</td><td>'+esc(!old?'Add':replace?'Replace':'Keep existing')+'</td></tr>';
+      }).join('');
+      $('rsDatePreviewDetails').classList.remove('hidden');
     }
     function rsMakeSpecialDraft(){
       if(!rsState)throw Error('Scheduling data has not loaded. Refresh and try again.');
-      const date=$('rsOneDate').value;
-      if(!date||!parseCalendarDateToken(date))throw Error('Choose a valid date.');
+      const dates=rsDateCollection();
       const preview=rsBuildScopedPreview();
-      return {dates:[date],defaultType:preview.defaultType,preview,
+      return {dates,defaultType:preview.defaultType,preview,
         overrides:rsExceptionRules.filter(x=>x.scope!=='school').map(x=>({
           scope:x.scope,groupId:x.groupId||'',roomIds:[...(x.roomIds||[])],dayType:x.dayType
-        })),note:$('rsNote').value.trim(),
-        baseline:rsSpecialDateFingerprint(rsState,[date])};
+        })),note:$('rsNote').value.trim(),conflictMode:$('rsConflictMode').value,
+        baseline:rsSpecialDateFingerprint(rsState,dates)};
     }
     function rsPreviewSpecialDates(){
       rsClosePreview();
@@ -2744,11 +2748,14 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         $('rsMissingSchedules').textContent=p.missing.length?'Cannot save: '+
           p.missing.map(x=>x.name+' needs a '+x.dayType+' bell schedule').join('; ')+'.':'';
         const counts=new Map();p.rows.forEach(x=>counts.set(x.dayType,(counts.get(x.dayType)||0)+1));
-        $('rsPreviewSummary').textContent=p.rows.length+' active classrooms · '+
+        $('rsPreviewSummary').textContent=draft.dates.length+' selected date(s) · '+p.rows.length+' active classrooms · '+
           [...counts].map(([type,n])=>n+' '+type).join(' · ')+
           (p.missing.length?' · '+p.missing.length+' missing bell schedules':' · All bell schedules assigned');
-        $('rsBulkConflicts').classList.add('hidden');
-        $('rsDatePreviewDetails').classList.add('hidden');
+        const existingCount=draft.dates.filter(date=>rsConfiguredDates().some(x=>x.date===date)).length;
+        $('rsBulkConflicts').classList.toggle('hidden',!existingCount);
+        $('rsBulkConflicts').textContent=existingCount
+          ? existingCount+' existing date(s) will '+(draft.conflictMode==='replace'?'be replaced.':'remain unchanged.') : '';
+        $('rsDatePreviewDetails').classList.remove('hidden');
         rsRenderDatePreviewActions();
         $('rsPreviewWrap').classList.remove('hidden');
         $('rsPreviewWrap').setAttribute('aria-hidden','false');
@@ -2763,8 +2770,11 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         if(draft.preview.missing.length)
           throw Error('Missing bell schedules: '+draft.preview.missing.map(x=>x.name+
             ' needs '+x.dayType).join('; ')+'. Assign these under Room Scheduling before saving.');
-        const date=draft.dates[0],old=rsConfiguredDates().find(x=>x.date===date);
-        if(old&&!window.confirm('Replace the existing schedule assignments for '+date+' with these changes?'))return;
+        const existing=new Set(rsConfiguredDates().map(x=>x.date));
+        const conflicts=draft.dates.filter(date=>existing.has(date));
+        const replace=draft.conflictMode==='replace';
+        if(conflicts.length&&replace&&!window.confirm('Replace '+conflicts.length+' existing Special Days with these assignments?'))return;
+        if(draft.dates.length>1&&!window.confirm('Save '+draft.dates.length+' dates? '+(conflicts.length?(replace?'Existing dates will be replaced.':'Existing dates will remain unchanged.') : '')))return;
         button.disabled=true;
         setMsg('rsExceptionMessage','Checking the latest schedules before saving…');
         const fresh=await hallpassApi.call('adminRoomSchedulingState',[]);
@@ -2774,13 +2784,13 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           throw Error('The date or classroom schedules changed while editing. Nothing was saved. Reload and try again.');
         }
         const payload={dates:draft.dates,defaultType:draft.defaultType,overrides:draft.overrides,
-          note:draft.note,conflictMode:old?'replace':'skip'};
+          note:draft.note,conflictMode:draft.conflictMode};
         const result=await hallpassApi.call('adminSaveScopedSpecialDays',[payload]);
         if(!result.success)throw Error(result.message||'Could not save the Special Day.');
         await refreshRoomScheduling();
-        rsLoadSpecialDate(date);
+        rsLoadSpecialDate(draft.dates.length===1?draft.dates[0]:'');
         if(result.skipped&&!result.saved)
-          setMsg('rsExceptionMessage','No changes saved. The date was already configured; reload and try again.',true);
+          setMsg('rsExceptionMessage','No changes saved. All selected dates were already configured.',true);
         else setMsg('rsExceptionMessage',result.message||'Special Day saved.');
       }catch(e){setMsg('rsExceptionMessage',e.message,true);}
       finally{button.disabled=false;}
@@ -3104,13 +3114,13 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('rsPreviewWrap').addEventListener('click',e=>{if(e.target===$('rsPreviewWrap'))rsClosePreview();});
     $('rsApply').addEventListener('click',rsApplySpecialDates);
     $('specialDaysPanel').addEventListener('input',e=>{
-      if(e.target.matches('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays input,#rsExceptionDayType'))rsResetPreview();
+      if(e.target.matches('#rsOneDate,#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays input,#rsExceptionDayType,#rsConflictMode'))rsResetPreview();
     });
     $('specialDaysPanel').addEventListener('change',e=>{
       if(e.target.id==='rsOneDate'){
         rsLoadSpecialDate(e.target.value);
         setMsg('rsExceptionMessage','');
-      }else if(e.target.matches('#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays input,#rsExceptionDayType')){
+      }else if(e.target.matches('#rsDateList,#rsRepeatStart,#rsRepeatEnd,#rsNote,#rsWeekdays input,#rsExceptionDayType,#rsConflictMode')){
         rsResetPreview();
       }
     });
