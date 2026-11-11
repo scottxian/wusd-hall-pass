@@ -2729,7 +2729,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       return {dates,defaultType:preview.defaultType,preview,
         overrides:rsExceptionRules.filter(x=>x.scope!=='school').map(x=>({
           scope:x.scope,groupId:x.groupId||'',roomIds:[...(x.roomIds||[])],dayType:x.dayType
-        })),note:$('rsNote').value.trim(),conflictMode:$('rsConflictMode').value,
+        })),note:$('rsNote').value.trim(),
+        conflictMode:(dates.length===1 && rsEditingDateKey===dates[0])?'replace':$('rsConflictMode').value,
         baseline:rsSpecialDateFingerprint(rsState,dates)};
     }
     function rsPreviewSpecialDates(){
