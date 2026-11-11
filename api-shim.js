@@ -15,7 +15,11 @@
   function getSchoolKey() { return getQueryKey('school'); }
   function getOrgKey() { return getQueryKey('org'); }
 
-  const SESSION_KEY = 'westfield_hallpass_teacher_session';
+  const SESSION_PREFIX = 'hallpilot_prod_teacher_session_v115';
+
+  function sessionKey() {
+    return `${SESSION_PREFIX}:${configuredApiUrl('staff')}:${getOrgKey() || 'legacy'}`;
+  }
 
   const STAFF_ACTIONS = new Set([
     'getTeacherDashboardState',
@@ -23,6 +27,10 @@
     'startTeacherOverridePass',
     'cancelRequest',
     'updateStudentRestroomAccessFromDashboard',
+    'getTeacherRestrictions',
+    'searchTeacherRestrictionStudents',
+    'saveTeacherRestriction',
+    'removeTeacherRestriction',
     'updateSettingsFromDashboard',
     'updateDestinationFromDashboard',
     'addDestinationFromDashboard',
@@ -105,7 +113,7 @@
     };
 
     // Staff session tokens never travel to the public function.
-    if (staff) payload.sessionToken = sessionStorage.getItem(SESSION_KEY) || '';
+    if (staff) payload.sessionToken = sessionStorage.getItem(sessionKey()) || '';
 
     const response = await fetch(configuredApiUrl(staff ? 'staff' : 'public'), {
       method: 'POST',
@@ -121,7 +129,7 @@
     }
 
     if (staff && result && result._teacherSessionToken) {
-      sessionStorage.setItem(SESSION_KEY, result._teacherSessionToken);
+      sessionStorage.setItem(sessionKey(), result._teacherSessionToken);
       delete result._teacherSessionToken;
     }
 
@@ -193,7 +201,7 @@
     get schoolKey() { return getSchoolKey(); },
     get roomKey() { return getRoomKey(); },
     applyCanonicalScope,
-    clearTeacherSession() { sessionStorage.removeItem(SESSION_KEY); }
+    clearTeacherSession() { sessionStorage.removeItem(sessionKey()); }
   };
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -207,6 +215,6 @@
     // The student kiosk must never retain a staff session. This also clears any
     // legacy V1.7 session that may have been minted by a teacher-approved pass.
     const page = String(window.location.pathname || '').split('/').pop().toLowerCase();
-    if (!page || page === 'index.html') sessionStorage.removeItem(SESSION_KEY);
+    if (!page || page === 'index.html') sessionStorage.removeItem(sessionKey());
   });
 })();
