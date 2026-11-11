@@ -2811,9 +2811,59 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('refreshAudit').addEventListener('click',e=>refreshAudit(e.currentTarget));$('auditRoomFilter').addEventListener('change',()=>refreshAudit());$('auditSearch').addEventListener('keydown',e=>{if(e.key==='Enter')refreshAudit()});$('loginButton').addEventListener('click',login);$('adminPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('refreshLive').addEventListener('click',e=>refreshLive(e.currentTarget));$('roomFilter').addEventListener('change',()=>refreshLive());$('search').addEventListener('keydown',e=>{if(e.key==='Enter')refreshLive()});$('refreshManage').addEventListener('click',e=>refreshManagement(e.currentTarget));$('refreshSchedules').addEventListener('click',e=>refreshManagement(e.currentTarget));$('addScheduleButton').addEventListener('click',()=>openSchedule());$('saveScheduleButton').addEventListener('click',saveSchedule);$('confirmScheduleReplace').addEventListener('click',confirmScheduleReplacement);$('addSchedulePeriodButton').addEventListener('click',()=>addSchedulePeriod());$('schedulePeriodBody').addEventListener('click',e=>{const b=e.target.closest('[data-remove-period]');if(b)b.closest('.scheduleEditorRow').remove()});$('onboardRoomButton').addEventListener('click',openOnboardingWizard);$('addRoomButton').addEventListener('click',()=>openRoom());$('deleteRoomFromModalButton').addEventListener('click',()=>deleteRoom($('roomEditId').value));$('addTeacherButton').addEventListener('click',()=>openTeacher());$('saveRoomButton').addEventListener('click',saveRoom);$('saveTeacherButton').addEventListener('click',saveTeacher);
     $('onboardBackButton').addEventListener('click',onboardingBack);$('onboardNextButton').addEventListener('click',onboardingNext);$('onboardCreateButton').addEventListener('click',createOnboardedRoom);$('copyStudentLink').addEventListener('click',()=>copyTextValue($('roomStudentLink').value,'Student link copied.'));$('copyTeacherLink').addEventListener('click',()=>copyTextValue($('roomTeacherLink').value,'Teacher link copied.'));$('copySetupMessage').addEventListener('click',()=>{const room=currentLinksRoom();if(room)copyTextValue(setupMessageForRoom(room),'Setup message copied.')});$('openStudentLink').addEventListener('click',()=>window.open($('roomStudentLink').value,'_blank','noopener'));$('openTeacherLink').addEventListener('click',()=>window.open($('roomTeacherLink').value,'_blank','noopener'));document.querySelectorAll('input[name="onboardTeacherMode"]').forEach(x=>x.addEventListener('change',toggleOnboardingTeacherMode));$('onboardCloneRoom').addEventListener('change',()=>loadOnboardingDestinations($('onboardCloneRoom').value));$('onboardRoomName').addEventListener('blur',()=>{if(!$('onboardRoomKey').value.trim())$('onboardRoomKey').value=$('onboardRoomName').value.trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')});
     $('schoolSelector').addEventListener('change',switchSchool);$('addSchoolButton').addEventListener('click',()=>openSchool());$('refreshOrganization').addEventListener('click',e=>refreshOrganization(e.currentTarget));$('saveSchoolButton').addEventListener('click',saveSchool);
+    // Switching pages starts a fresh entry form. This resets only browser
+    // draft/filter controls; it does not write to the server or alter saved data.
+    function resetTransientAdminPage(panelId){
+      const panel=document.getElementById(panelId);
+      if(!panel||panelId==='securityPanel'||panelId==='orgPanel')return;
+      panel.querySelectorAll('input, select, textarea').forEach(field=>{
+        // This is a saved school setting, not a temporary entry.
+        if(field.id==='calendarAutoEnabled')return;
+        const kind=String(field.type||'').toLowerCase();
+        if(kind==='checkbox'||kind==='radio'){
+          field.checked=field.defaultChecked;
+        }else if(kind==='file'){
+          field.value='';
+        }else if(field.tagName==='SELECT'){
+          const empty=[...field.options].find(option=>option.value==='');
+          if(empty)field.value='';
+          else if(field.options.length)field.selectedIndex=0;
+        }else{
+          field.value=field.defaultValue||'';
+        }
+      });
+      if(panelId==='studentsPanel'){
+        // The editor target and saved-list viewer are independent.
+        toggleAdminRuleLimit();
+        renderStudents();
+        renderAdminRuleRows();
+      }else if(panelId==='roomSchedulePanel'){
+        rsSelectNone();
+        if(rsState)rsScheduleTypeChanged();
+      }else if(panelId==='roomGroupsPanel'){
+        rsCancelGroupEditor();
+        $('rsGroupName').value='';
+        $('rsGroupChecks').innerHTML='';
+      }else if(panelId==='specialDaysPanel'){
+        rsLoadSpecialDate('');
+        $('rsSavedDaysSearch').value='';
+        $('rsSavedDaysPeriod').value='upcoming';
+        rsRenderConfiguredDates();
+      }else if(panelId==='calendarPanel'){
+        clearBulkCalendarPreview();
+      }else if(panelId==='reportsPanel'){
+        clearCampusReportOnChange();
+        HallPassStudentAutocomplete.refresh('campusReportStudent');
+      }
+      // Keep visible student search and underlying selection in sync.
+      if(panelId==='studentsPanel')HallPassStudentAutocomplete.refresh('studentSearch');
+      if(panelId==='livePanel')HallPassStudentAutocomplete.refresh('search');
+    }
     function openAdminPage(panelId){
       if(panelId==='calendarPanel')return;
       if(!document.getElementById(panelId)?.classList.contains('panel'))return;
+      const previousPanel=document.querySelector('#dashboard .panel.active');
+      if(previousPanel&&previousPanel.id!==panelId)resetTransientAdminPage(previousPanel.id);
       $('adminPageSelect').value=panelId;
       document.querySelectorAll('.panel').forEach(panel=>panel.classList.toggle('active',panel.id===panelId));
       setAdminGlobalMessage('','','');
