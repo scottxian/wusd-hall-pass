@@ -746,6 +746,11 @@
     // Keep quick controls stable while their server writes are in flight.
     let restroomActionPending = null;
     let waitingActionPending = null;
+    // Student-facing live availability is authoritative for which
+    // destinations a teacher may offer in the override picker.
+    let publicDestinationNames = null;
+    let publicDestinationCheckInFlight = false;
+    let lastPublicDestinationCheck = 0;
     let currentReport = null;
     let reportDrilldownCache = {};
     let allReportSort = { key: 'studentName', direction: 'asc' };
@@ -858,6 +863,7 @@
           document.getElementById('loginCard').classList.add('hidden');
           document.getElementById('dashboard').classList.remove('hidden');
           renderState(result, true);
+          refreshPublicDestinationAvailability(true);
           loadTeacherRestrictions();
           applyReportPreset();
           setActionMessage('Dashboard ready.', 'success');
@@ -1346,7 +1352,37 @@
     function teacherOverrideDestinationAvailable(destination) {
       // A teacher may override student/time limits, never a schoolwide
       // destination shutdown or a locally closed destination.
-      return Boolean(destination&&destination.enabled&&destination.schoolwideEnabled!==false);
+      if(!destination||!destination.enabled||destination.schoolwideEnabled===false)return false;
+      // Teacher dashboard metadata alone has not reliably reflected schoolwide
+      // destination disables. Use the same availability returned to students.
+      return publicDestinationNames===null||
+        publicDestinationNames.has(String(destination.name||'').trim().toLowerCase());
+    }
+    function refreshPublicDestinationAvailability(force=false) {
+      if(!unlocked||publicDestinationCheckInFlight)return;
+      const now=Date.now();
+      if(!force&&now-lastPublicDestinationCheck<10000)return;
+      lastPublicDestinationCheck=now;
+      publicDestinationCheckInFlight=true;
+      google.script.run
+        .withSuccessHandler(function(state) {
+          publicDestinationCheckInFlight=false;
+          // Never treat a failed or incomplete public fetch as an empty catalog.
+          if(!state||!Array.isArray(state.destinations))return;
+          publicDestinationNames=new Set(state.destinations
+            .filter(function(destination){return Boolean(destination&&destination.enabled);})
+            .map(function(destination){return String(destination.name||'').trim().toLowerCase();}));
+          if(dashboardState&&Array.isArray(dashboardState.destinations)){
+            renderOverrideDestinations(dashboardState.destinations);
+          }
+        })
+        .withFailureHandler(function(error) {
+          publicDestinationCheckInFlight=false;
+          // The backend still checks every attempted override. Retry next poll
+          // without resetting a previously verified availability snapshot.
+          console.warn('Could not refresh student destination availability:',error);
+        })
+        .getLiveState();
     }
     function renderOverrideDestinations(destinations) {
       const select=document.getElementById('overrideDestination');
@@ -1410,6 +1446,10 @@
         .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
         .startTeacherOverridePass(teacherPin, studentId, destination, overrideDailyLimit, overrideNote);
     }
+
+    document.querySelector('.overrideDisclosure').addEventListener('toggle',function(event){
+      if(event.target.open)refreshPublicDestinationAvailability(true);
+    });
 
     const teacherLiveSignatures={waiting:null,out:null};
     // Keep in-flight row actions visible through the 3-second live refresh.
@@ -2253,7 +2293,12 @@
     }
     window.addEventListener('scroll',updateStickyTeacherStatus,{passive:true});
     updateStickyTeacherStatus();
-    setInterval(function() { if (unlocked) refreshDashboard(false); }, 3000);
+    setInterval(function() {
+      if(unlocked){
+        refreshDashboard(false);
+        refreshPublicDestinationAvailability();
+      }
+    }, 3000);
     setInterval(function() { if (unlocked) updateTimers(); }, 1000);
 
     window.onload = function() {
