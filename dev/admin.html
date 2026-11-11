@@ -1796,6 +1796,11 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
 
 
     let roomRuleRows=[],adminRuleEditing=null;
+    function syncAdminRuleStudentPicker(){
+      HallPassStudentAutocomplete.refresh('restrictAdminStudent');
+      const input=$('restrictAdminStudent-autocomplete');
+      if(input)input.disabled=Boolean(adminRuleEditing);
+    }
     function resetAdminRuleEditor(){
       adminRuleEditing=null;
       $('adminRuleEditor').classList.add('hidden');
@@ -1803,6 +1808,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       $('restrictAdminStudent').disabled=false;
       $('restrictAdminRoom').value='';
       $('restrictAdminStudent').value='';
+      syncAdminRuleStudentPicker();
       $('restrictAdminType').value='Day';
       $('restrictAdminLimit').value='1';
       toggleAdminRuleLimit();
@@ -1823,6 +1829,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       }
       $('restrictAdminRoom').disabled=editing;
       $('restrictAdminStudent').disabled=editing;
+      syncAdminRuleStudentPicker();
       $('adminRuleEditorTitle').textContent=editing?'Edit Restriction':'Add Restriction';
       $('adminRuleEditorHelp').textContent=editing
         ?'Editing '+row.studentName+' in '+row.room+'. Change the rule or limit, then save or cancel.'
@@ -1847,6 +1854,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       if([...target.options].some(x=>x.value===oldTarget))target.value=oldTarget;
       if([...viewer.options].some(x=>x.value===oldView))viewer.value=oldView;
       if([...student.options].some(x=>x.value===oldStudent))student.value=oldStudent;
+      syncAdminRuleStudentPicker();
     }
     function renderAdminRuleRows(){
       const room=$('restrictAdminViewRoom').value;
@@ -2993,6 +3001,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     async function saveTeacher(){const b=$('saveTeacherButton'),id=$('teacherEditId').value,data={name:$('teacherNameInput').value.trim(),email:$('teacherEmailInput').value.trim(),role:$('teacherRoleInput').value,schoolAdmin:$('teacherSchoolAdminInput').value==='true',active:$('teacherActiveInput').value==='true',pin:$('teacherPinInput').value.trim(),roomIds:selectedChecks('teacherRoomChecks')};b.disabled=true;setMsg('teacherModalMessage','Saving...');try{const r=id?await hallpassApi.call('adminUpdateTeacher',[id,data]):await hallpassApi.call('adminCreateTeacher',[data]);if(!r.success){setMsg('teacherModalMessage',r.message,true);return;}hideModal('teacherModal');await refreshManagement();setMsg('manageMessage',r.message)}catch(e){setMsg('teacherModalMessage',e.message,true)}finally{b.disabled=false}}
     function showModal(id){$(id).classList.remove('hidden');$(id).setAttribute('aria-hidden','false')} function hideModal(id){$(id).classList.add('hidden');$(id).setAttribute('aria-hidden','true')}
     HallPassStudentAutocomplete.enhanceSelect('campusReportStudent', 'All students — type name or ID', true);
+    HallPassStudentAutocomplete.enhanceSelect('restrictAdminStudent', 'Find student by name or ID');
     HallPassStudentAutocomplete.enhanceTextSearch('studentSearch', () => studentsState.rows || []);
     HallPassStudentAutocomplete.enhanceTextSearch('search', () => studentsState.rows || [], () => refreshLive());
     // Load the master roster only when a user asks for student suggestions in Live Campus.
@@ -3132,7 +3141,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         HallPassStudentAutocomplete.refresh('campusReportStudent');
       }
       // Keep visible student search and underlying selection in sync.
-      if(panelId==='studentsPanel')HallPassStudentAutocomplete.refresh('studentSearch');
+      if(panelId==='studentsPanel'){HallPassStudentAutocomplete.refresh('studentSearch');syncAdminRuleStudentPicker();}
       if(panelId==='livePanel')HallPassStudentAutocomplete.refresh('search');
     }
     function openAdminPage(panelId){
