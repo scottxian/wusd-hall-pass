@@ -677,6 +677,13 @@
     #specialDaysPanel .rsDraftSummary{margin-top:12px;padding:12px;border:1px solid #dce4eb;border-radius:9px;background:#f8fafc;font-size:14px}
     #specialDaysPanel .rsDraftWarning{font-weight:600;color:#a52720;margin-top:6px}
     #specialDaysPanel .rsRepeatDetails{display:block}
+    #specialDaysPanel .rsDateModePicker{display:inline-flex;gap:3px;padding:4px;border:1px solid #c6d3df;background:#edf2f7;border-radius:9px;margin:14px 0 0}
+    #specialDaysPanel .rsDateModePicker button{border:0;border-radius:6px;padding:8px 16px;min-height:36px;font-size:14px;font-weight:700;background:transparent;color:#3c5064}
+    #specialDaysPanel .rsDateModePicker button[aria-pressed="true"]{background:#fff;color:#18466f;box-shadow:0 1px 4px #22334422}
+    #specialDaysPanel .rsDateModePicker button:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
+    #specialDaysPanel #rsSingleDateFields.hidden,#specialDaysPanel #rsRepeatDetails.hidden{display:none!important}
+    #specialDaysPanel #rsRepeatDetails{border-top:0;margin-top:0;padding-top:10px}
+    @media(max-width:480px){#specialDaysPanel .rsDateModePicker{width:100%}#specialDaysPanel .rsDateModePicker button{flex:1}}
     #rsPreviewWrap{z-index:45;align-items:center;padding:18px}
     #rsPreviewWrap .rsSpecialPreviewDialog{width:min(960px,100%);max-height:calc(100vh - 36px);overflow:auto}
     #rsPreviewWrap .rsSimpleSummary{margin-top:13px;padding:13px;border:1px solid #dce4eb;border-radius:10px;background:#fafcfe;display:grid;gap:9px}
@@ -950,9 +957,13 @@
                 <div class="muted">Choose a date, select who follows which schedule, and save. Preview is optional.</div>
               </div>
             </div>
+            <div class="rsDateModePicker" role="group" aria-label="Special Day date selection">
+              <button type="button" id="rsModeSingle" aria-pressed="true">Single Day</button>
+              <button type="button" id="rsModeRepeat" aria-pressed="false">Repeating Days</button>
+            </div>
             <div id="rsEditingDateNotice" class="rsEditingDateNotice hidden" role="status" aria-live="polite"></div>
             <div class="formGrid rsSpecialForm" style="margin-top:14px">
-              <div><label for="rsOneDate">Single Date (optional when repeating)</label><input id="rsOneDate" type="date"></div>
+              <div id="rsSingleDateFields"><label for="rsOneDate">Date</label><input id="rsOneDate" type="date"></div>
               <select id="rsExceptionDayType" class="hidden" aria-hidden="true" tabindex="-1"></select>
               <div><label for="rsNote">Note (optional)</label><input id="rsNote" maxlength="250" placeholder="e.g. Middle School Rally"></div>
             </div>
@@ -969,9 +980,8 @@
               <div id="rsDraftSummary" class="rsDraftSummary" role="status" aria-live="polite">Complete the assignment to see affected classroom counts.</div>
             </div>
 
-            <details id="rsRepeatDetails" class="rsRepeatDetails">
-              <summary>Repeat weekly or schedule multiple dates</summary>
-              <div class="muted" style="margin-top:8px">Multiple-date changes are previewed before saving. Existing dates cannot be replaced without your explicit choice.</div>
+            <div id="rsRepeatDetails" class="rsRepeatDetails hidden">
+              <div class="muted" style="margin-top:8px">Choose the weekdays and date range. You can also paste individual dates below.</div>
               <div class="formGrid" style="margin-top:12px">
                 <div><label for="rsRepeatStart">Repeat — Start Date</label><input id="rsRepeatStart" type="date"></div>
                 <div><label for="rsRepeatEnd">Repeat — End Date</label><input id="rsRepeatEnd" type="date"></div>
@@ -981,9 +991,9 @@
               </div></div>
               <div style="margin-top:12px"><label for="rsDateList">Or paste additional dates (one per line)</label><textarea id="rsDateList" rows="3" placeholder="11/18/2027&#10;12/2/2027"></textarea></div>
               <div style="margin-top:12px"><label for="rsConflictMode">When a selected date already exists</label><select id="rsConflictMode"><option value="skip">Keep its existing schedule (recommended)</option><option value="replace">Replace it with these assignments</option></select></div>
-            </details>
+            </div>
 
-            <p class="rsReviewHint">For repeats, select weekdays and a date range above. Preview all dates before saving. Existing dates are kept unless you select Replace.</p>
+            <p class="rsReviewHint" id="rsDateModeHint">Choose a date and schedule assignments. Preview before saving.</p>
             <div class="actions" style="margin-top:12px">
               <button id="rsPreview" class="purple" type="button">Preview</button>
               <button id="rsApply" class="green" type="button">Save Special Day</button>
@@ -2476,22 +2486,47 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       el.textContent=message;
       el.classList.toggle('isError',Boolean(error));
     }
+    function rsSetDateMode(mode){
+      const repeating=mode==='repeat';
+      $('rsModeSingle').setAttribute('aria-pressed',String(!repeating));
+      $('rsModeRepeat').setAttribute('aria-pressed',String(repeating));
+      $('rsSingleDateFields').classList.toggle('hidden',repeating);
+      $('rsRepeatDetails').classList.toggle('hidden',!repeating);
+      if(repeating){
+        $('rsOneDate').value='';
+        rsEditingDateKey='';
+      }else{
+        $('rsRepeatStart').value='';
+        $('rsRepeatEnd').value='';
+        $('rsDateList').value='';
+        $('rsConflictMode').value='skip';
+        document.querySelectorAll('#rsWeekdays input').forEach(input=>input.checked=false);
+      }
+      $('rsDateModeHint').textContent=repeating
+        ? 'Choose a date range and weekdays, then preview the dates. Existing dates are kept unless you select Replace.'
+        : 'Choose a date and schedule assignments. Preview before saving.';
+      rsUpdateSpecialSaveLabel();
+      rsResetPreview();
+      if(repeating)rsSpecialDateStatus('Choose repeating dates and assign schedules.');
+    }
     function rsUpdateSpecialSaveLabel(){
-      const saved=rsConfiguredDates().find(x=>x.date===$('rsOneDate').value);
-      $('rsFormHeading').textContent=saved?'Edit Special Day':'Create Special Day';
-      $('rsApply').textContent=saved?'Save Changes':'Save Special Day';
+      const repeating=$('rsModeRepeat').getAttribute('aria-pressed')==='true';
+      const saved=!repeating && rsConfiguredDates().find(x=>x.date===$('rsOneDate').value);
+      $('rsFormHeading').textContent=repeating?'Create Repeating Special Days':saved?'Edit Special Day':'Create Special Day';
+      $('rsApply').textContent=repeating?'Save Repeating Days':saved?'Save Changes':'Save Special Day';
       const notice=$('rsEditingDateNotice');
       if(notice){notice.classList.toggle('hidden',!saved);
         if(saved)notice.textContent='Editing: '+saved.date+' — '+saved.defaultType+(saved.note?' · '+saved.note:'');}
     }
     function rsLoadSpecialDate(date){
+      rsSetDateMode('single');
       rsResetPreview();rsDateLoadBlocked=false;rsEditingDateKey='';rsExceptionRules=[];
       $('rsOneDate').value=date||'';
       $('rsExceptionDayType').value='Primary';
       $('rsNote').value='';$('rsDateList').value='';
       $('rsRepeatStart').value='';$('rsRepeatEnd').value='';$('rsConflictMode').value='skip';
       document.querySelectorAll('#rsWeekdays input').forEach(x=>x.checked=false);
-      if($('rsRepeatDetails'))$('rsRepeatDetails').open=false;
+      // Repeating date fields remain hidden until Repeating Days is selected.
       const old=rsConfiguredDates().find(x=>x.date===date);
       if(!date){rsExceptionRules.push(rsBlankRule());rsSpecialDateStatus('Choose a date to create a Special Day.');
         rsRenderExceptionRules();rsUpdateSpecialSaveLabel();return;}
@@ -2658,6 +2693,12 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
 
     function rsDateCollection(){
+      const repeating=$('rsModeRepeat').getAttribute('aria-pressed')==='true';
+      if(!repeating){
+        const date=parseCalendarDateToken($('rsOneDate').value);
+        if(!date)throw Error('Choose a valid date.');
+        return [date];
+      }
       const dates = new Set();
       const add = value => {
         const raw=String(value||'').trim();
@@ -2666,7 +2707,6 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         if (!date) throw Error('Invalid date: ' + raw);
         dates.add(date);
       };
-      add($('rsOneDate').value);
       $('rsDateList').value.split(/[\n,;]+/).forEach(add);
       const start=$('rsRepeatStart').value, end=$('rsRepeatEnd').value;
       const days=[...document.querySelectorAll('#rsWeekdays input:checked')].map(x=>Number(x.value));
@@ -3109,6 +3149,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     $('rsCustomDayType').addEventListener('keydown', e=>{if(e.key==='Enter'){e.preventDefault();rsSaveType();}});
     $('rsDeleteTypeButton').addEventListener('click', rsDeleteType);
     $('rsViewSchedule').addEventListener('click',previewSelectedSchedule);
+    $('rsModeSingle').addEventListener('click',()=>rsSetDateMode('single'));
+    $('rsModeRepeat').addEventListener('click',()=>rsSetDateMode('repeat'));
     $('rsPreview').addEventListener('click',rsPreviewSpecialDates);
     $('rsClosePreview').addEventListener('click',()=>{rsClosePreview();$('rsPreview').focus();});
     $('rsDonePreview').addEventListener('click',()=>{rsClosePreview();$('rsPreview').focus();});
