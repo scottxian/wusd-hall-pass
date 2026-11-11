@@ -3193,7 +3193,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         renderStudents();
         renderAdminRuleRows();
       }else if(panelId==='roomSchedulePanel'){
-        rsSelectNone();
+        rsSelectAll(false);
         if(rsState)rsScheduleTypeChanged();
       }else if(panelId==='roomGroupsPanel'){
         rsCancelGroupEditor();
