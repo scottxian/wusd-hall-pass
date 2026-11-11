@@ -1347,11 +1347,31 @@
     }
 
     const teacherLiveSignatures={waiting:null,out:null};
+    // Keep in-flight row actions visible through the 3-second live refresh.
+    // Only clear an accepted action when the refreshed list no longer contains its ID.
+    const waitingRowActions=new Map();
+    const returningRowActions=new Map();
+    function clearFinishedRowActions(map, rows, field){
+      const present=new Set((rows||[]).map(x=>String(x[field])));
+      for(const [id,pending] of map){
+        if(pending.accepted&&!present.has(id))map.delete(id);
+      }
+    }
+    function redrawWaitingRows(){
+      teacherLiveSignatures.waiting=null;
+      if(dashboardState)renderWaiting(dashboardState.waiting||[]);
+    }
+    function redrawOutRows(){
+      teacherLiveSignatures.out=null;
+      if(dashboardState)renderOut(dashboardState.out||[]);
+    }
     function renderWaiting(waiting) {
+      clearFinishedRowActions(waitingRowActions,waiting,'requestId');
       const body = document.getElementById('waitingBody');
       const schedule=dashboardState?.schedule||{};
       const signature=JSON.stringify([waiting,schedule.isOpen,schedule.period,schedule.testMode,
-        dashboardState?.settings?.['Emergency Lock'],dashboardState?.destinations]);
+        dashboardState?.settings?.['Emergency Lock'],dashboardState?.destinations,
+        [...waitingRowActions]]);
       if(signature===teacherLiveSignatures.waiting)return;
       teacherLiveSignatures.waiting=signature;
       body.replaceChildren();
@@ -1374,12 +1394,17 @@
           dashboardState.schedule &&
           (dashboardState.schedule.testMode || dashboardState.schedule.period)
         );
+        const pending=waitingRowActions.get(String(student.requestId));
+        const pendingGo=pending&&(pending.kind==='start'||pending.kind==='limit');
+        const pendingCancel=pending&&pending.kind==='cancel';
+        const goLabel=pendingGo?(pending.kind==='limit'?'LIMIT OVERRIDE...':(needsOverride?'OVERRIDING...':'STARTING...'))
+          :(needsOverride?'Override Go':'Go');
         row.innerHTML = `
           <td>${escapeHtml(student.name)}</td>
           <td>${escapeHtml(student.destination)}</td>
           <td>${formatTime(student.requested)}</td>
-          <td><button class="${needsOverride ? 'purple' : 'green'} goButton" ${canStart ? '' : 'disabled'}>${needsOverride ? 'Override Go' : 'Go'}</button></td>
-          <td><button class="gray cancelButton">Cancel</button></td>`;
+          <td><button class="${needsOverride ? 'purple' : 'green'} goButton" ${canStart&&!pending?'':'disabled'} ${pendingGo?'aria-busy="true"':''}>${goLabel}</button></td>
+          <td><button class="gray cancelButton" ${pending?'disabled':''} ${pendingCancel?'aria-busy="true"':''}>${pendingCancel?'CANCELLING...':'Cancel'}</button></td>`;
         row.querySelector('.goButton').addEventListener('click', function() { startWaitingPass(student.requestId, needsOverride, this); });
         row.querySelector('.cancelButton').addEventListener('click', function() { cancelWaitingPass(student.requestId, this); });
         body.appendChild(row);
@@ -1387,51 +1412,74 @@
     }
 
     function startWaitingPass(requestId, timeOverride, button, limitOverride = false) {
-      const busyText = limitOverride
-        ? 'LIMIT OVERRIDE...'
-        : (timeOverride ? 'OVERRIDING...' : 'STARTING...');
-
-      const processingText = limitOverride
-        ? 'Starting pass-limit override...'
-        : (timeOverride ? 'Starting time override pass...' : 'Starting pass...');
-
-      beginButtonAction(button, busyText);
-      setActionMessage(processingText, 'processing');
-
+      const id=String(requestId);
+      if(waitingRowActions.has(id)&&!limitOverride)return;
+      if(limitOverride&&waitingRowActions.get(id)?.kind!=='start')return;
+      const pending={kind:limitOverride?'limit':'start',accepted:false};
+      waitingRowActions.set(id,pending);
+      redrawWaitingRows();
+      setActionMessage(
+        limitOverride?'Starting pass-limit override...':
+        (timeOverride?'Starting time override pass...':'Starting pass...'),
+        'processing'
+      );
       google.script.run
         .withSuccessHandler(function(result) {
-          finishButtonAction(button);
-
-          if (result && !result.success && result.needsLimitOverride && !limitOverride) {
-            const approved = window.confirm(
-              'Pass limit reached.\nAllow this pass anyway?'
-            );
-
-            if (approved) {
-              startWaitingPass(requestId, timeOverride, button, true);
+          if(result?.success){
+            pending.accepted=true;
+            handleActionResult(result); // The busy row stays until a fresh list confirms removal.
+            return;
+          }
+          if(result?.needsLimitOverride&&!limitOverride){
+            const approved=window.confirm('Pass limit reached.\nAllow this pass anyway?');
+            if(approved){
+              startWaitingPass(requestId,timeOverride,button,true);
               return;
             }
           }
-
+          waitingRowActions.delete(id);
+          redrawWaitingRows();
           handleActionResult(result);
         })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .withFailureHandler(function(error) {
+          waitingRowActions.delete(id);
+          redrawWaitingRows();
+          handleActionFailure(error);
+        })
         .startPass(requestId, teacherPin, timeOverride, limitOverride);
     }
 
     function cancelWaitingPass(requestId, button) {
+      const id=String(requestId);
+      if(waitingRowActions.has(id))return;
       if(!window.confirm('Remove this student from the waiting list?'))return;
-      beginButtonAction(button, 'CANCELLING...');
+      const pending={kind:'cancel',accepted:false};
+      waitingRowActions.set(id,pending);
+      redrawWaitingRows();
       setActionMessage('Cancelling waiting request...', 'processing');
       google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .withSuccessHandler(function(result) {
+          if(result?.success){
+            pending.accepted=true;
+            handleActionResult(result);
+            return;
+          }
+          waitingRowActions.delete(id);
+          redrawWaitingRows();
+          handleActionResult(result);
+        })
+        .withFailureHandler(function(error) {
+          waitingRowActions.delete(id);
+          redrawWaitingRows();
+          handleActionFailure(error);
+        })
         .cancelRequest(requestId, 'Teacher');
     }
 
     function renderOut(students) {
+      clearFinishedRowActions(returningRowActions,students,'passId');
       const body = document.getElementById('outBody');
-      const signature=JSON.stringify(students);
+      const signature=JSON.stringify([students,[...returningRowActions]]);
       if(signature===teacherLiveSignatures.out)return;
       teacherLiveSignatures.out=signature;
       body.replaceChildren();
@@ -1439,12 +1487,13 @@
       students.forEach(function(student) {
         const row = document.createElement('tr');
         row.dataset.leaveTime = student.leaveTime;
+        const pending=returningRowActions.get(String(student.passId));
         row.innerHTML = `
           <td>${escapeHtml(student.name)}</td>
           <td>${escapeHtml(student.destination)}</td>
           <td>${formatTime(student.leaveTime)}</td>
           <td class="elapsed">0:00</td>
-          <td><button class="primary returnButton">Return</button></td>`;
+          <td><button class="primary returnButton" ${pending?'disabled aria-busy="true"':''}>${pending?'RETURNING...':'Return'}</button></td>`;
         row.querySelector('.returnButton').addEventListener('click', function() { returnPass(student.passId, this); });
         body.appendChild(row);
       });
@@ -1452,11 +1501,28 @@
     }
 
     function returnPass(passId, button) {
-      beginButtonAction(button, 'RETURNING...');
+      const id=String(passId);
+      if(returningRowActions.has(id))return;
+      const pending={accepted:false};
+      returningRowActions.set(id,pending);
+      redrawOutRows();
       setActionMessage('Recording student return...', 'processing');
       google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .withSuccessHandler(function(result) {
+          if(result?.success){
+            pending.accepted=true;
+            handleActionResult(result);
+            return;
+          }
+          returningRowActions.delete(id);
+          redrawOutRows();
+          handleActionResult(result);
+        })
+        .withFailureHandler(function(error) {
+          returningRowActions.delete(id);
+          redrawOutRows();
+          handleActionFailure(error);
+        })
         .returnStudent(passId);
     }
 
