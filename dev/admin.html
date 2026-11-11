@@ -1827,12 +1827,13 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         setMsg('adminRuleMessage','This restriction cannot be edited until its room and student are available. Refresh the lists.',true);
         return;
       }
-      $('restrictAdminRoom').disabled=editing;
+      // The admin may move an existing rule to another classroom.
+      $('restrictAdminRoom').disabled=false;
       $('restrictAdminStudent').disabled=editing;
       syncAdminRuleStudentPicker();
       $('adminRuleEditorTitle').textContent=editing?'Edit Restriction':'Add Restriction';
       $('adminRuleEditorHelp').textContent=editing
-        ?'Editing '+row.studentName+' in '+row.room+'. Change the rule or limit, then save or cancel.'
+        ?'Editing '+row.studentName+'. You may change the classroom, rule, or limit. Moving a rule to another room removes the original rule after saving.'
         :'Choose a student, the classroom(s), and a restroom pass limit.';
       $('saveAdminRule').textContent=editing?'Save Changes':'Add Restriction';
       $('adminRuleEditor').classList.remove('hidden');
@@ -1881,7 +1882,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       }catch(e){setMsg('adminRuleMessage',e.message,true)}
     }
     async function saveAdminRule(){
-      const room=adminRuleEditing?adminRuleEditing.roomId:$('restrictAdminRoom').value,
+      const room=$('restrictAdminRoom').value,
         student=adminRuleEditing?adminRuleEditing.studentNumber:$('restrictAdminStudent').value,
         type=$('restrictAdminType').value,limit=type==='Blocked'?null:Number($('restrictAdminLimit').value);
       if(!room||!student){setMsg('adminRuleMessage','Select where to apply the restriction and choose a student.',true);return}
@@ -1890,6 +1891,31 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const originalText=button.textContent;
       button.disabled=true;
       try{
+        if(adminRuleEditing && room!==adminRuleEditing.roomId && room!=='__ALL_ACTIVE_ROOMS__'){
+          // A room change is a move, not a second restriction. Reject moves onto
+          // an existing rule rather than silently overwriting a different policy.
+          const state=await hallpassApi.call('adminRestrictionsState',[]);
+          if(!state?.success)throw Error(state?.message||'Could not verify existing classroom restrictions.');
+          const occupied=(state.rows||[]).find(x=>String(x.roomId)===String(room)&&String(x.studentNumber)===String(student));
+          if(occupied){
+            setMsg('adminRuleMessage','This student already has a restriction in the selected classroom. Edit that restriction directly, or remove it first.',true);
+            return;
+          }
+          const oldRoomLabel=(management.rooms||[]).find(x=>String(x.id)===adminRuleEditing.roomId)?.room||'original classroom';
+          const newRoomLabel=(management.rooms||[]).find(x=>String(x.id)===String(room))?.room||'selected classroom';
+          if(!window.confirm('Move this restriction from '+oldRoomLabel+' to '+newRoomLabel+'?\\n\\nThe old classroom restriction will be removed after the new one is saved.'))return;
+          const saved=await hallpassApi.call('adminSaveRoomRestriction',[room,student,type,limit]);
+          if(!saved?.success){setMsg('adminRuleMessage',saved?.message||'Could not save the restriction in the new classroom.',true);return}
+          const removed=await hallpassApi.call('adminRemoveRoomRestriction',[adminRuleEditing.roomId,student]);
+          await reloadAdminRules();
+          if(!removed?.success){
+            setMsg('adminRuleMessage','Restriction saved in the new classroom, but the original restriction could not be removed. Both may be active. '+(removed?.message||''),true);
+            return;
+          }
+          resetAdminRuleEditor();
+          setMsg('adminRuleMessage','Restriction moved to '+newRoomLabel+'. The original classroom rule was removed.');
+          return;
+        }
         if(room!=='__ALL_ACTIVE_ROOMS__'){
           const result=await hallpassApi.call('adminSaveRoomRestriction',[room,student,type,limit]);
           if(!result.success){setMsg('adminRuleMessage',result.message,true);return}
@@ -1898,6 +1924,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           setMsg('adminRuleMessage',result.message);
           return;
         }
+        // When editing, selecting All Active Rooms deliberately expands the
+        // restriction to all active classrooms, retaining the original rule.
         // A school-wide selection is a batch of existing room-level records.
         // It does not create a permanent inherited policy for future rooms.
         button.textContent='Checking Rooms...';
@@ -1925,7 +1953,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           +(replaceCount?' (including replacement of '+replaceCount+' existing restriction(s))':'')+'.'
           +'\n'+(rooms.length-toSave.length)+' already match.'
           +'\n\nThis affects CURRENT active rooms only. Changes are saved per room; if one fails, earlier saves will remain.';
-        if(!window.confirm(question)){setMsg('adminRuleMessage','No restrictions were changed.');return}
+        if(!window.confirm(question+(adminRuleEditing?'\\n\\nThe original classroom restriction will remain in place.':''))){setMsg('adminRuleMessage','No restrictions were changed.');return}
         const failures=[];let saved=0;
         for(const classroom of toSave){
           button.textContent='Saving '+(saved+failures.length+1)+' of '+toSave.length+'...';
