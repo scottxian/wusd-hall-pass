@@ -14,6 +14,10 @@
     .header { background: #263238; color: white; padding: 18px 20px; }
     .header h1 { margin: 0 0 6px; font-size: 28px; }
     .headerStatus { font-size: 17px; }
+    /* Status belongs to the live dashboard, not a repeated header subtitle.
+       Keep #headerStatus in the DOM for existing updates and lock awareness. */
+    .hp-page-teacher .hp-brand-middle #headerStatus { display: none; }
+    .hp-page-teacher .hp-brand-middle > .header h1 { margin-bottom: 0; }
     .container { max-width: 1350px; margin: auto; padding: 18px; }
     .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
     h2 { margin-top: 0; }
@@ -21,11 +25,25 @@
     .hidden { display: none !important; }
     .statusGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
     .stat { background: #eef2f5; border-radius: 10px; padding: 14px; }
-    .statLabel { color: #555; font-size: 13px; }
+    .statLabel { color: #222; font-size: 14px; font-weight: 700; line-height: 1.3; }
     .statValue { margin-top: 4px; font-size: 25px; font-weight: bold; }
-    .tabBar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-    .tabButton { flex: 1 1 180px; background: #dfe5ea; color: #222; border: none; border-radius: 9px; padding: 13px 16px; font-size: 17px; font-weight: bold; cursor: pointer; }
-    .tabButton.activeTab { background: #1f5ea8; color: white; }
+    /* Dashboard counts centered; schedule, next bell, and page occupy equal columns. */
+    .teacherStatusDock .teacherPrimaryStatus .stat{text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .teacherStatusDock .teacherStatusDetails{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:8px 12px}
+    .teacherStatusDetails .teacherScheduleMetaItem{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 6px;min-width:0;text-align:center}
+    .teacherStatusDetails .teacherPageNav{display:flex;align-items:center;justify-content:center;gap:8px;margin:0;padding:0;min-width:0}
+    .teacherStatusDetails .teacherPageNav label{margin:0;white-space:nowrap;display:inline-flex;align-items:center}
+    .teacherStatusDetails .teacherPageNav select{width:190px;max-width:100%;min-width:0;min-height:32px;height:32px;padding:5px 10px;border:1px solid #b7c3d0;border-radius:7px;background:#fff;color:#214665;font-size:13px;font-weight:600}
+    .teacherStatusDetails .teacherPageNav select:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
+    @media(max-width:820px){
+      .teacherStatusDock .teacherStatusDetails{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .teacherStatusDetails .teacherPageNav{grid-column:1/-1}
+    }
+    @media(max-width:480px){
+      .teacherStatusDock .teacherStatusDetails{grid-template-columns:minmax(0,1fr)}
+      .teacherStatusDetails .teacherPageNav{grid-column:auto}
+    }
+    @media(max-width:380px){.teacherStatusDetails .teacherPageNav select{width:155px}}
     .tabPanel { display: none; }
     .tabPanel.activePanel { display: block; }
     button { border: none; border-radius: 8px; padding: 11px 16px; font-size: 16px; font-weight: bold; cursor: pointer; transition: opacity .15s, transform .05s; }
@@ -48,11 +66,42 @@
     input, select { width: 100%; min-height: 42px; padding: 9px 10px; border: 2px solid #bbb; border-radius: 7px; font-size: 16px; background: white; }
     input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; vertical-align: middle; margin-right: 5px; }
     .checkboxLabel { padding-top: 28px; }
-    .actionMessage { display: none; padding: 13px 16px; border-radius: 10px; margin-bottom: 15px; font-size: 18px; font-weight: bold; text-align: center; }
-    .actionMessage.show { display: block; }
-    .actionMessage.processing { display: block; color: #6d5100; background: #fff3cd; border: 1px solid #e6cf7d; }
-    .actionMessage.success { display: block; color: #105b26; background: #d9f0df; border: 1px solid #9dd2aa; }
-    .actionMessage.error { display: block; color: #8d1d18; background: #f8d7da; border: 1px solid #e3a3a8; }
+    /* One full-width message bar with its heading and text centered as a group.
+       Keep a reserved height so updates do not move the active dashboard. */
+    .teacherMessageDock {
+      display:flex;justify-content:center;align-items:center;
+      box-sizing:border-box;width:100%;height:46px;min-height:46px;
+      margin:0 0 14px;padding:5px 12px;
+      background:#fff;border:1px solid #dce4ec;border-radius:10px;
+    }
+    .teacherMessagePanel {
+      display:flex;justify-content:center;align-items:center;
+      gap:16px;min-width:0;max-width:100%;
+      width:max-content;height:34px;padding:0;
+    }
+    .teacherMessageHeading {
+      flex:0 0 auto;margin:0;
+      font-size:var(--teacher-subheading-size,16px);
+      line-height:1.35;font-weight:700;color:#222;
+    }
+    .actionMessage {
+      display:flex;flex:0 1 auto;align-items:center;justify-content:center;
+      min-width:0;max-width:850px;height:34px;max-height:34px;overflow-y:auto;
+      padding:5px 10px;border:1px solid transparent;border-radius:7px;
+      font-size:14px;line-height:1.3;font-weight:600;text-align:center;
+      overflow-wrap:anywhere;
+    }
+    .actionMessage:empty::before {
+      content:"No new messages";color:#64748b;font-weight:400;
+    }
+    .actionMessage.processing { color:#6d5100;background:#fff3cd;border-color:#e6cf7d; }
+    .actionMessage.success { color:#105b26;background:#d9f0df;border-color:#9dd2aa; }
+    .actionMessage.closed { color:#8d1d18;background:#fff0ef;border-color:#e3a3a8; }
+    .actionMessage.error { color:#8d1d18;background:#f8d7da;border-color:#e3a3a8; }
+    @media(max-width:540px) {
+      .teacherMessagePanel{gap:8px}
+      .actionMessage{font-size:12px;padding:4px 6px}
+    }
     .message { min-height: 26px; margin-top: 10px; font-size: 16px; font-weight: bold; }
     .message.error { color: #b3261e; }
     .message.warning { color: #8a6500; }
@@ -67,8 +116,6 @@
     .outWarning { background: #fff3cd; }
     .outDanger { background: #f8d7da; }
     .reportFlag { display:inline-block; padding:3px 7px; border-radius:999px; background:#fff3cd; color:#6d5100; font-size:12px; font-weight:bold; margin-right:4px; }
-    .emergencyCard { border:3px solid #b3261e; background:#fff7f6; }
-    .emergencyOn { outline:4px solid #ffd54f; outline-offset:2px; }
     .subtle { color: #666; font-size: 13px; margin-top: 5px; }
     .overrideBox { border: 2px solid #d8c4e3; background: #faf6fc; }
     .reportSummaryGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; }
@@ -89,7 +136,7 @@
     .reportDrilldownMessage { padding: 12px; color: #555; font-weight: bold; }
     .reportDrilldownError { color: #b3261e; }
     details { margin-top: 12px; }
-    summary { cursor: pointer; font-size: 18px; font-weight: bold; padding: 8px 0; }
+    summary { cursor: pointer; font-weight: bold; padding: 8px 0; }
     #loginCard { max-width: 500px; margin: 40px auto; }
     #teacherPin { margin-bottom: 10px; }
     @media print {
@@ -105,7 +152,7 @@
       .card { padding: 14px; }
       .statValue { font-size: 21px; }
       th, td { font-size: 13px; padding: 7px; }
-      button, .tabButton { font-size: 14px; }
+      button { font-size: 14px; }
     }
     .fieldHint { font-weight: 600; font-size: 0.82em; opacity: 0.72; }
 
@@ -120,6 +167,199 @@
     .hpStudentOption:last-child { border-bottom:0; }
     .hpStudentNote { color:#555; padding:9px 12px; font-size:13px; }
     .hpStudentPicker input:focus, .hpStudentHints input:focus { outline:3px solid #8db5e7; outline-offset:0; }
+        /* Teacher DEV interface: essential status and two live lists first. */
+    .teacherPrimaryStatus{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:0}
+    .teacherStatusDetails{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;padding:10px 14px 13px;margin:0 0 12px;border-radius:0 0 10px 10px;background:#fff;border:1px solid #e0e6ed;color:#566576;font-size:14px}
+    .teacherStatusDetails strong{color:#1c344e}
+    #statWindow.passOpen{color:#166437}
+    #statWindow.passClosed{color:#b3261e}
+    .teacherScheduleChoice{display:grid;grid-template-columns:minmax(220px,1fr) auto;align-items:end;gap:12px;margin:10px 0}
+    .teacherScheduleChoice label{font-size:13px;color:#526278}
+    .teacherScheduleChoice button{min-height:42px}
+    @media(max-width:580px){.teacherScheduleChoice{grid-template-columns:minmax(0,1fr)}}
+
+    .teacherLiveGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px}
+    .teacherLiveGrid>.card{min-width:0;margin-bottom:0;height:100%}
+    .teacherLiveGrid .tableWrap{overflow-x:auto}
+    .teacherLiveGrid table{table-layout:auto}
+    .teacherLiveGrid th,.teacherLiveGrid td{white-space:normal;overflow-wrap:anywhere;font-size:13px;padding:9px 7px}
+    .teacherLiveGrid button{font-size:13px;padding:8px 10px;min-height:36px}
+    .teacherDisclosure{padding:0;overflow:hidden}
+    .teacherDisclosure summary{margin:0;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;font-weight:700;cursor:pointer;color:#244e75}
+    .teacherDisclosure summary::-webkit-details-marker{display:none}
+    .teacherDisclosure summary::after{content:"⌄";font-size:22px;font-weight:400}
+    .teacherDisclosure[open] summary::after{content:"⌃"}
+    .teacherDisclosure[open] summary{border-bottom:1px solid #e0e6ed}
+    .teacherDisclosure .disclosureBody{padding:17px 18px}
+    .teacherDisclosure.insetDisclosure{margin:14px 0;background:#f6f8fa;border:1px solid #dce4ec;border-radius:9px}
+    .teacherDisclosure.insetDisclosure .disclosureBody{padding:12px 16px}
+    .teacherDisclosure.insetDisclosure .controlGroup{margin:0}
+    .teacherDisclosure:focus-within{outline-offset:2px}
+    .teacherDisclosure summary:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
+    @media(max-width:690px){.teacherLiveGrid{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:620px){.teacherPrimaryStatus{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+      .teacherPrimaryStatus .stat{padding:10px 6px}.teacherPrimaryStatus .statValue{font-size:20px}
+      .teacherStatusDetails{font-size:13px;gap:6px 14px}
+    }
+    .reportDisclosure{margin:4px 0 16px;border:1px solid #dce4ec;border-radius:9px;background:#f8fafc}
+    .reportDisclosure summary{padding:11px 14px}
+    .reportDisclosure .disclosureBody{padding:12px 14px}
+    .reportDisclosure .reportControls{margin-bottom:0}
+
+    /* Final Teacher UI: sticky live status, readable source and calm empty states. */
+    .teacherStatusDock{position:sticky;top:0;z-index:8;background:#f4f6f8;padding:6px 0 8px;
+      border-bottom:1px solid #dce3ec;transition:box-shadow .15s,padding .15s}
+    .teacherStatusDock.isCompact{box-shadow:0 7px 16px rgba(19,43,73,.13);padding:4px 0 5px}
+    .teacherStatusDock .teacherPrimaryStatus{gap:8px}
+    .teacherStatusDock .teacherPrimaryStatus .stat{padding:9px 12px}
+    .teacherStatusDock .teacherPrimaryStatus .statValue{font-size:22px}
+    .teacherStatusDock.isCompact .teacherPrimaryStatus .stat{padding:6px 12px}
+    .teacherStatusDock.isCompact .teacherPrimaryStatus .statValue{font-size:19px;margin-top:2px}
+    .teacherStatusDock .teacherStatusDetails{margin-bottom:0;padding:8px 12px;font-size:13px}
+    .teacherStatusDock.isCompact .teacherStatusDetails{padding:5px 12px;font-size:12px}
+    .scheduleSourceLabel{display:inline-block;padding:2px 7px;margin-left:3px;border-radius:999px;
+      background:#e5eef9;color:#1b4f89;font-size:12px;font-weight:600;vertical-align:middle}
+    .scheduleSourceLabel.isOverride{background:#f2e6fa;color:#68379c}
+    .emptyState{padding:26px 12px!important;text-align:center;color:#526476;background:#f7fafc;
+      font-size:14px!important;font-weight:500;white-space:normal}
+    .teacherLiveGrid .goButton{background:#16863a;color:#fff}
+    .teacherLiveGrid .cancelButton{background:#edf1f5;color:#344457}
+    .teacherLiveGrid .returnButton{background:#1f5ea8;color:#fff}
+    @media(max-width:620px){
+      .teacherStatusDock .teacherPrimaryStatus .stat{padding:7px 5px}
+      .teacherStatusDock .teacherPrimaryStatus .statValue{font-size:19px}
+      .teacherStatusDock.isCompact .teacherPrimaryStatus .statValue{font-size:17px}
+      .teacherStatusDock .teacherStatusDetails{gap:4px 12px;padding:6px 8px}
+      .scheduleSourceLabel{font-size:11px;margin-left:0;margin-top:3px}
+    }
+
+    /* Restored from printable report; actual screen CSS */
+    .teacherLiveGrid .tableWrap{max-width:100%;overflow-x:auto}
+    .teacherLiveGrid table{min-width:410px}
+    .teacherToday{padding:14px 16px}
+    .teacherToday h2{margin:0 0 12px}
+    .teacherToday .statusGrid{margin:0;grid-template-columns:repeat(5,minmax(115px,1fr))}
+    .teacherToday .stat{padding:11px 9px}
+    .teacherToday .statValue{font-size:20px}
+    @media(max-width:800px){.teacherToday .statusGrid{grid-template-columns:repeat(3,minmax(100px,1fr))}}
+    @media(max-width:520px){.teacherToday .statusGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+    .teacherToggleGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .teacherToggleGrid button{min-width:140px}
+    .teacherToggleGrid button.green{background:#16863a;color:#fff}
+    .teacherToggleGrid button.red{background:#b3261e;color:#fff}
+    .restrictionCard .sectionHead{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}
+    .restrictionEditor{padding:16px;margin:12px 0 18px;border:1px solid #dce5ef;border-radius:10px;background:#f8fafc}
+    .restrictionSearch{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:end}
+    .restrictionSearch button{min-height:42px}
+    .restrictionActions{display:flex;gap:8px;flex-wrap:wrap}
+    .restrictionCard .tableWrap{overflow-x:auto}
+    .restrictionCard th,.restrictionCard td{white-space:normal}
+    .restrictionCard .smallAction{font-size:13px;padding:8px 10px}
+    .restrictionCard .removeRestriction{background:#e9eff5;color:#36495d}
+    @media(max-width:530px){.teacherToggleGrid,.restrictionSearch{grid-template-columns:minmax(0,1fr)}}
+
+    /* Explicit 3-column classroom controls: centered across full card width. */
+    .classroomControlsCard{padding:14px 18px}
+    .classroomControlsCard h2{margin:0 0 12px}
+    #classroomControlStrip{
+      display:grid;
+      grid-template-columns:minmax(430px,1.3fr) minmax(160px,1fr) minmax(180px,1fr);
+      align-items:center;
+      justify-items:center;
+      column-gap:16px;
+      row-gap:12px;
+      width:100%;
+    }
+    #classroomControlStrip > .compactScheduleRow,
+    #classroomControlStrip > .teacherToggleItem{
+      display:flex;align-items:center;justify-content:center;
+      gap:8px;min-width:0;margin:0;
+    }
+    #classroomControlStrip .compactControlLabel{
+      display:inline-block;flex:0 0 auto;margin:0;
+      font-size:13px;font-weight:700;white-space:nowrap;color:#34465a;
+    }
+    #classroomControlStrip .teacherScheduleChoice{
+      display:flex;align-items:center;justify-content:center;
+      flex:0 1 auto;gap:8px;min-width:0;margin:0;
+    }
+    #classroomControlStrip #scheduleChoice{
+      width:200px;min-width:0;max-width:100%;
+      min-height:36px;padding:6px 9px;border:1px solid #b6c2cf;
+      border-radius:7px;font-size:13px;
+    }
+    #classroomControlStrip #applyScheduleChoice{
+      width:auto;min-height:36px;flex:0 0 auto;
+      padding:7px 11px;font-size:13px;white-space:nowrap;
+    }
+    #classroomControlStrip .teacherToggleItem button{
+      min-width:78px;width:auto;min-height:36px;
+      padding:7px 10px;font-size:13px;
+    }
+    .classroomControlsCard .compactScheduleHint{
+      margin:8px 0 0;font-size:12px;line-height:1.35;
+    }
+    @media(max-width:960px){
+      #classroomControlStrip{grid-template-columns:repeat(2,minmax(0,1fr))}
+      #classroomControlStrip > .compactScheduleRow{grid-column:1/-1}
+    }
+    @media(max-width:560px){
+      .classroomControlsCard{padding:14px}
+      #classroomControlStrip{grid-template-columns:minmax(0,1fr)}
+      #classroomControlStrip > .compactScheduleRow{grid-column:auto;flex-wrap:wrap}
+      #classroomControlStrip .teacherScheduleChoice{flex-wrap:wrap}
+      #classroomControlStrip #scheduleChoice{width:clamp(145px,46vw,220px)}
+    }
+    /* Teacher dashboard typography shared by all three pages.
+       Branded page identity, status values, and buttons intentionally keep
+       their own visual styles. */
+    .container {
+      --teacher-heading-size: 20px;
+      --teacher-subheading-size: 16px;
+      --teacher-field-label-size: 14px;
+      --teacher-heading-color: #222;
+    }
+    /* Level 1: main card and main expandable-section headings. */
+    .container h2,
+    .container .teacherDisclosure.overrideDisclosure > summary {
+      font-size:var(--teacher-heading-size);
+      line-height:1.3;
+      font-weight:700;
+      color:var(--teacher-heading-color);
+    }
+    .container h2{margin-top:0;margin-bottom:12px}
+    .container h2.reportTitle{margin-bottom:4px}
+    /* Level 2: editor, advanced-option, message and student-detail headings. */
+    .container h3,
+    .container .teacherDisclosure.reportDisclosure > summary,
+    .container .reportDrilldownTitle {
+      font-size:var(--teacher-subheading-size);
+      line-height:1.35;
+      font-weight:700;
+      color:var(--teacher-heading-color);
+    }
+    /* Form labels, compact classroom-control labels, and table column titles
+       use the same treatment across Live, Controls and Reports. */
+    .container label:not(.teacherMetaLabel),
+    .container #classroomControlStrip .compactControlLabel,
+    .container .compactControlLabel,
+    .container table thead th {
+      font-size:var(--teacher-field-label-size);
+      line-height:1.3;
+      font-weight:700;
+      color:var(--teacher-heading-color);
+    }
+    /* Shared status/header-label treatment across Live Passes, Controls and Reports:
+       Period, Pass Window, Students Out, Waiting, Schedule, Next Change, Page,
+       and the Today summary labels all match other form/table labels. */
+    .container .statLabel,
+    .container .teacherStatusDetails .teacherMetaLabel {
+      font-size:var(--teacher-field-label-size);
+      line-height:1.3;
+      font-weight:700;
+      color:var(--teacher-heading-color);
+    }
 </style>
 <link rel="stylesheet" href="branding.css">
 </head>
@@ -140,46 +380,53 @@
     </div>
 
     <div id="dashboard" class="hidden">
-      <div class="statusGrid">
-        <div class="stat"><div class="statLabel">Schedule</div><div id="statSchedule" class="statValue">—</div></div>
+      <div id="teacherStatusDock" class="teacherStatusDock" aria-label="Current classroom pass status">
+      <div class="statusGrid teacherPrimaryStatus">
         <div class="stat"><div class="statLabel">Period</div><div id="statPeriod" class="statValue">—</div></div>
         <div class="stat"><div class="statLabel">Pass Window</div><div id="statWindow" class="statValue">—</div></div>
         <div class="stat"><div class="statLabel">Students Out</div><div id="statOut" class="statValue">0</div></div>
         <div class="stat"><div class="statLabel">Waiting</div><div id="statWaiting" class="statValue">0</div></div>
-        <div class="stat"><div class="statLabel">Next Change</div><div id="statNextChange" class="statValue">—</div></div>
+      </div>
+      <div class="teacherStatusDetails" aria-label="Schedule and navigation">
+        <span class="teacherScheduleMetaItem"><strong class="teacherMetaLabel">Schedule:</strong> <strong id="statSchedule">—</strong> <span class="scheduleSourceLabel" id="statScheduleSource" title="Schedule source">Automatic</span></span>
+        <span class="teacherScheduleMetaItem"><strong class="teacherMetaLabel">Next Change:</strong> <strong id="statNextChange">—</strong></span>
+        <div class="teacherPageNav">
+          <label for="teacherPageSelect" class="teacherMetaLabel">Page:</label>
+          <select id="teacherPageSelect" aria-label="Choose teacher dashboard page">
+            <option value="live">Live Passes</option>
+            <option value="controls">Controls &amp; Settings</option>
+            <option value="reports">Reports</option>
+          </select>
+        </div>
+      </div>
       </div>
 
-      <div id="actionMessage" class="actionMessage" aria-live="polite"></div>
-
-      <div class="tabBar">
-        <button class="tabButton activeTab" data-tab="live" onclick="showTab('live')">Live Passes</button>
-        <button class="tabButton" data-tab="controls" onclick="showTab('controls')">Controls</button>
-        <button class="tabButton" data-tab="reports" onclick="showTab('reports')">Reports</button>
+      <div class="teacherMessageDock" aria-label="Dashboard messages">
+        <div class="teacherMessagePanel">
+          <h3 class="teacherMessageHeading">Messages:</h3>
+          <div id="actionMessage" class="actionMessage" role="status" aria-live="polite" aria-atomic="true"></div>
+        </div>
       </div>
 
       <section id="tab-live" class="tabPanel activePanel">
-        <div class="card overrideBox">
-          <h2>Teacher Override Pass</h2>
-          <p>Use this to let one student leave during restricted minutes, bypass a pass limit, or make a deliberate exception for a student whose restroom access is turned off.</p>
-          <div class="controlGrid">
-            <div>
-              <label for="overrideStudent">Student</label>
-              <select id="overrideStudent"><option value="">Choose Student</option></select>
-            </div>
-            <div>
-              <label for="overrideDestination">Destination</label>
-              <select id="overrideDestination"><option value="">Choose Destination</option></select>
-            </div>
-            <div class="checkboxLabel">
-              <label><input id="overrideDailyLimit" type="checkbox">Override pass limit for this pass</label>
-            </div>
-            <div>
-              <label for="overrideNote">Override Note <span class="fieldHint">(optional)</span></label>
-              <input id="overrideNote" type="text" maxlength="250" placeholder="Reason or note for this override">
-            </div>
+        <div class="card teacherToday"><h2>Today</h2><div class="statusGrid">
+            <div class="stat"><div class="statLabel">Passes Today</div><div id="passesToday" class="statValue">0</div></div>
+            <div class="stat"><div class="statLabel">Restroom Passes</div><div id="restroomToday" class="statValue">0</div></div>
+            <div class="stat"><div class="statLabel">Completed Passes</div><div id="completedToday" class="statValue">0</div></div>
+            <div class="stat"><div class="statLabel">Average Completed Pass</div><div id="averageTime" class="statValue">0:00</div></div>
+            <div class="stat"><div class="statLabel">Longest Completed Pass</div><div id="longestTime" class="statValue">0:00</div></div>
           </div>
-          <button id="manualOverrideButton" class="purple" onclick="startManualOverride(this)">Start Override Pass</button>
-          <div class="subtle">Destination capacity still applies. Any time or daily-limit override is recorded in the pass log and reports.</div>
+        
+</div>
+        <div class="teacherLiveGrid" aria-label="Current hall pass activity">
+        <div class="card">
+          <h2>Students Out</h2>
+          <div class="tableWrap">
+            <table>
+              <thead><tr><th>Student</th><th>Destination</th><th>Left</th><th>Time Gone</th><th>Return</th></tr></thead>
+              <tbody id="outBody"></tbody>
+            </table>
+          </div>
         </div>
 
         <div class="card">
@@ -192,112 +439,97 @@
           </div>
         </div>
 
-        <div class="card">
-          <h2>Students Out</h2>
-          <div class="tableWrap">
-            <table>
-              <thead><tr><th>Student</th><th>Destination</th><th>Left</th><th>Time Gone</th><th>Return</th></tr></thead>
-              <tbody id="outBody"></tbody>
-            </table>
-          </div>
         </div>
+<details class="card teacherDisclosure overrideDisclosure"><summary>Teacher Override Pass</summary><div class="disclosureBody">
 
-        <div class="card">
-          <h2>Today</h2>
-          <div class="statusGrid">
-            <div class="stat"><div class="statLabel">Passes Today</div><div id="passesToday" class="statValue">0</div></div>
-            <div class="stat"><div class="statLabel">Restroom Passes</div><div id="restroomToday" class="statValue">0</div></div>
-            <div class="stat"><div class="statLabel">Completed Passes</div><div id="completedToday" class="statValue">0</div></div>
-            <div class="stat"><div class="statLabel">Average Completed Pass</div><div id="averageTime" class="statValue">0:00</div></div>
-            <div class="stat"><div class="statLabel">Longest Completed Pass</div><div id="longestTime" class="statValue">0:00</div></div>
+          
+          <p>Use this to let one student leave during restricted minutes, bypass a pass limit, or make a deliberate exception for a student whose restroom access is turned off.</p>
+          <div class="controlGrid">
+            <div>
+              <label for="overrideStudent">Student</label>
+              <select id="overrideStudent"><option value="">Choose Student</option></select>
+            </div>
+            <div>
+              <label for="overrideDestination">Destination</label>
+              <select id="overrideDestination"><option value="">Choose Destination</option></select>
+        <div id="overrideDestinationAvailabilityStatus" class="subtle" role="status" aria-live="polite"></div>
+            </div>
+            <div class="checkboxLabel">
+              <label><input id="overrideDailyLimit" type="checkbox">Override pass limit for this pass</label>
+            </div>
+            <div>
+              <label for="overrideNote">Override Note <span class="fieldHint">(optional)</span></label>
+              <input id="overrideNote" type="text" maxlength="250" placeholder="Reason or note for this override">
+            </div>
           </div>
-        </div>
+          <button id="manualOverrideButton" class="purple" onclick="startManualOverride(this)">Start Override Pass</button>
+          <div class="subtle">Destination capacity still applies. Any time or daily-limit override is recorded in the pass log and reports.</div>
+        
+</div></details>
       </section>
 
       <section id="tab-controls" class="tabPanel">
-        <div class="card">
-          <h2>Quick Controls</h2>
-          <div class="controlGroup">
-            <h3>Schedule Mode</h3>
-            <div id="scheduleButtons" class="buttonRow"></div>
-            <div id="scheduleSourceHint" class="subtle">Bell times are managed by Campus Admin. A teacher choice applies only for today; Auto follows the school calendar or room default.</div>
-          </div>
-
-          <div class="controlGroup emergencyCard">
-            <h3>Emergency / Lockdown</h3>
-            <div class="buttonRow">
-              <button id="emergencyLockButton" class="red" onclick="toggleEmergencyLock(this)">Emergency Lock</button>
+        <div class="card classroomControlsCard">
+          <h2>Classroom Controls</h2>
+          <div id="classroomControlStrip" class="classroomControlStrip" aria-label="Classroom pass controls">
+            <div class="compactScheduleRow">
+              <label for="scheduleChoice" class="compactControlLabel">Bell Schedule</label>
+              <div class="teacherScheduleChoice">
+                <select id="scheduleChoice"><option value="__AUTO__">Auto — Room Default</option></select>
+                <button id="applyScheduleChoice" class="primary" type="button">Apply for Today</button>
+              </div>
             </div>
-            <div class="subtle">Blocks all new student requests and clears the current waiting list. Students already out remain listed until returned.</div>
-          </div>
-
-          <div class="controlGroup">
-            <h3>Restroom</h3>
-            <div class="buttonRow">
-              <button id="restroomOpen" class="green" onclick="setRestroom(true, this)">Open Restroom</button>
-              <button id="restroomClosed" class="red" onclick="setRestroom(false, this)">Close Restroom</button>
+            <div class="teacherToggleItem">
+              <span class="compactControlLabel">Restroom</span>
+              <button id="restroomToggle" type="button" class="green" onclick="toggleRestroom(this)">Open</button>
+            </div>
+            <div class="teacherToggleItem">
+              <span class="compactControlLabel">Waiting List</span>
+              <button id="waitingButton" type="button" class="green" onclick="toggleWaitingList(this)">On</button>
             </div>
           </div>
-
-          <div class="controlGroup">
-            <h3>System</h3>
-            <div class="buttonRow">
-              <button id="testModeButton" class="purple" onclick="toggleTestMode(this)">Test Mode</button>
-              <button id="waitingButton" class="primary" onclick="toggleWaitingList(this)">Waiting List</button>
-              <button class="red" onclick="clearQueue(this)">Clear Waiting List</button>
-              <button class="gray" onclick="refreshDashboard(true, this)">Refresh</button>
-              <button class="gray" onclick="backupPassLog(this)">Backup Pass Log</button>
+          <div id="scheduleSourceHint" class="subtle compactScheduleHint">Auto follows the school calendar or room default.</div>
+        </div>
+        <div class="card restrictionCard">
+          <div class="sectionHead">
+            <div><h2>Student Restroom Restrictions</h2>
+            <p class="subtle">Only students who differ from this room's default appear here. Changes apply to this room only.</p></div>
+            <button id="addRestrictionButton" class="primary" type="button" onclick="openRestrictionEditor()">Add Restriction</button>
+          </div>
+          <div id="restrictionEditor" class="restrictionEditor hidden">
+            <h3 id="restrictionEditorTitle">Add Restriction</h3>
+            <div class="restrictionSearch">
+              <div><label for="restrictionSearchText">Find Student</label>
+                <input id="restrictionSearchText" autocomplete="off" placeholder="Search by name or student ID"></div>
+              <button id="restrictionSearchButton" class="gray" type="button" onclick="searchRestrictionStudents(this)">Search</button>
+            </div>
+            <div id="restrictionSearchStatus" class="searchStatus" aria-live="polite"></div>
+            <div class="controlGrid">
+              <div><label for="restrictionStudentSelect">Student</label>
+                <select id="restrictionStudentSelect"><option value="">Search and select a student</option></select></div>
+              <div><label for="restrictionType">Restriction</label>
+                <select id="restrictionType" onchange="renderRestrictionLimit()">
+                  <option value="Period">Per Period</option>
+                  <option value="Day">Per Day</option>
+                  <option value="Week">Per Week</option>
+                  <option value="Month">Per Month</option>
+                  <option value="Blocked">No Restroom Passes</option>
+                </select></div>
+              <div id="restrictionLimitWrap"><label for="restrictionLimit">Number Allowed</label>
+                <input id="restrictionLimit" type="number" min="1" max="100" step="1" value="1"></div>
+            </div>
+            <div class="restrictionActions">
+              <button id="saveRestrictionButton" type="button" class="primary" onclick="saveRestriction(this)">Save Restriction</button>
+              <button type="button" class="gray" onclick="closeRestrictionEditor()">Cancel</button>
             </div>
           </div>
+          <div id="restrictionMessage" class="searchStatus" aria-live="polite"></div>
+          <div class="tableWrap"><table>
+            <thead><tr><th>Student</th><th>Restroom Restriction</th><th>Actions</th></tr></thead>
+            <tbody id="restrictionBody"><tr><td colspan="3">Loading restrictions…</td></tr></tbody>
+          </table></div>
+          <p class="subtle">Remove means Return to Room Default. Schoolwide restrictions can only be changed by an administrator.</p>
         </div>
-
-        <div class="card">
-          <h2>Pass Settings</h2>
-          <div class="controlGrid">
-            <div><label for="openDelay">Open After Start <span class="fieldHint">(0 = immediately)</span></label><input id="openDelay" type="number" min="0" max="30"></div>
-            <div><label for="closeEarly">Close Before End <span class="fieldHint">(0 = period end)</span></label><input id="closeEarly" type="number" min="0" max="30"></div>
-            <div><label for="longWarning">Long Pass Warning</label><input id="longWarning" type="number" min="1" max="120"></div>
-            <div><label for="veryLongWarning">Very Long Pass Warning</label><input id="veryLongWarning" type="number" min="1" max="120"></div>
-            <div><label for="restroomLimit">Restroom Pass Limit <span class="fieldHint">(0 = no limit)</span></label><input id="restroomLimit" type="number" min="0" max="100" value="0"></div>
-            <div><label for="restroomLimitPeriod">Restroom Limit Period</label><select id="restroomLimitPeriod"><option value="Day">Per Day</option><option value="Week">Per Week</option><option value="Month">Per Month</option></select></div>
-            <div class="checkboxLabel"><label><input id="buzzer" type="checkbox">Buzzer Enabled</label></div>
-            <div class="checkboxLabel"><label><input id="clearAtEnd" type="checkbox">Clear Queue at Period End</label></div>
-          </div>
-          <button class="primary" onclick="savePassSettings(this)">Save Pass Settings</button>
-        </div>
-
-        <div class="card">
-          <h2>Student Restroom Access — This Room</h2>
-          <p>These student access changes apply only to this room. Turn restroom access off here for an individual student; other rooms keep their own setting. School-wide student records are managed by an administrator.</p>
-          <div>
-            <label for="restroomStudentSearch">Find Student</label>
-            <div class="studentSearchRow">
-              <input id="restroomStudentSearch" type="text" placeholder="Search by student name or ID" autocomplete="off">
-              <button id="restroomStudentSearchButton" type="button" class="primary">Search</button>
-            </div>
-            <div id="restroomStudentSearchStatus" class="searchStatus" aria-live="polite"></div>
-          </div>
-          <div class="tableWrap">
-            <table>
-              <thead><tr><th>Student</th><th>Student ID</th><th>Restroom Allowed</th><th>Save</th></tr></thead>
-              <tbody id="restroomAccessBody"></tbody>
-            </table>
-          </div>
-          <div class="subtle">Turning access off blocks student restroom requests. You can still use Teacher Override Pass when an exception is necessary.</div>
-        </div>
-
-        <div class="card">
-          <h2>Room Destinations</h2>
-          <p>Campus Admin manages destination names and default behavior. For this room, choose whether each destination is available and optionally override the default Max Out. Leave the override blank to use the school default.</p>
-          <div class="tableWrap">
-            <table>
-              <thead><tr><th>Destination</th><th>Schoolwide</th><th>Enabled in This Room</th><th>Default Max Out</th><th>Max Out Override</th><th>Effective Max Out</th><th>Save</th></tr></thead>
-              <tbody id="destinationBody"></tbody>
-            </table>
-          </div>
-          <div class="subtle">Destination name, teacher approval, hall-pass behavior, and display order are controlled by Campus Admin.</div>
-        </div>
-
       </section>
 
       <section id="tab-reports" class="tabPanel">
@@ -316,11 +548,17 @@
             </div>
             <div><label for="reportStart">Start Date</label><input id="reportStart" type="date"></div>
             <div><label for="reportEnd">End Date</label><input id="reportEnd" type="date"></div>
+          </div>
+          <details class="teacherDisclosure reportDisclosure">
+            <summary>Advanced Report Options</summary><div class="disclosureBody">
+              <div class="reportControls">
             <div class="checkboxLabel"><label><input id="includeTestData" type="checkbox">Include Test Data</label></div>
             <div id="reportAutoExpandWrap" class="checkboxLabel"><label><input id="autoExpandAllDetails" type="checkbox">Auto-expand all student details</label></div>
             <div id="frequentPassWrap"><label for="flagPassCount">Flag Total Passes ≥</label><input id="flagPassCount" type="number" min="1" value="5"></div>
             <div id="frequentTimeWrap"><label for="flagAverageMinutes">Flag Average Minutes ≥</label><input id="flagAverageMinutes" type="number" min="1" value="8"></div>
-          </div>
+              </div>
+            </div>
+          </details>
           <div class="buttonRow">
             <button class="primary" onclick="generateReport(this)">Generate Report</button>
             <button id="printReportButton" class="gray" onclick="printReport()" disabled>Print Report</button>
@@ -505,20 +743,75 @@
     let unlocked = false;
     let refreshRunning = false;
     let actionMessageTimer = null;
+    let previouslyEmergencyLocked = null;
+    // Keep quick controls stable while their server writes are in flight.
+    let restroomActionPending = null;
+    let waitingActionPending = null;
+    // Student-facing live availability is authoritative for which
+    // destinations a teacher may offer in the override picker.
+    let publicDestinationNames = null;
+    let publicCampusEmergencyLocked = null;
+    let publicDestinationCheckInFlight = false;
+    let lastPublicDestinationCheck = 0;
     let currentReport = null;
     let reportDrilldownCache = {};
     let allReportSort = { key: 'studentName', direction: 'asc' };
     let restroomAccessStudents = [];
     let restroomRosterRefreshRunning = false;
 
+    // Clear one-time data entry when leaving a page; keep saved classroom
+    // settings and the generated report unchanged.
+    function resetOverridePassForm() {
+      const student=document.getElementById('overrideStudent');
+      const search=document.getElementById('overrideStudent-autocomplete');
+      if(student) {
+        student.value='';
+        if(window.HallPassStudentAutocomplete)HallPassStudentAutocomplete.refresh('overrideStudent');
+      }
+      if(search)search.value='';
+      const destination=document.getElementById('overrideDestination');
+      if(destination)destination.value='';
+      const limit=document.getElementById('overrideDailyLimit');
+      if(limit)limit.checked=false;
+      const note=document.getElementById('overrideNote');
+      if(note)note.value='';
+    }
+    function resetRestrictionEntryForm() {
+      const editor=document.getElementById('restrictionEditor');
+      if(editor)editor.classList.add('hidden');
+      const search=document.getElementById('restrictionSearchText');
+      if(search)search.value='';
+      const status=document.getElementById('restrictionSearchStatus');
+      if(status)status.textContent='';
+      const student=document.getElementById('restrictionStudentSelect');
+      if(student)student.innerHTML='<option value="">Search and select a student</option>';
+      const type=document.getElementById('restrictionType');
+      if(type)type.value='Day';
+      const limit=document.getElementById('restrictionLimit');
+      if(limit)limit.value='1';
+      const limitWrap=document.getElementById('restrictionLimitWrap');
+      if(limitWrap)limitWrap.classList.remove('hidden');
+    }
     function showTab(name) {
-      document.querySelectorAll('.tabButton').forEach(function(button) {
-        button.classList.toggle('activeTab', button.dataset.tab === name);
-      });
+      if (!['live','controls','reports'].includes(name)) return;
+      const current=document.querySelector('.tabPanel.activePanel');
+      if(current&&current.id!=='tab-'+name){
+        if(current.id==='tab-live')resetOverridePassForm();
+        if(current.id==='tab-controls')resetRestrictionEntryForm();
+        setActionMessage('', '');
+      }
+      const pageSelect=document.getElementById('teacherPageSelect');
+      if(pageSelect) pageSelect.value=name;
       document.querySelectorAll('.tabPanel').forEach(function(panel) {
         panel.classList.toggle('activePanel', panel.id === 'tab-' + name);
       });
     }
+    document.getElementById('teacherPageSelect').addEventListener('change',function(event){
+      showTab(event.target.value);
+      // Switching from a longer page must not leave the new page scrolled
+      // past its schedule/status bar.
+      window.scrollTo(0,0);
+    });
 
     function beginButtonAction(button, busyText) {
       if (!button) return;
@@ -537,13 +830,23 @@
     function setActionMessage(text, type) {
       const message = document.getElementById('actionMessage');
       if (actionMessageTimer) { clearTimeout(actionMessageTimer); actionMessageTimer = null; }
-      message.textContent = text || '';
+      const content = String(text || '');
+      message.textContent = content;
       message.className = 'actionMessage';
-      if (!text) return;
-      message.classList.add('show');
-      if (type) message.classList.add(type);
-      if (type === 'success') {
-        actionMessageTimer = setTimeout(function() { setActionMessage('', ''); }, 3500);
+      if (!content) return;
+      // A completed "close" action is successful, but its state is not "open".
+      const isClosedState = type === 'success' &&
+        (/restroom (?:requests|passes) (?:are |have been )?closed/i.test(content) ||
+         /waiting list (?:is |has been )?(?:off|disabled|turned off)/i.test(content));
+      const tone = isClosedState ? 'closed' : type;
+      if (tone) message.classList.add(tone);
+      if (type === 'success' || type === 'error') {
+        // Errors must not remain in the global message bar after the issue
+        // is resolved. Allow longer to read errors than confirmations.
+        const lifetime=type==='error'?8000:3500;
+        actionMessageTimer=setTimeout(function(){
+          if(message.textContent===content)setActionMessage('', '');
+        },lifetime);
       }
     }
 
@@ -562,6 +865,8 @@
           document.getElementById('loginCard').classList.add('hidden');
           document.getElementById('dashboard').classList.remove('hidden');
           renderState(result, true);
+          refreshPublicDestinationAvailability(true);
+          loadTeacherRestrictions();
           applyReportPreset();
           setActionMessage('Dashboard ready.', 'success');
         })
@@ -618,15 +923,14 @@
       renderWaiting(state.waiting);
       renderOut(state.out);
       if (includeControls) {
-        renderSettings(state.settings);
-        renderDestinations(state.destinations);
         renderScheduleChoices(state.schedules || [], state.settings["Today's Schedule"] || '');
         renderStudentOptions(state.students || []);
-        renderRestroomAccessTable(state.students || []);
-        renderOverrideDestinations(state.destinations || []);
         renderReportPeriods(state.schedules || []);
       }
-      renderQuickControls(state);
+      // Destination availability can change schoolwide while this teacher page
+      // remains open. Keep the override picker in sync with live polling.
+      if(Array.isArray(state.destinations))renderOverrideDestinations(state.destinations);
+      renderQuickControls(state, includeControls);
     }
 
     // Display-only browser title. Never change room scope or trigger API lookups.
@@ -665,15 +969,35 @@
     function renderStatus(state) {
       const schedule = state.schedule;
       document.getElementById('statSchedule').textContent = schedule.schedule || '—';
+      const rawSource=String(state.settings?.['Schedule Source']||'Room Default').trim();
+      const isOverride=rawSource.toLowerCase().includes('teacher override');
+      const sourceLabel=isOverride?'Teacher override':'Automatic';
+      const sourceElement=document.getElementById('statScheduleSource');
+      sourceElement.textContent=sourceLabel;
+      sourceElement.title='Source: '+rawSource;
+      sourceElement.classList.toggle('isOverride',isOverride);
       document.getElementById('statPeriod').textContent = schedule.period || '—';
-      document.getElementById('statWindow').textContent = schedule.isOpen ? 'OPEN' : 'CLOSED';
+      const locked=String(state.settings?.['Emergency Lock']||'').trim().toLowerCase()==='yes';
+      if(previouslyEmergencyLocked===true&&!locked){
+        const currentMessage=document.getElementById('actionMessage');
+        if(currentMessage&&/emergency lock|passes? (?:are |is )?paused|school locked/i.test(currentMessage.textContent)){
+          setActionMessage('', '');
+        }
+      }
+      previouslyEmergencyLocked=locked;
+      const windowStatus=document.getElementById('statWindow');
+      windowStatus.textContent=locked?'PAUSED':(schedule.isOpen?'OPEN':'CLOSED');
+      windowStatus.classList.toggle('passOpen',schedule.isOpen&&!locked);
+      windowStatus.classList.toggle('passClosed',!schedule.isOpen||locked);
       document.getElementById('statOut').textContent = state.out.length;
       document.getElementById('statWaiting').textContent = state.waiting.length;
       document.getElementById('statNextChange').textContent = schedule.nextChange ? formatTime(schedule.nextChange) : '—';
-      document.getElementById('headerStatus').textContent =
-        (schedule.schedule || '') + ' | ' +
-        (schedule.period ? 'Period ' + schedule.period : schedule.reason) + ' | ' +
-        (schedule.isOpen ? 'Pass Window Open' : 'Pass Window Closed');
+      const emergencyLocked = String(state.settings?.['Emergency Lock'] || '').toLowerCase()==='yes';
+      document.getElementById('headerStatus').textContent = emergencyLocked
+        ? 'Passes paused by administrator'
+        : (schedule.schedule || '') + ' | ' +
+          (schedule.period ? 'Period ' + schedule.period : schedule.reason) + ' | ' +
+          (schedule.isOpen ? 'Pass Window Open' : 'Pass Window Closed');
     }
 
     function renderStats(stats) {
@@ -685,51 +1009,42 @@
     }
 
     function renderScheduleChoices(schedules, selected) {
-      const holder = document.getElementById('scheduleButtons');
-      if (!holder) return;
-      const names = [];
-      (schedules || []).forEach(function(row) {
-        const name = String(row.schedule || '').trim();
-        if (name && !names.some(function(x) { return x.toLowerCase() === name.toLowerCase(); })) names.push(name);
-      });
-      holder.innerHTML = '';
-      const auto = document.createElement('button');
-      auto.type = 'button';
-      auto.className = 'primary scheduleButton';
-      auto.dataset.schedule = '__AUTO__';
-      auto.textContent = 'Auto';
-      auto.addEventListener('click', function() { changeSchedule('__AUTO__', auto); });
-      holder.appendChild(auto);
-      if (!names.length) {
-        const note = document.createElement('span');
-        note.className = 'subtle';
-        note.textContent = 'No master schedules have been configured by Admin.';
-        holder.appendChild(note);
-        return;
+      const select=document.getElementById('scheduleChoice');
+      if(!select)return;
+      const names=[];
+      for(const row of schedules||[]){
+        const name=String(row.schedule||'').trim();
+        if(name&&!names.some(x=>x.toLowerCase()===name.toLowerCase()))names.push(name);
       }
-      names.forEach(function(name) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'primary scheduleButton';
-        button.dataset.schedule = name;
-        button.textContent = name;
-        button.addEventListener('click', function() { changeSchedule(name, button); });
-        holder.appendChild(button);
-      });
+      const previous=select.value;
+      select.replaceChildren();
+      const auto=document.createElement('option');
+      auto.value='__AUTO__';auto.textContent='Auto — Room Default';select.appendChild(auto);
+      for(const name of names){
+        const option=document.createElement('option');
+        option.value=name;option.textContent=name;select.appendChild(option);
+      }
+      if([...select.options].some(opt=>opt.value===previous))select.value=previous;
+      else select.value='__AUTO__';
     }
+    document.getElementById('applyScheduleChoice').addEventListener('click',function(){
+      const name=document.getElementById('scheduleChoice').value;
+      if(!name){setActionMessage('Choose a schedule.', 'error');return}
+      changeSchedule(name,this);
+    });
 
-    function renderQuickControls(state) {
+    function renderQuickControls(state, includeControls = false) {
       const scheduleSource = String(state.settings['Schedule Source'] || 'Room Default');
       const isTeacherOverride = scheduleSource.toLowerCase() === 'teacher override';
       const effectiveSchedule = String((state.schedule && state.schedule.schedule) || state.settings["Today's Schedule"] || '').trim();
-      document.querySelectorAll('.scheduleButton').forEach(function(button) {
-        const isAuto = button.dataset.schedule === '__AUTO__';
-        button.classList.toggle('active', isAuto ? !isTeacherOverride : (isTeacherOverride && String(button.dataset.schedule).toLowerCase() === String(state.settings["Today's Schedule"] || '').toLowerCase()));
-        if (isAuto) {
-          button.textContent = !isTeacherOverride && effectiveSchedule ? 'Auto — ' + effectiveSchedule : 'Auto';
-          button.title = !isTeacherOverride && effectiveSchedule ? 'Automatic schedule is currently using ' + effectiveSchedule : 'Return to the automatic school calendar or room default';
-        }
-      });
+      const scheduleChoice=document.getElementById('scheduleChoice');
+      if(scheduleChoice&&document.activeElement!==scheduleChoice){
+        const manual=String(state.settings["Today's Schedule"]||'').trim();
+        const actual=isTeacherOverride
+          ? [...scheduleChoice.options].find(x=>x.value.toLowerCase()===manual.toLowerCase())?.value
+          : '__AUTO__';
+        if(actual)scheduleChoice.value=actual;
+      }
       const sourceHint = document.getElementById('scheduleSourceHint');
       if (sourceHint) {
         if (isTeacherOverride) {
@@ -739,30 +1054,58 @@
         }
       }
 
-      const restroom = state.destinations.find(function(destination) { return String(destination.name).toLowerCase() === 'restroom'; });
-      document.getElementById('restroomOpen').classList.toggle('active', Boolean(restroom && restroom.enabled));
-      document.getElementById('restroomClosed').classList.toggle('active', Boolean(restroom && !restroom.enabled));
-
-      const testMode = String(state.settings['Test Mode'] || '').toLowerCase() === 'yes';
-      const waitingEnabled = String(state.settings['Waiting List Enabled'] || '').toLowerCase() === 'yes';
-      const emergencyLock = String(state.settings['Emergency Lock'] || '').toLowerCase() === 'yes';
-      const emergencyButton = document.getElementById('emergencyLockButton');
-      emergencyButton.textContent = emergencyLock ? 'Emergency Lock: ON' : 'Emergency Lock: OFF';
-      emergencyButton.classList.toggle('emergencyOn', emergencyLock);
-
+      const restroom=state.destinations.find(d=>String(d.name).toLowerCase()==='restroom');
+      const button=document.getElementById('restroomToggle');
+      const on=Boolean(restroom&&restroom.enabled);
+      const adminClosed=Boolean(restroom&&restroom.schoolwideEnabled===false);
+      // Background polling may be stale while a restroom change is pending.
+      // Only settle the button when the server confirms the target state.
+      if(restroomActionPending&&restroomActionPending.accepted){
+        if(on===restroomActionPending.enabled){
+          restroomActionPending=null;
+        }else if(includeControls){
+          // A fresh authoritative read disagrees with the accepted write.
+          restroomActionPending=null;
+          setActionMessage('Restroom change could not be verified. Please try again.', 'error');
+        }
+      }
+      const pending=restroomActionPending;
+      const displayOn=pending?pending.enabled:on;
+      button.textContent=pending?(displayOn?'Opening...':'Closing...'):
+        adminClosed?'Closed by Admin':(on?'Open':'Closed');
+      button.disabled=Boolean(pending)||adminClosed;
+      button.classList.toggle('green',displayOn&&!adminClosed);
+      button.classList.toggle('red',!displayOn||adminClosed);
+      button.setAttribute('aria-pressed',String(displayOn));
+      button.setAttribute('aria-busy',String(Boolean(pending)));
+      const waitingEnabled=String(state.settings['Waiting List Enabled']||'').toLowerCase()==='yes';
+      const emergencyLock = isCampusEmergencyLockActive(state);
       const manualOverrideButton = document.getElementById('manualOverrideButton');
       if (manualOverrideButton) {
         manualOverrideButton.disabled = emergencyLock;
         manualOverrideButton.title = emergencyLock
-          ? 'Turn off Emergency Lock before starting a new pass.'
+          ? 'Passes are paused by the administrator. Contact an administrator to reopen.'
           : '';
       }
-      const testButton = document.getElementById('testModeButton');
-      testButton.textContent = testMode ? 'Test Mode: ON' : 'Test Mode: OFF';
-      testButton.classList.toggle('active', testMode);
       const waitingButton = document.getElementById('waitingButton');
-      waitingButton.textContent = waitingEnabled ? 'Waiting List: ON' : 'Waiting List: OFF';
-      waitingButton.classList.toggle('active', waitingEnabled);
+      // Keep the intended state visible until a fresh dashboard response
+      // verifies the server write. Background polling may still be stale.
+      if(waitingActionPending&&waitingActionPending.accepted){
+        if(waitingEnabled===waitingActionPending.enabled){
+          waitingActionPending=null;
+        }else if(includeControls){
+          waitingActionPending=null;
+          setActionMessage('Waiting List change could not be verified. Please try again.', 'error');
+        }
+      }
+      const waitingPending=waitingActionPending;
+      const displayWaiting=waitingPending?waitingPending.enabled:waitingEnabled;
+      waitingButton.textContent=waitingPending?(displayWaiting?'Turning On...':'Turning Off...'):(waitingEnabled?'On':'Off');
+      waitingButton.disabled=Boolean(waitingPending);
+      waitingButton.classList.toggle('green',displayWaiting);
+      waitingButton.classList.toggle('red',!displayWaiting);
+      waitingButton.setAttribute('aria-pressed',String(displayWaiting));
+      waitingButton.setAttribute('aria-busy',String(Boolean(waitingPending)));
     }
 
     function saveSettings(changes, button, busyText, processingText) {
@@ -779,77 +1122,66 @@
     }
 
     function setRestroom(enabled, button) {
-      beginButtonAction(button, enabled ? 'OPENING...' : 'CLOSING...');
+      if(restroomActionPending)return;
+      restroomActionPending={enabled:Boolean(enabled),accepted:false};
+      // Show the target state/color immediately, not the previous color.
+      renderQuickControls(dashboardState);
       setActionMessage(enabled ? 'Opening restroom passes...' : 'Closing restroom passes...', 'processing');
       google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .withSuccessHandler(function(result) {
+          if(!result?.success){
+            restroomActionPending=null;
+            renderQuickControls(dashboardState);
+            handleActionResult(result);
+            return;
+          }
+          if(restroomActionPending)restroomActionPending.accepted=true;
+          handleActionResult(result); // Fetch the saved state before unlocking.
+        })
+        .withFailureHandler(function(error) {
+          restroomActionPending=null;
+          renderQuickControls(dashboardState);
+          handleActionFailure(error);
+        })
         .updateDestinationFromDashboard(teacherPin, 'Restroom', { enabled: enabled });
     }
 
-    function toggleEmergencyLock(button) {
-      const current = String(dashboardState.settings['Emergency Lock'] || '').toLowerCase() === 'yes';
-      const turnOn = !current;
-      if (turnOn && !window.confirm('Lock this room?\nNew passes stop, and the waiting list clears.')) return;
-      beginButtonAction(button, turnOn ? 'LOCKING...' : 'UNLOCKING...');
-      setActionMessage(turnOn ? 'Locking student pass requests...' : 'Reopening student pass requests...', 'processing');
-      google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
-        .setEmergencyLockFromDashboard(teacherPin, turnOn);
-    }
-
-    function backupPassLog(button) {
-      beginButtonAction(button, 'BACKING UP...');
-      setActionMessage('Creating a dated Pass Log backup sheet...', 'processing');
-      google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
-        .backupPassLogFromDashboard(teacherPin);
-    }
-
-    function toggleTestMode(button) {
-      const current = String(dashboardState.settings['Test Mode'] || '').toLowerCase() === 'yes';
-      saveSettings({ 'Test Mode': current ? 'No' : 'Yes' }, button, 'CHANGING...', current ? 'Turning Test Mode off...' : 'Turning Test Mode on...');
+    function toggleRestroom(button){
+      if(restroomActionPending)return;
+      const restroom=dashboardState?.destinations?.find(d=>String(d.name||'').toLowerCase()==='restroom');
+      if(!restroom){setActionMessage('Restroom destination is not configured.','error');return}
+      if(restroom.schoolwideEnabled===false){setActionMessage('Restroom is disabled schoolwide.','error');return}
+      setRestroom(!Boolean(restroom.enabled),button);
     }
 
     function toggleWaitingList(button) {
-      const current = String(dashboardState.settings['Waiting List Enabled'] || '').toLowerCase() === 'yes';
-      saveSettings({ 'Waiting List Enabled': current ? 'No' : 'Yes' }, button, 'CHANGING...', current ? 'Turning waiting list off...' : 'Turning waiting list on...');
-    }
-
-    function clearQueue(button) {
-      if (!window.confirm("Clear this room's waiting list?")) return;
-      beginButtonAction(button, 'CLEARING...');
-      setActionMessage('Clearing waiting list...', 'processing');
+      if(waitingActionPending)return;
+      if(!dashboardState?.settings){
+        setActionMessage('Waiting List settings are not available yet.', 'error');
+        return;
+      }
+      const current=String(dashboardState.settings['Waiting List Enabled']||'').toLowerCase()==='yes';
+      const enabled=!current;
+      waitingActionPending={enabled,accepted:false};
+      renderQuickControls(dashboardState);
+      setActionMessage(enabled?'Turning waiting list on...':'Turning waiting list off...', 'processing');
       google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
-        .clearWaitingListFromDashboard(teacherPin);
-    }
-
-    function renderSettings(settings) {
-      document.getElementById('openDelay').value = settings['Passes Open After Start (Minutes)'] ?? 10;
-      document.getElementById('closeEarly').value = settings['Passes Close Before End (Minutes)'] ?? 10;
-      document.getElementById('longWarning').value = settings['Long Pass Warning'] ?? 10;
-      document.getElementById('veryLongWarning').value = settings['Very Long Pass Warning'] ?? 15;
-      document.getElementById('restroomLimit').value = settings['Restroom Pass Limit'] ?? 0;
-      document.getElementById('restroomLimitPeriod').value = settings['Restroom Limit Period'] || 'Day';
-      document.getElementById('buzzer').checked = String(settings['Buzzer Enabled'] || '').toLowerCase() === 'yes';
-      document.getElementById('clearAtEnd').checked = String(settings['Clear Queue at Period End'] || '').toLowerCase() === 'yes';
-    }
-
-    function savePassSettings(button) {
-      saveSettings({
-        'Passes Open After Start (Minutes)': document.getElementById('openDelay').value,
-        'Passes Close Before End (Minutes)': document.getElementById('closeEarly').value,
-        'Long Pass Warning': document.getElementById('longWarning').value,
-        'Very Long Pass Warning': document.getElementById('veryLongWarning').value,
-        'Restroom Pass Limit': document.getElementById('restroomLimit').value,
-        'Restroom Limit Period': document.getElementById('restroomLimitPeriod').value,
-        'Buzzer Enabled': document.getElementById('buzzer').checked ? 'Yes' : 'No',
-        'Clear Queue at Period End': document.getElementById('clearAtEnd').checked ? 'Yes' : 'No'
-      }, button, 'SAVING...', 'Saving pass settings...');
+        .withSuccessHandler(function(result) {
+          if(!result?.success){
+            waitingActionPending=null;
+            renderQuickControls(dashboardState);
+            handleActionResult(result);
+            return;
+          }
+          if(waitingActionPending)waitingActionPending.accepted=true;
+          handleActionResult(result); // Fetch the saved state before unlocking.
+        })
+        .withFailureHandler(function(error) {
+          waitingActionPending=null;
+          renderQuickControls(dashboardState);
+          handleActionFailure(error);
+        })
+        .updateSettingsFromDashboard(teacherPin,{ 'Waiting List Enabled':enabled?'Yes':'No' });
     }
 
     function renderStudentOptions(students) {
@@ -895,173 +1227,214 @@
       ).trim();
     }
 
-    function renderRestroomAccessTable(students) {
-      restroomAccessStudents = Array.isArray(students) ? students.slice() : [];
-      filterRestroomAccessTable();
-      HallPassStudentAutocomplete.refresh('restroomStudentSearch');
+
+    let restrictionRows=[];
+    function renderRestrictionLimit(){
+      document.getElementById('restrictionLimitWrap').classList.toggle('hidden',
+        document.getElementById('restrictionType').value==='Blocked');
     }
-
-    function filterRestroomAccessTable() {
-      const input = document.getElementById('restroomStudentSearch');
-      const body = document.getElementById('restroomAccessBody');
-      const status = document.getElementById('restroomStudentSearchStatus');
-      if (!body) return;
-
-      const rawQuery = String(input ? input.value : '').trim();
-      const query = rawQuery.toLocaleLowerCase();
-      const matches = restroomAccessStudents.filter(function(student) {
-        if (!query) return true;
-        const name = studentDisplayName(student).toLocaleLowerCase();
-        const id = studentDisplayId(student).toLocaleLowerCase();
-        return name.includes(query) || id.includes(query);
-      });
-
-      body.innerHTML = '';
-
-      if (!restroomAccessStudents.length) {
-        body.innerHTML = '<tr><td colspan="4">Student roster has not loaded.</td></tr>';
-        if (status) status.textContent = '0 students loaded. Click Search to reload the school roster.';
+    function openRestrictionEditor(row=null){
+      const editor=document.getElementById('restrictionEditor');
+      editor.classList.remove('hidden');
+      document.getElementById('restrictionEditorTitle').textContent=row?'Edit Restriction':'Add Restriction';
+      const select=document.getElementById('restrictionStudentSelect');
+      select.replaceChildren(new Option('Search and select a student',''));
+      document.getElementById('restrictionSearchText').value=row?row.name:'';
+      document.getElementById('restrictionSearchStatus').textContent='';
+      if(row){
+        select.add(new Option(row.name+' ('+row.studentNumber+')',row.studentNumber));
+        select.value=row.studentNumber;
+      }
+      document.getElementById('restrictionType').value=row?row.type:'Day';
+      document.getElementById('restrictionLimit').value=row?.limit?String(row.limit):'1';
+      renderRestrictionLimit();
+      editor.scrollIntoView({block:'nearest',behavior:'smooth'});
+    }
+    function closeRestrictionEditor(){
+      document.getElementById('restrictionEditor').classList.add('hidden');
+    }
+    function renderRestrictionRows(rows){
+      restrictionRows=Array.isArray(rows)?rows:[];
+      const body=document.getElementById('restrictionBody');
+      body.replaceChildren();
+      if(!restrictionRows.length){
+        body.innerHTML='<tr><td colspan="3" class="emptyState">No individual restrictions. Everyone follows this room’s default.</td></tr>';
         return;
       }
-
-      if (!matches.length) {
-        body.innerHTML = '<tr><td colspan="4">No students match this search.</td></tr>';
-        if (status) status.textContent = 'No students found for “' + rawQuery + '” (' + restroomAccessStudents.length + ' students loaded).';
+      for(const row of restrictionRows){
+        const tr=document.createElement('tr');
+        const label=row.type==='Blocked'?'No restroom passes':row.limit+' per '+row.type.toLowerCase();
+        tr.innerHTML='<td><strong>'+escapeHtml(row.name)+'</strong></td>'+
+          '<td>'+escapeHtml(label)+'</td>'+
+          '<td><div class="buttonRow"><button type="button" class="gray smallAction editRestriction">Edit</button>'+
+          '<button type="button" class="smallAction removeRestriction">Remove</button></div></td>';
+        tr.querySelector('.editRestriction').addEventListener('click',()=>openRestrictionEditor(row));
+        tr.querySelector('.removeRestriction').addEventListener('click',()=>removeRestriction(row));
+        body.appendChild(tr);
+      }
+    }
+    function loadTeacherRestrictions(){
+      if(!unlocked)return;
+      google.script.run.withSuccessHandler(result=>{
+        if(!result?.success){
+          document.getElementById('restrictionMessage').textContent=result?.message||'Could not load restrictions.';
+          return;
+        }
+        renderRestrictionRows(result.rows||[]);
+        document.getElementById('restrictionMessage').textContent='';
+      }).withFailureHandler(error=>{
+        document.getElementById('restrictionMessage').textContent=error?.message||'Could not load restrictions.';
+      }).getTeacherRestrictions(teacherPin);
+    }
+    function searchRestrictionStudents(button){
+      const query=document.getElementById('restrictionSearchText').value.trim();
+      if(query.length<2){
+        document.getElementById('restrictionSearchStatus').textContent='Enter at least two characters.';
         return;
       }
-
-      matches.forEach(function(student) {
-        const row = document.createElement('tr');
-        const name = studentDisplayName(student);
-        const id = studentDisplayId(student);
-        const allowed = student.restroomAllowed !== false && student.restroom_allowed !== false;
-        row.innerHTML = '<td>' + escapeHtml(name) + '</td>' +
-          '<td>' + escapeHtml(id) + '</td>' +
-          '<td><label><input class="restroomAllowedToggle" type="checkbox" ' + (allowed ? 'checked' : '') + '> Allowed</label></td>' +
-          '<td><button type="button" class="primary saveRestroomAccessButton">Save</button></td>';
-        const checkbox = row.querySelector('.restroomAllowedToggle');
-        const button = row.querySelector('.saveRestroomAccessButton');
-        button.addEventListener('click', function() {
-          saveStudentRestroomAccess(id, checkbox.checked, button);
-        });
-        body.appendChild(row);
-      });
-
-      if (status) {
-        status.textContent = query
-          ? matches.length + ' student' + (matches.length === 1 ? '' : 's') + ' found (' + restroomAccessStudents.length + ' students loaded).'
-          : restroomAccessStudents.length + ' students loaded. Type a name or ID to narrow the list.';
+      beginButtonAction(button,'SEARCHING...');
+      google.script.run.withSuccessHandler(result=>{
+        finishButtonAction(button);
+        const select=document.getElementById('restrictionStudentSelect');
+        select.replaceChildren(new Option('Select a student',''));
+        if(!result?.success){
+          document.getElementById('restrictionSearchStatus').textContent=result?.message||'Search failed.';
+          return;
+        }
+        for(const student of result.rows||[]){
+          const option=new Option(student.name+' ('+student.studentNumber+')'+
+            (student.schoolBlocked?' — Schoolwide restriction':''),student.studentNumber);
+          option.disabled=student.schoolBlocked;
+          select.add(option);
+        }
+        document.getElementById('restrictionSearchStatus').textContent=(result.rows||[]).length+
+          ' matching students. Select one below.';
+      }).withFailureHandler(error=>{
+        finishButtonAction(button);
+        document.getElementById('restrictionSearchStatus').textContent=error?.message||'Search failed.';
+      }).searchTeacherRestrictionStudents(teacherPin,query);
+    }
+    function saveRestriction(button){
+      const studentNumber=document.getElementById('restrictionStudentSelect').value;
+      const type=document.getElementById('restrictionType').value;
+      const limit=type==='Blocked'?null:Number(document.getElementById('restrictionLimit').value);
+      if(!studentNumber){setActionMessage('Select a student first.','error');return}
+      if(type!=='Blocked'&&(!Number.isInteger(limit)||limit<1||limit>100)){
+        setActionMessage('Enter a limit between 1 and 100 passes.','error');return;
       }
+      beginButtonAction(button,'SAVING...');
+      google.script.run.withSuccessHandler(result=>{
+        finishButtonAction(button);
+        if(!result?.success){setActionMessage(result?.message||'Could not save restriction.','error');return}
+        closeRestrictionEditor();
+        loadTeacherRestrictions();
+        setActionMessage(result.message||'Restriction saved.','success');
+      }).withFailureHandler(error=>{
+        finishButtonAction(button);
+        setActionMessage(error?.message||'Could not save restriction.','error');
+      }).saveTeacherRestriction(teacherPin,studentNumber,type,limit);
     }
+    function removeRestriction(row){
+      if(!window.confirm('Return '+row.name+' to this room’s default restroom policy?'))return;
+      google.script.run.withSuccessHandler(result=>{
+        if(!result?.success){setActionMessage(result?.message||'Could not remove restriction.','error');return}
+        loadTeacherRestrictions();
+        setActionMessage(result.message,'success');
+      }).withFailureHandler(error=>{
+        setActionMessage(error?.message||'Could not remove restriction.','error');
+      }).removeTeacherRestriction(teacherPin,row.studentNumber);
+    }
+    document.getElementById('restrictionSearchText').addEventListener('keydown',event=>{
+      if(event.key==='Enter'){
+        event.preventDefault();
+        searchRestrictionStudents(document.getElementById('restrictionSearchButton'));
+      }
+    });
 
-    function reloadRestroomRosterAndSearch(button) {
-      if (restroomRosterRefreshRunning) return;
-      restroomRosterRefreshRunning = true;
-      if (button) beginButtonAction(button, 'SEARCHING...');
-      const status = document.getElementById('restroomStudentSearchStatus');
-      if (status) status.textContent = 'Reloading school roster...';
-
+    function isCampusEmergencyLockActive(state=dashboardState) {
+      const teacherFlag=String(state?.settings?.['Emergency Lock']||'').trim().toLowerCase()==='yes';
+      const teacherReason=/campus emergency lock/i.test(String(state?.schedule?.reason||''));
+      return teacherFlag||teacherReason||publicCampusEmergencyLocked===true;
+    }
+    function teacherOverrideDestinationAvailable(destination) {
+      // A teacher may override student/time limits, never a schoolwide
+      // destination shutdown or a locally closed destination.
+      if(!destination||!destination.enabled||destination.schoolwideEnabled===false)return false;
+      // Teacher dashboard metadata alone has not reliably reflected schoolwide
+      // destination disables. Use the same availability returned to students.
+      return publicDestinationNames===null||
+        publicDestinationNames.has(String(destination.name||'').trim().toLowerCase());
+    }
+    function refreshPublicDestinationAvailability(force=false) {
+      if(!unlocked||publicDestinationCheckInFlight)return;
+      const now=Date.now();
+      if(!force&&now-lastPublicDestinationCheck<15000)return;
+      lastPublicDestinationCheck=now;
+      publicDestinationCheckInFlight=true;
+      const status=document.getElementById('overrideDestinationAvailabilityStatus');
       google.script.run
-        .withSuccessHandler(function(result) {
-          restroomRosterRefreshRunning = false;
-          if (button) finishButtonAction(button);
-          if (!result || !result.success) {
-            if (status) status.textContent = result && result.message ? result.message : 'Student roster could not be loaded.';
+        .withSuccessHandler(function(state) {
+          publicDestinationCheckInFlight=false;
+          // The Student page initially obtains its authoritative destination
+          // catalog from getPageState. getLiveState can omit catalog details,
+          // so use the SAME complete endpoint here.
+          if(!state||!Array.isArray(state.destinations)){
+            if(status)status.textContent='Schoolwide destination availability could not be verified. Please retry.';
             return;
           }
-          dashboardState = result;
-          restroomAccessStudents = Array.isArray(result.students) ? result.students.slice() : [];
-          renderStudentOptions(restroomAccessStudents);
-          filterRestroomAccessTable();
-        })
-        .withFailureHandler(function(error) {
-          restroomRosterRefreshRunning = false;
-          if (button) finishButtonAction(button);
-          if (status) status.textContent = error && error.message ? error.message : 'Student roster could not be loaded.';
-        })
-        .getTeacherDashboardState(teacherPin);
-    }
-
-    function saveStudentRestroomAccess(studentId, allowed, button) {
-      beginButtonAction(button, 'SAVING...');
-      setActionMessage('Saving restroom access...', 'processing');
-      google.script.run
-        .withSuccessHandler(function(result) {
-          finishButtonAction(button);
-          if (!result || !result.success) {
-            setActionMessage(result && result.message ? result.message : 'Restroom access could not be saved.', 'error');
-            return;
+          publicDestinationNames=new Set(state.destinations
+            .filter(function(destination){return Boolean(destination&&destination.enabled);})
+            .map(function(destination){return String(destination.name||'').trim().toLowerCase();}));
+          // Student-facing campus lock status takes precedence over an
+          // apparently open Test schedule or available destination list.
+          publicCampusEmergencyLocked=
+            String(state.settings?.['Emergency Lock']||'').trim().toLowerCase()==='yes'||
+            /campus emergency lock/i.test(String(state.schedule?.reason||''));
+          if(status&&status.textContent==='Schoolwide destination availability could not be verified. Please retry.')status.textContent='';
+          if(dashboardState&&Array.isArray(dashboardState.destinations)){
+            renderOverrideDestinations(dashboardState.destinations);
+            renderQuickControls(dashboardState);
           }
-          const student = restroomAccessStudents.find(function(item) { return String(item.id) === String(studentId); });
-          if (student) student.restroomAllowed = allowed;
-          setActionMessage(result.message || 'Restroom access updated.', 'success');
         })
         .withFailureHandler(function(error) {
-          finishButtonAction(button);
-          setActionMessage(error && error.message ? error.message : 'Restroom access could not be saved.', 'error');
+          publicDestinationCheckInFlight=false;
+          if(status)status.textContent='Schoolwide destination availability could not be verified. Please retry.';
+          // Backend restrictions still apply to every attempted override.
+          console.warn('Could not refresh student destination availability:',error);
         })
-        .updateStudentRestroomAccessFromDashboard(teacherPin, studentId, allowed);
+        .getPageState();
     }
-
-    function renderDestinations(destinations) {
-      const body = document.getElementById('destinationBody');
-      body.innerHTML = '';
-      destinations.forEach(function(destination) {
-        const row = document.createElement('tr');
-        row.dataset.name = destination.name;
-        const schoolwideEnabled = destination.schoolwideEnabled !== false;
-        const roomEnabled = destination.roomEnabled !== false;
-        const overrideValue = destination.maxOutOverride == null ? '' : String(destination.maxOutOverride);
-        row.innerHTML = `
-          <td><strong>${escapeHtml(destination.name)}</strong></td>
-          <td>${schoolwideEnabled ? 'Enabled' : '<span class="subtle">Disabled by Admin</span>'}</td>
-          <td><input class="destEnabled" type="checkbox" ${roomEnabled ? 'checked' : ''} ${schoolwideEnabled ? '' : 'disabled'}></td>
-          <td>${destination.defaultMaxOut === 0 ? '0 <span class="fieldHint">(no limit)</span>' : escapeHtml(destination.defaultMaxOut)}</td>
-          <td><input class="destMaxOverride" type="number" min="0" value="${escapeAttribute(overrideValue)}" placeholder="Use default" ${schoolwideEnabled ? '' : 'disabled'}></td>
-          <td>${destination.maxOut === 0 ? '0 <span class="fieldHint">(no limit)</span>' : escapeHtml(destination.maxOut)}</td>
-          <td><button class="primary saveDestination" ${schoolwideEnabled ? '' : 'disabled'}>Save</button></td>`;
-        const save = row.querySelector('.saveDestination');
-        if (save) save.addEventListener('click', function() { saveDestination(row, this); });
-        body.appendChild(row);
-      });
-    }
-
-    function saveDestination(row, button) {
-      const name = row.dataset.name;
-      const changes = {
-        enabled: row.querySelector('.destEnabled').checked,
-        maxOutOverride: row.querySelector('.destMaxOverride').value
-      };
-      beginButtonAction(button, 'SAVING...');
-      setActionMessage('Saving ' + name + ' room settings...', 'processing');
-      google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
-        .updateDestinationFromDashboard(teacherPin, name, changes);
-    }
-
     function renderOverrideDestinations(destinations) {
-      const select = document.getElementById('overrideDestination');
-      const currentValue = select.value;
-      select.innerHTML = '<option value="">Choose Destination</option>';
-      destinations.filter(function(destination) { return destination.enabled; }).forEach(function(destination) {
-        const option = document.createElement('option');
-        option.value = destination.name;
-        option.textContent = destination.name;
-        select.appendChild(option);
-      });
-      if (Array.from(select.options).some(function(option) { return option.value === currentValue; })) select.value = currentValue;
+      const select=document.getElementById('overrideDestination');
+      const status=document.getElementById('overrideDestinationAvailabilityStatus');
+      const emergencyLock=isCampusEmergencyLockActive();
+      const available=emergencyLock?[]:(destinations||[]).filter(teacherOverrideDestinationAvailable);
+      const label=emergencyLock?'Campus Emergency Lock — Passes Closed':'Choose Destination';
+      const desired=['',...available.map(x=>String(x.name))];
+      const existing=Array.from(select.options).map(x=>x.value);
+      const unchanged=existing.length===desired.length&&existing.every((x,i)=>x===desired[i])&&
+        select.options[0]?.textContent===label;
+      select.disabled=emergencyLock;
+      if(status){
+        if(emergencyLock)status.textContent='Campus Emergency Lock active. Teacher overrides are unavailable.';
+        else if(status.textContent==='Campus Emergency Lock active. Teacher overrides are unavailable.')status.textContent='';
+      }
+      // Preserve ordinary in-progress choices during polling, but remove any
+      // destination selections as soon as a campus emergency lock activates.
+      if(unchanged)return;
+      const previous=select.value;
+      select.replaceChildren();
+      select.add(new Option(label,''));
+      available.forEach(destination=>select.add(new Option(destination.name,destination.name)));
+      if(!emergencyLock&&desired.includes(previous))select.value=previous;
+      else select.value='';
     }
 
     function startManualOverride(button) {
-      const emergencyLock = Boolean(
-        dashboardState &&
-        dashboardState.settings &&
-        String(dashboardState.settings['Emergency Lock'] || '').toLowerCase() === 'yes'
-      );
+      const emergencyLock = isCampusEmergencyLockActive();
 
       if (emergencyLock) {
-        setActionMessage('Turn off Emergency Lock before starting a new pass.', 'error');
+        setActionMessage('Passes are paused by the administrator. Contact an administrator to reopen.', 'error');
         return;
       }
 
@@ -1072,6 +1445,16 @@
 
       if (!studentId) { setActionMessage('Choose a student.', 'error'); return; }
       if (!destination) { setActionMessage('Choose a destination.', 'error'); return; }
+      const destinationInfo=(dashboardState?.destinations||[])
+        .find(item=>String(item.name||'').toLowerCase()===String(destination).toLowerCase());
+      // If the roster is stale, fetch the student catalog immediately too.
+      // Backend remains the authority for the final create action.
+      refreshPublicDestinationAvailability(true);
+      if(!teacherOverrideDestinationAvailable(destinationInfo)){
+        renderOverrideDestinations(dashboardState?.destinations||[]);
+        setActionMessage('This destination is disabled for this classroom or school. Choose an available destination.','error');
+        return;
+      }
 
       beginButtonAction(button, overrideDailyLimit ? 'OVERRIDING...' : 'STARTING...');
       setActionMessage(
@@ -1085,11 +1468,7 @@
         .withSuccessHandler(function(result) {
           finishButtonAction(button);
           if (result && result.success) {
-            document.getElementById('overrideStudent').value = '';
-            HallPassStudentAutocomplete.refresh('overrideStudent');
-            document.getElementById('overrideDestination').value = '';
-            document.getElementById('overrideDailyLimit').checked = false;
-            document.getElementById('overrideNote').value = '';
+            resetOverridePassForm();
           }
           handleActionResult(result);
         })
@@ -1097,10 +1476,40 @@
         .startTeacherOverridePass(teacherPin, studentId, destination, overrideDailyLimit, overrideNote);
     }
 
+    document.querySelector('.overrideDisclosure').addEventListener('toggle',function(event){
+      if(event.target.open)refreshPublicDestinationAvailability(true);
+    });
+
+    const teacherLiveSignatures={waiting:null,out:null};
+    // Keep in-flight row actions visible through the 3-second live refresh.
+    // Only clear an accepted action when the refreshed list no longer contains its ID.
+    const waitingRowActions=new Map();
+    const returningRowActions=new Map();
+    function clearFinishedRowActions(map, rows, field){
+      const present=new Set((rows||[]).map(x=>String(x[field])));
+      for(const [id,pending] of map){
+        if(pending.accepted&&!present.has(id))map.delete(id);
+      }
+    }
+    function redrawWaitingRows(){
+      teacherLiveSignatures.waiting=null;
+      if(dashboardState)renderWaiting(dashboardState.waiting||[]);
+    }
+    function redrawOutRows(){
+      teacherLiveSignatures.out=null;
+      if(dashboardState)renderOut(dashboardState.out||[]);
+    }
     function renderWaiting(waiting) {
+      clearFinishedRowActions(waitingRowActions,waiting,'requestId');
       const body = document.getElementById('waitingBody');
-      body.innerHTML = '';
-      if (!waiting.length) { body.innerHTML = '<tr><td colspan="5">No students waiting.</td></tr>'; return; }
+      const schedule=dashboardState?.schedule||{};
+      const signature=JSON.stringify([waiting,schedule.isOpen,schedule.period,schedule.testMode,
+        dashboardState?.settings?.['Emergency Lock'],dashboardState?.destinations,
+        [...waitingRowActions]]);
+      if(signature===teacherLiveSignatures.waiting)return;
+      teacherLiveSignatures.waiting=signature;
+      body.replaceChildren();
+      if (!waiting.length) { body.innerHTML = '<tr><td colspan="5" class="emptyState">Nobody is waiting for a hall pass.</td></tr>'; return; }
       waiting.forEach(function(student) {
         const row = document.createElement('tr');
         const destination = dashboardState && dashboardState.destinations
@@ -1119,12 +1528,17 @@
           dashboardState.schedule &&
           (dashboardState.schedule.testMode || dashboardState.schedule.period)
         );
+        const pending=waitingRowActions.get(String(student.requestId));
+        const pendingGo=pending&&(pending.kind==='start'||pending.kind==='limit');
+        const pendingCancel=pending&&pending.kind==='cancel';
+        const goLabel=pendingGo?(pending.kind==='limit'?'LIMIT OVERRIDE...':(needsOverride?'OVERRIDING...':'STARTING...'))
+          :(needsOverride?'Override Go':'Go');
         row.innerHTML = `
           <td>${escapeHtml(student.name)}</td>
           <td>${escapeHtml(student.destination)}</td>
           <td>${formatTime(student.requested)}</td>
-          <td><button class="${needsOverride ? 'purple' : 'green'} goButton" ${canStart ? '' : 'disabled'}>${needsOverride ? 'Override Go' : 'Go'}</button></td>
-          <td><button class="red cancelButton">Cancel</button></td>`;
+          <td><button class="${needsOverride ? 'purple' : 'green'} goButton" ${canStart&&!pending?'':'disabled'} ${pendingGo?'aria-busy="true"':''}>${goLabel}</button></td>
+          <td><button class="gray cancelButton" ${pending?'disabled':''} ${pendingCancel?'aria-busy="true"':''}>${pendingCancel?'CANCELLING...':'Cancel'}</button></td>`;
         row.querySelector('.goButton').addEventListener('click', function() { startWaitingPass(student.requestId, needsOverride, this); });
         row.querySelector('.cancelButton').addEventListener('click', function() { cancelWaitingPass(student.requestId, this); });
         body.appendChild(row);
@@ -1132,60 +1546,88 @@
     }
 
     function startWaitingPass(requestId, timeOverride, button, limitOverride = false) {
-      const busyText = limitOverride
-        ? 'LIMIT OVERRIDE...'
-        : (timeOverride ? 'OVERRIDING...' : 'STARTING...');
-
-      const processingText = limitOverride
-        ? 'Starting pass-limit override...'
-        : (timeOverride ? 'Starting time override pass...' : 'Starting pass...');
-
-      beginButtonAction(button, busyText);
-      setActionMessage(processingText, 'processing');
-
+      const id=String(requestId);
+      if(waitingRowActions.has(id)&&!limitOverride)return;
+      if(limitOverride&&waitingRowActions.get(id)?.kind!=='start')return;
+      const pending={kind:limitOverride?'limit':'start',accepted:false};
+      waitingRowActions.set(id,pending);
+      redrawWaitingRows();
+      setActionMessage(
+        limitOverride?'Starting pass-limit override...':
+        (timeOverride?'Starting time override pass...':'Starting pass...'),
+        'processing'
+      );
       google.script.run
         .withSuccessHandler(function(result) {
-          finishButtonAction(button);
-
-          if (result && !result.success && result.needsLimitOverride && !limitOverride) {
-            const approved = window.confirm(
-              'Pass limit reached.\nAllow this pass anyway?'
-            );
-
-            if (approved) {
-              startWaitingPass(requestId, timeOverride, button, true);
+          if(result?.success){
+            pending.accepted=true;
+            handleActionResult(result); // The busy row stays until a fresh list confirms removal.
+            return;
+          }
+          if(result?.needsLimitOverride&&!limitOverride){
+            const approved=window.confirm('Pass limit reached.\nAllow this pass anyway?');
+            if(approved){
+              startWaitingPass(requestId,timeOverride,button,true);
               return;
             }
           }
-
+          waitingRowActions.delete(id);
+          redrawWaitingRows();
           handleActionResult(result);
         })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .withFailureHandler(function(error) {
+          waitingRowActions.delete(id);
+          redrawWaitingRows();
+          handleActionFailure(error);
+        })
         .startPass(requestId, teacherPin, timeOverride, limitOverride);
     }
 
     function cancelWaitingPass(requestId, button) {
-      beginButtonAction(button, 'CANCELLING...');
+      const id=String(requestId);
+      if(waitingRowActions.has(id))return;
+      if(!window.confirm('Remove this student from the waiting list?'))return;
+      const pending={kind:'cancel',accepted:false};
+      waitingRowActions.set(id,pending);
+      redrawWaitingRows();
       setActionMessage('Cancelling waiting request...', 'processing');
       google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .withSuccessHandler(function(result) {
+          if(result?.success){
+            pending.accepted=true;
+            handleActionResult(result);
+            return;
+          }
+          waitingRowActions.delete(id);
+          redrawWaitingRows();
+          handleActionResult(result);
+        })
+        .withFailureHandler(function(error) {
+          waitingRowActions.delete(id);
+          redrawWaitingRows();
+          handleActionFailure(error);
+        })
         .cancelRequest(requestId, 'Teacher');
     }
 
     function renderOut(students) {
+      clearFinishedRowActions(returningRowActions,students,'passId');
       const body = document.getElementById('outBody');
-      body.innerHTML = '';
-      if (!students.length) { body.innerHTML = '<tr><td colspan="5">No students currently out.</td></tr>'; return; }
+      const signature=JSON.stringify([students,[...returningRowActions]]);
+      if(signature===teacherLiveSignatures.out)return;
+      teacherLiveSignatures.out=signature;
+      body.replaceChildren();
+      if (!students.length) { body.innerHTML = '<tr><td colspan="5" class="emptyState">All students are back in class.</td></tr>'; return; }
       students.forEach(function(student) {
         const row = document.createElement('tr');
         row.dataset.leaveTime = student.leaveTime;
+        const pending=returningRowActions.get(String(student.passId));
         row.innerHTML = `
           <td>${escapeHtml(student.name)}</td>
           <td>${escapeHtml(student.destination)}</td>
           <td>${formatTime(student.leaveTime)}</td>
           <td class="elapsed">0:00</td>
-          <td><button class="primary returnButton">Return</button></td>`;
+          <td><button class="primary returnButton" ${pending?'disabled aria-busy="true"':''}>${pending?'RETURNING...':'Return'}</button></td>`;
         row.querySelector('.returnButton').addEventListener('click', function() { returnPass(student.passId, this); });
         body.appendChild(row);
       });
@@ -1193,11 +1635,28 @@
     }
 
     function returnPass(passId, button) {
-      beginButtonAction(button, 'RETURNING...');
+      const id=String(passId);
+      if(returningRowActions.has(id))return;
+      const pending={accepted:false};
+      returningRowActions.set(id,pending);
+      redrawOutRows();
       setActionMessage('Recording student return...', 'processing');
       google.script.run
-        .withSuccessHandler(function(result) { finishButtonAction(button); handleActionResult(result); })
-        .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
+        .withSuccessHandler(function(result) {
+          if(result?.success){
+            pending.accepted=true;
+            handleActionResult(result);
+            return;
+          }
+          returningRowActions.delete(id);
+          redrawOutRows();
+          handleActionResult(result);
+        })
+        .withFailureHandler(function(error) {
+          returningRowActions.delete(id);
+          redrawOutRows();
+          handleActionFailure(error);
+        })
         .returnStudent(passId);
     }
 
@@ -1677,7 +2136,7 @@
 
       const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(report.studentName)} - Hall Pass Report</title><style>
         body{font-family:Arial,sans-serif;color:#111;margin:28px;font-size:12px}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;margin-bottom:18px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 18px}.stat{border:1px solid #ccc;border-radius:6px;padding:8px}.label{font-size:10px;color:#555;text-transform:uppercase}.value{font-size:17px;font-weight:bold;margin-top:3px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:6px;text-align:left;white-space:nowrap}th{background:#eee}@media print{body{margin:0}}
-      </style></head><body>
+  </style></head><body>
         <h1>Student Pass Report: ${escapeHtml(report.studentName)}</h1>
         <div class="meta">${escapeHtml(meta)}</div>
         <div class="summary">
@@ -1853,30 +2312,22 @@
 
     HallPassStudentAutocomplete.enhanceSelect('overrideStudent', 'Type student name or ID');
     HallPassStudentAutocomplete.enhanceSelect('reportStudent', 'Type student name or ID');
-    HallPassStudentAutocomplete.enhanceTextSearch('restroomStudentSearch', function() {
-      return restroomAccessStudents.map(function(student) {
-        return {studentId:studentDisplayId(student), name:studentDisplayName(student)};
-      });
-    });
-
     document.getElementById('teacherPin').addEventListener('keydown', function(event) {
       if (event.key === 'Enter') unlockDashboard(document.getElementById('loginButton'));
     });
 
-    document.getElementById('restroomStudentSearchButton').addEventListener('click', function() {
-      reloadRestroomRosterAndSearch(this);
-    });
-    document.getElementById('restroomStudentSearch').addEventListener('input', function() {
-      filterRestroomAccessTable();
-    });
-    document.getElementById('restroomStudentSearch').addEventListener('keydown', function(event) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        reloadRestroomRosterAndSearch(document.getElementById('restroomStudentSearchButton'));
+    function updateStickyTeacherStatus(){
+      const dock=document.getElementById('teacherStatusDock');
+      if(dock)dock.classList.toggle('isCompact',window.scrollY>160);
+    }
+    window.addEventListener('scroll',updateStickyTeacherStatus,{passive:true});
+    updateStickyTeacherStatus();
+    setInterval(function() {
+      if(unlocked){
+        refreshDashboard(false);
+        refreshPublicDestinationAvailability();
       }
-    });
-
-    setInterval(function() { if (unlocked) refreshDashboard(false); }, 3000);
+    }, 3000);
     setInterval(function() { if (unlocked) updateTimers(); }, 1000);
 
     window.onload = function() {
