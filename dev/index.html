@@ -1139,11 +1139,17 @@
 
       /*
         BETWEEN PERIODS
+
+        An emergency lock may close passes during an active period.
+        Only display this label when the schedule actually says we
+        are between classes.
       */
       else {
 
         timer.textContent =
-          'BETWEEN CLASSES';
+          String(schedule.reason || '').trim().toLowerCase() === 'between classes'
+            ? 'BETWEEN CLASSES'
+            : '';
 
         return;
       }
