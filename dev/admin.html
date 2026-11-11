@@ -570,13 +570,10 @@
       #roomSchedulePanel .rsScheduleAssignmentBar button{flex:1 1 auto}
     }
 
-    /* DEV final scheduling cutover: legacy calendar and mode switching are
-       retained as dormant markup for rollback only, not part of test UI. */
+    /* Keep the legacy calendar hidden, but expose the safe scheduler mode
+       control and its warnings/errors for production activation and rollback. */
     #dashboard #calendarPanel,
-    #roomSchedulePanel #rsSectionAdvanced,
-    #roomSchedulePanel #rsLegacyWarning,
-    #roomSchedulePanel #rsToggleMode,
-    #roomSchedulePanel #rsModeMessage{display:none!important}
+    #roomSchedulePanel #rsSectionAdvanced{display:none!important}
     #roomSchedulePanel .roomScheduleNav{padding-bottom:12px}
     #roomSchedulePanel #rsModeStatus{margin:4px 0;color:#435669;font-size:13px}
   
