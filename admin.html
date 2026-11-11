@@ -3200,10 +3200,10 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         $('rsGroupName').value='';
         $('rsGroupChecks').innerHTML='';
       }else if(panelId==='specialDaysPanel'){
-        rsLoadSpecialDate('');
+        // Leaving Special Days must not re-run form rendering: a draft/preview
+        // can have transient state that should never block page navigation.
         $('rsSavedDaysSearch').value='';
         $('rsSavedDaysPeriod').value='upcoming';
-        rsRenderConfiguredDates();
       }else if(panelId==='calendarPanel'){
         clearBulkCalendarPreview();
       }else if(panelId==='reportsPanel'){
@@ -3219,9 +3219,14 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       if(panelId==='orgPanel'||panelId==='calendarPanel')return;
       if(!document.getElementById(panelId)?.classList.contains('panel'))return;
       const previousPanel=document.querySelector('#dashboard .panel.active');
-      if(previousPanel&&previousPanel.id!==panelId)resetTransientAdminPage(previousPanel.id);
+      // Activate the requested page first. Cleanup failures in the prior page
+      // must not trap the user there or leave the selector out of sync.
       $('adminPageSelect').value=panelId;
       document.querySelectorAll('.panel').forEach(panel=>panel.classList.toggle('active',panel.id===panelId));
+      if(previousPanel&&previousPanel.id!==panelId){
+        try{resetTransientAdminPage(previousPanel.id);}
+        catch(error){console.error('Admin page cleanup failed:',previousPanel.id,error);}
+      }
       setAdminGlobalMessage('','','');
       // The campus totals now stay visible on every page.
       if(unlocked&&panelId!=='livePanel')refreshLive();
