@@ -742,6 +742,7 @@
     let unlocked = false;
     let refreshRunning = false;
     let actionMessageTimer = null;
+    let previouslyEmergencyLocked = null;
     // Keep quick controls stable while their server writes are in flight.
     let restroomActionPending = null;
     let waitingActionPending = null;
@@ -751,8 +752,47 @@
     let restroomAccessStudents = [];
     let restroomRosterRefreshRunning = false;
 
+    // Clear one-time data entry when leaving a page; keep saved classroom
+    // settings and the generated report unchanged.
+    function resetOverridePassForm() {
+      const student=document.getElementById('overrideStudent');
+      const search=document.getElementById('overrideStudent-autocomplete');
+      if(student) {
+        student.value='';
+        if(window.HallPassStudentAutocomplete)HallPassStudentAutocomplete.refresh('overrideStudent');
+      }
+      if(search)search.value='';
+      const destination=document.getElementById('overrideDestination');
+      if(destination)destination.value='';
+      const limit=document.getElementById('overrideDailyLimit');
+      if(limit)limit.checked=false;
+      const note=document.getElementById('overrideNote');
+      if(note)note.value='';
+    }
+    function resetRestrictionEntryForm() {
+      const editor=document.getElementById('restrictionEditor');
+      if(editor)editor.classList.add('hidden');
+      const search=document.getElementById('restrictionSearchText');
+      if(search)search.value='';
+      const status=document.getElementById('restrictionSearchStatus');
+      if(status)status.textContent='';
+      const student=document.getElementById('restrictionStudentSelect');
+      if(student)student.innerHTML='<option value="">Search and select a student</option>';
+      const type=document.getElementById('restrictionType');
+      if(type)type.value='Day';
+      const limit=document.getElementById('restrictionLimit');
+      if(limit)limit.value='1';
+      const limitWrap=document.getElementById('restrictionLimitWrap');
+      if(limitWrap)limitWrap.classList.remove('hidden');
+    }
     function showTab(name) {
       if (!['live','controls','reports'].includes(name)) return;
+      const current=document.querySelector('.tabPanel.activePanel');
+      if(current&&current.id!=='tab-'+name){
+        if(current.id==='tab-live')resetOverridePassForm();
+        if(current.id==='tab-controls')resetRestrictionEntryForm();
+        setActionMessage('', '');
+      }
       const pageSelect=document.getElementById('teacherPageSelect');
       if(pageSelect) pageSelect.value=name;
       document.querySelectorAll('.tabPanel').forEach(function(panel) {
@@ -793,8 +833,13 @@
          /waiting list (?:is |has been )?(?:off|disabled|turned off)/i.test(content));
       const tone = isClosedState ? 'closed' : type;
       if (tone) message.classList.add(tone);
-      if (type === 'success') {
-        actionMessageTimer = setTimeout(function() { setActionMessage('', ''); }, 3500);
+      if (type === 'success' || type === 'error') {
+        // Errors must not remain in the global message bar after the issue
+        // is resolved. Allow longer to read errors than confirmations.
+        const lifetime=type==='error'?8000:3500;
+        actionMessageTimer=setTimeout(function(){
+          if(message.textContent===content)setActionMessage('', '');
+        },lifetime);
       }
     }
 
@@ -922,7 +967,14 @@
       sourceElement.title='Source: '+rawSource;
       sourceElement.classList.toggle('isOverride',isOverride);
       document.getElementById('statPeriod').textContent = schedule.period || '—';
-      const locked=String(state.settings?.['Emergency Lock']||'').toLowerCase()==='yes';
+      const locked=String(state.settings?.['Emergency Lock']||'').trim().toLowerCase()==='yes';
+      if(previouslyEmergencyLocked===true&&!locked){
+        const currentMessage=document.getElementById('actionMessage');
+        if(currentMessage&&/emergency lock|passes? (?:are |is )?paused|school locked/i.test(currentMessage.textContent)){
+          setActionMessage('', '');
+        }
+      }
+      previouslyEmergencyLocked=locked;
       const windowStatus=document.getElementById('statWindow');
       windowStatus.textContent=locked?'PAUSED':(schedule.isOpen?'OPEN':'CLOSED');
       windowStatus.classList.toggle('passOpen',schedule.isOpen&&!locked);
@@ -1334,11 +1386,7 @@
         .withSuccessHandler(function(result) {
           finishButtonAction(button);
           if (result && result.success) {
-            document.getElementById('overrideStudent').value = '';
-            HallPassStudentAutocomplete.refresh('overrideStudent');
-            document.getElementById('overrideDestination').value = '';
-            document.getElementById('overrideDailyLimit').checked = false;
-            document.getElementById('overrideNote').value = '';
+            resetOverridePassForm();
           }
           handleActionResult(result);
         })
