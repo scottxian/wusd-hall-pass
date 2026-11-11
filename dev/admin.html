@@ -711,7 +711,12 @@
     #specialDaysPanel .rsEditingDateNotice{margin-top:12px;padding:10px 12px;border:1px solid #b8cee5;background:#f0f6fc;border-radius:8px;color:#194a80;font-size:14px;font-weight:700}
 
 
-    /* Students and restrictions are parallel collapsible panels on desktop.
+    /* Permanently visible student and restriction panels; no disclosure arrows. */
+    #studentsPanel .adminFixedPanel{overflow:hidden}
+    #studentsPanel .adminFixedPanelTitle{padding:16px 18px;color:#254c74;font-weight:700;font-size:17px;border-bottom:1px solid #e0e6ec}
+    #studentsPanel .adminFixedPanel>.adminDisclosureBody{display:block}
+
+    /* Students and restrictions are parallel visible panels on desktop.
        Their data tables scroll within their own columns instead of stretching the page. */
     #studentsPanel .adminStudentColumns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
     #studentsPanel .adminStudentColumns>.adminDisclosure{min-width:0;width:100%;margin:0}
@@ -1018,17 +1023,17 @@
 
       <section id="studentsPanel" class="panel">
         <div class="adminStudentColumns">
-        <details class="card adminDisclosure" id="adminStudentsDisclosure">
-          <summary>All Students <span id="adminStudentsCount" class="muted"></span></summary>
+        <div class="card adminDisclosure adminFixedPanel" id="adminStudentsDisclosure">
+          <div class="adminFixedPanelTitle">All Students <span id="adminStudentsCount" class="muted"></span></div>
           <div class="adminDisclosureBody">
             <div class="muted" style="margin-bottom:12px">Every active student can use every active room. Disable students instead of deleting them so pass history remains intact.</div>
           <div class="adminToolbar adminStudentToolbar"><div class="controls adminFilterFields"><div><label for="studentSearch">Search</label><input id="studentSearch" placeholder="Student name or ID"></div><div><label for="studentStatusFilter">Status</label><select id="studentStatusFilter"><option value="all">All Students</option><option value="active">Active Only</option><option value="inactive">Disabled Only</option></select></div></div><div class="actions"><button id="addStudentButton" class="green">Add Student</button><button id="importStudentsButton" class="purple">Import CSV</button><button id="refreshStudents" class="gray">Refresh</button></div></div>
           <div id="studentsMessage" class="message"></div>
           <div class="tableWrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Default Restroom</th><th>Actions</th></tr></thead><tbody id="studentsBody"></tbody></table></div>
           </div>
-        </details>
-        <details class="card adminDisclosure" id="adminRestrictionPanel">
-          <summary>Classroom Restroom Restrictions</summary>
+        </div>
+        <div class="card adminDisclosure adminFixedPanel" id="adminRestrictionPanel">
+          <div class="adminFixedPanelTitle">Classroom Restroom Restrictions</div>
           <div class="adminDisclosureBody">
             <div class="adminRuleEditor hidden" id="adminRuleEditor">
               <h3 id="adminRuleEditorTitle">Add Restriction</h3>
@@ -1056,7 +1061,7 @@
             <div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Rule</th><th>Actions</th></tr></thead>
               <tbody id="adminRuleBody"></tbody></table></div>
           </div>
-        </details>
+        </div>
         </div>
       </section>
 
