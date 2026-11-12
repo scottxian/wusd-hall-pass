@@ -259,12 +259,12 @@
     .restrictionCard .removeRestriction{background:#e9eff5;color:#36495d}
     @media(max-width:530px){.teacherToggleGrid,.restrictionSearch{grid-template-columns:minmax(0,1fr)}}
 
-    /* Explicit 3-column classroom controls: centered across full card width. */
+    /* Four evenly spaced classroom controls on one desktop row. */
     .classroomControlsCard{padding:14px 18px}
     .classroomControlsCard h2{margin:0 0 12px}
     #classroomControlStrip{
       display:grid;
-      grid-template-columns:minmax(430px,1.3fr) minmax(160px,1fr) minmax(180px,1fr);
+      grid-template-columns:minmax(370px,1.55fr) repeat(3,minmax(120px,1fr));
       align-items:center;
       justify-items:center;
       column-gap:16px;
@@ -272,7 +272,8 @@
       width:100%;
     }
     #classroomControlStrip > .compactScheduleRow,
-    #classroomControlStrip > .teacherToggleItem{
+    #classroomControlStrip > .teacherToggleItem, 
+    #classroomControlStrip > .teacherPassSettingsItem{
       display:flex;align-items:center;justify-content:center;
       gap:8px;min-width:0;margin:0;
     }
@@ -293,7 +294,8 @@
       width:auto;min-height:36px;flex:0 0 auto;
       padding:7px 11px;font-size:13px;white-space:nowrap;
     }
-    #classroomControlStrip .teacherToggleItem button{
+    #classroomControlStrip .teacherToggleItem button,
+    #classroomControlStrip .teacherPassSettingsItem button{
       min-width:78px;width:auto;min-height:36px;
       padding:7px 10px;font-size:13px;
     }
@@ -301,7 +303,7 @@
       margin:8px 0 0;font-size:12px;line-height:1.35;
     }
     @media(max-width:960px){
-      #classroomControlStrip{grid-template-columns:repeat(2,minmax(0,1fr))}
+      #classroomControlStrip{grid-template-columns:repeat(3,minmax(0,1fr))}
       #classroomControlStrip > .compactScheduleRow{grid-column:1/-1}
     }
     @media(max-width:560px){
@@ -500,11 +502,11 @@
               <span class="compactControlLabel">Waiting List</span>
               <button id="waitingButton" type="button" class="green" onclick="toggleWaitingList(this)">On</button>
             </div>
+            <div class="teacherPassSettingsItem">
+              <button id="openTeacherPassSettings" type="button" class="primary" onclick="openTeacherPassSettings()">Pass Settings</button>
+            </div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-            <div id="scheduleSourceHint" class="subtle compactScheduleHint">Auto follows the school calendar or room default.</div>
-            <button id="openTeacherPassSettings" type="button" class="gray" style="font-size:14px;padding:8px 14px" onclick="openTeacherPassSettings()">Pass Settings</button>
-          </div>
+          <div id="scheduleSourceHint" class="subtle compactScheduleHint">Auto follows the school calendar or room default.</div>
         </div>
         <div class="card restrictionCard">
           <div class="sectionHead">
