@@ -1911,7 +1911,7 @@
           <div class="stat"><div class="statLabel">Total Time Out of Class</div><div class="statValue">${formatMinutes(report.summary.totalMinutes)}</div></div>
           <div class="stat"><div class="statLabel">Teacher Overrides</div><div class="statValue">${report.summary.overrides}</div></div>
         </div>`;
-        head.innerHTML = '<tr><th>Date</th><th>Schedule</th><th>Period</th><th>Destination</th><th>Requested</th><th>Left</th><th>Returned</th><th>Duration</th><th>Override</th></tr>';
+        head.innerHTML = '<tr><th>Date</th><th>Schedule</th><th>Period</th><th>Destination</th><th>Requested</th><th>Left</th><th>Returned</th><th>Duration</th><th>Status / Override</th></tr>';
         if (!report.detailRows.length) { body.innerHTML = '<tr><td colspan="9">No passes in this date range.</td></tr>'; return; }
         report.detailRows.forEach(function(row) {
           const tr = document.createElement('tr');
@@ -2168,7 +2168,7 @@
         { key: 'left', label: 'Left', type: 'datetime' },
         { key: 'returned', label: 'Returned', type: 'datetime' },
         { key: 'durationMinutes', label: 'Duration', type: 'number' },
-        { key: 'override', label: 'Override', type: 'text' }
+        { key: 'override', label: 'Status / Override', type: 'text' }
       ];
 
       if (!report._drilldownSort) {
@@ -2304,7 +2304,7 @@
           <div class="stat"><div class="label">Total Time Out of Class</div><div class="value">${formatMinutes(summary.totalMinutes)}</div></div>
           <div class="stat"><div class="label">Teacher Overrides</div><div class="value">${Number(summary.overrides || 0)}</div></div>
         </div>
-        <table><thead><tr><th>Date</th><th>Schedule</th><th>Period</th><th>Destination</th><th>Requested</th><th>Left</th><th>Returned</th><th>Duration</th><th>Override</th></tr></thead><tbody>${detailRows}</tbody></table>
+        <table><thead><tr><th>Date</th><th>Schedule</th><th>Period</th><th>Destination</th><th>Requested</th><th>Left</th><th>Returned</th><th>Duration</th><th>Status / Override</th></tr></thead><tbody>${detailRows}</tbody></table>
       </body></html>`;
 
       printWindow.document.open();
@@ -2330,7 +2330,7 @@
       let fileName = 'hall-pass-report.csv';
       if (currentReport.type === 'individual') {
         fileName = sanitizeFileName(currentReport.studentName) + '-hall-pass-report.csv';
-        rows.push(['Date','Schedule','Period','Destination','Requested','Left','Returned','Duration','Override']);
+        rows.push(['Date','Schedule','Period','Destination','Requested','Left','Returned','Duration','Status / Override']);
         currentReport.detailRows.forEach(function(row) {
           rows.push([formatDateOnly(row.date), row.schedule, row.period, row.destination, timeOnly(row.requested), timeOnly(row.left), timeOnly(row.returned), row.completed ? formatMinutes(row.durationMinutes) : '', row.override || '']);
         });
