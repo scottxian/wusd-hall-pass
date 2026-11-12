@@ -259,12 +259,12 @@
     .restrictionCard .removeRestriction{background:#e9eff5;color:#36495d}
     @media(max-width:530px){.teacherToggleGrid,.restrictionSearch{grid-template-columns:minmax(0,1fr)}}
 
-    /* Explicit 3-column classroom controls: centered across full card width. */
+    /* Four evenly spaced classroom controls on one desktop row. */
     .classroomControlsCard{padding:14px 18px}
     .classroomControlsCard h2{margin:0 0 12px}
     #classroomControlStrip{
       display:grid;
-      grid-template-columns:minmax(430px,1.3fr) minmax(160px,1fr) minmax(180px,1fr);
+      grid-template-columns:minmax(370px,1.55fr) repeat(3,minmax(120px,1fr));
       align-items:center;
       justify-items:center;
       column-gap:16px;
@@ -272,7 +272,8 @@
       width:100%;
     }
     #classroomControlStrip > .compactScheduleRow,
-    #classroomControlStrip > .teacherToggleItem{
+    #classroomControlStrip > .teacherToggleItem, 
+    #classroomControlStrip > .teacherPassSettingsItem{
       display:flex;align-items:center;justify-content:center;
       gap:8px;min-width:0;margin:0;
     }
@@ -293,7 +294,8 @@
       width:auto;min-height:36px;flex:0 0 auto;
       padding:7px 11px;font-size:13px;white-space:nowrap;
     }
-    #classroomControlStrip .teacherToggleItem button{
+    #classroomControlStrip .teacherToggleItem button,
+    #classroomControlStrip .teacherPassSettingsItem button{
       min-width:78px;width:auto;min-height:36px;
       padding:7px 10px;font-size:13px;
     }
@@ -301,7 +303,7 @@
       margin:8px 0 0;font-size:12px;line-height:1.35;
     }
     @media(max-width:960px){
-      #classroomControlStrip{grid-template-columns:repeat(2,minmax(0,1fr))}
+      #classroomControlStrip{grid-template-columns:repeat(3,minmax(0,1fr))}
       #classroomControlStrip > .compactScheduleRow{grid-column:1/-1}
     }
     @media(max-width:560px){
@@ -311,6 +313,19 @@
       #classroomControlStrip .teacherScheduleChoice{flex-wrap:wrap}
       #classroomControlStrip #scheduleChoice{width:clamp(145px,46vw,220px)}
     }
+    /* Compact teacher pass-setting dialog. The main controls remain one row. */
+    .passSettingsBackdrop{position:fixed;inset:0;z-index:3000;background:rgba(15,30,45,.58);display:flex;justify-content:center;align-items:center;padding:16px}
+    .passSettingsDialog{background:#fff;border-radius:12px;padding:20px;width:min(510px,100%);max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 12px 35px rgba(0,0,0,.3)}
+    .passSettingsDialogHeader{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .passSettingsDialogHeader h2{margin:0}
+    .passSettingsDialogHeader button{padding:6px 12px}
+    .passSettingsFields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:15px 0}
+    .passSettingsFields label{font-size:14px;line-height:1.4}
+    .passSettingsActions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+    #teacherPassSettingsMessage{min-height:24px;font-size:14px;margin:10px 0}
+    #teacherPassSettingsMessage.error{color:#a52720}
+    #teacherPassSettingsMessage.success{color:#17683d}
+    @media(max-width:490px){.passSettingsFields{grid-template-columns:1fr}}
     /* Teacher dashboard typography shared by all three pages.
        Branded page identity, status values, and buttons intentionally keep
        their own visual styles. */
@@ -487,6 +502,9 @@
               <span class="compactControlLabel">Waiting List</span>
               <button id="waitingButton" type="button" class="green" onclick="toggleWaitingList(this)">On</button>
             </div>
+            <div class="teacherPassSettingsItem">
+              <button id="openTeacherPassSettings" type="button" class="primary" onclick="openTeacherPassSettings()">Pass Settings</button>
+            </div>
           </div>
           <div id="scheduleSourceHint" class="subtle compactScheduleHint">Auto follows the school calendar or room default.</div>
         </div>
@@ -578,6 +596,28 @@
           </div>
         </div>
       </section>
+    </div>
+  </div>
+
+  <div id="teacherPassSettingsBackdrop" class="passSettingsBackdrop hidden" aria-hidden="true">
+    <div class="passSettingsDialog" role="dialog" aria-modal="true" aria-labelledby="teacherPassSettingsTitle">
+      <div class="passSettingsDialogHeader">
+        <h2 id="teacherPassSettingsTitle">Classroom Pass Settings</h2>
+        <button id="closeTeacherPassSettings" type="button" class="gray" onclick="closeTeacherPassSettings()">Close</button>
+      </div>
+      <p class="subtle">These settings apply only to this classroom and remain in effect until you restore the Admin's room defaults.</p>
+      <div id="teacherPassSettingsSource" class="subtle" aria-live="polite"></div>
+      <div class="passSettingsFields">
+        <div><label for="teacherPassOpen">Open passes after period starts (minutes)</label><input id="teacherPassOpen" type="number" min="0" max="30" step="1"></div>
+        <div><label for="teacherPassClose">Close passes before period ends (minutes)</label><input id="teacherPassClose" type="number" min="0" max="30" step="1"></div>
+        <div><label for="teacherLongWarning">Long pass warning (minutes)</label><input id="teacherLongWarning" type="number" min="1" max="120" step="1"></div>
+        <div><label for="teacherVeryLongWarning">Very long pass warning (minutes)</label><input id="teacherVeryLongWarning" type="number" min="1" max="120" step="1"></div>
+      </div>
+      <div id="teacherPassSettingsMessage" role="status" aria-live="polite"></div>
+      <div class="passSettingsActions">
+        <button id="restoreTeacherPassSettings" class="gray" type="button" onclick="restoreTeacherPassSettings()">Restore Room Defaults</button>
+        <button id="saveTeacherPassSettings" class="primary" type="button" onclick="saveTeacherPassSettings()">Save Settings</button>
+      </div>
     </div>
   </div>
 
@@ -1107,6 +1147,122 @@
       waitingButton.setAttribute('aria-pressed',String(displayWaiting));
       waitingButton.setAttribute('aria-busy',String(Boolean(waitingPending)));
     }
+
+    let teacherPassSettingsDefaults=null;
+    let passSettingsBusy=false;
+    function teacherPassSettingsMessage(message,type=''){
+      const el=document.getElementById('teacherPassSettingsMessage');
+      el.textContent=message||'';
+      el.className=type;
+    }
+    function setTeacherPassSettingsBusy(busy){
+      passSettingsBusy=busy;
+      document.getElementById('saveTeacherPassSettings').disabled=busy;
+      document.getElementById('restoreTeacherPassSettings').disabled=busy;
+    }
+    function setTeacherPassSettingsValues(values){
+      if(!values)return;
+      document.getElementById('teacherPassOpen').value=values.passes_open_after_start;
+      document.getElementById('teacherPassClose').value=values.passes_close_before_end;
+      document.getElementById('teacherLongWarning').value=values.long_pass_warning;
+      document.getElementById('teacherVeryLongWarning').value=values.very_long_pass_warning;
+    }
+    function loadTeacherPassSettings(){
+      teacherPassSettingsMessage('Loading room settings...');
+      setTeacherPassSettingsBusy(true);
+      google.script.run
+        .withSuccessHandler(function(result){
+          setTeacherPassSettingsBusy(false);
+          if(!result?.success){teacherPassSettingsMessage(result?.message||'Could not load settings.','error');return;}
+          teacherPassSettingsDefaults=result.defaults;
+          setTeacherPassSettingsValues(result.effective);
+          document.getElementById('teacherPassSettingsSource').textContent=result.overridden
+            ? 'Teacher settings active. The Admin room defaults are preserved.'
+            : 'Using Admin room defaults.';
+          teacherPassSettingsMessage('');
+        })
+        .withFailureHandler(function(error){
+          setTeacherPassSettingsBusy(false);
+          teacherPassSettingsMessage(error?.message||'Could not load settings.','error');
+        })
+        .getTeacherPassSettings(teacherPin);
+    }
+    function openTeacherPassSettings(){
+      if(!unlocked)return setActionMessage('Unlock the teacher dashboard first.','error');
+      const backdrop=document.getElementById('teacherPassSettingsBackdrop');
+      backdrop.classList.remove('hidden');
+      backdrop.setAttribute('aria-hidden','false');
+      document.getElementById('closeTeacherPassSettings').focus();
+      loadTeacherPassSettings();
+    }
+    function closeTeacherPassSettings(){
+      if(passSettingsBusy)return;
+      const backdrop=document.getElementById('teacherPassSettingsBackdrop');
+      backdrop.classList.add('hidden');
+      backdrop.setAttribute('aria-hidden','true');
+      document.getElementById('openTeacherPassSettings').focus();
+    }
+    function saveTeacherPassSettings(){
+      if(passSettingsBusy)return;
+      const fields=[
+        ['teacherPassOpen','passes_open_after_start',0,30],
+        ['teacherPassClose','passes_close_before_end',0,30],
+        ['teacherLongWarning','long_pass_warning',1,120],
+        ['teacherVeryLongWarning','very_long_pass_warning',1,120]
+      ];
+      const data={};
+      for(const [id,key,min,max] of fields){
+        const field=document.getElementById(id);
+        const value=Number(field.value);
+        if(field.value.trim()===''||!Number.isInteger(value)||value<min||value>max)
+          return teacherPassSettingsMessage('Enter whole minutes between '+min+' and '+max+' for '+field.previousElementSibling.textContent+'.','error');
+        data[key]=value;
+      }
+      if(data.very_long_pass_warning<=data.long_pass_warning)
+        return teacherPassSettingsMessage('Very Long Pass Warning must exceed Long Pass Warning.','error');
+      setTeacherPassSettingsBusy(true);
+      teacherPassSettingsMessage('Saving classroom pass settings...');
+      google.script.run
+        .withSuccessHandler(function(result){
+          setTeacherPassSettingsBusy(false);
+          if(!result?.success)return teacherPassSettingsMessage(result?.message||'Could not save settings.','error');
+          teacherPassSettingsMessage(result.message||'Saved.','success');
+          document.getElementById('teacherPassSettingsSource').textContent='Teacher settings active. The Admin room defaults are preserved.';
+          refreshAfterAction();
+        })
+        .withFailureHandler(function(error){
+          setTeacherPassSettingsBusy(false);
+          teacherPassSettingsMessage(error?.message||'Could not save settings.','error');
+        })
+        .saveTeacherPassSettings(teacherPin,data);
+    }
+    function restoreTeacherPassSettings(){
+      if(passSettingsBusy)return;
+      if(!window.confirm('Restore the Admin room defaults for all four pass settings?'))return;
+      setTeacherPassSettingsBusy(true);
+      teacherPassSettingsMessage('Restoring Admin room defaults...');
+      google.script.run
+        .withSuccessHandler(function(result){
+          setTeacherPassSettingsBusy(false);
+          if(!result?.success)return teacherPassSettingsMessage(result?.message||'Could not restore defaults.','error');
+          setTeacherPassSettingsValues(teacherPassSettingsDefaults);
+          document.getElementById('teacherPassSettingsSource').textContent='Using Admin room defaults.';
+          teacherPassSettingsMessage(result.message||'Defaults restored.','success');
+          refreshAfterAction();
+        })
+        .withFailureHandler(function(error){
+          setTeacherPassSettingsBusy(false);
+          teacherPassSettingsMessage(error?.message||'Could not restore defaults.','error');
+        })
+        .restoreTeacherPassDefaults(teacherPin);
+    }
+    document.getElementById('teacherPassSettingsBackdrop').addEventListener('click',function(e){
+      if(e.target===this)closeTeacherPassSettings();
+    });
+    document.addEventListener('keydown',function(e){
+      if(e.key==='Escape'&&!document.getElementById('teacherPassSettingsBackdrop').classList.contains('hidden'))
+        closeTeacherPassSettings();
+    });
 
     function saveSettings(changes, button, busyText, processingText) {
       beginButtonAction(button, busyText);
@@ -1755,7 +1911,7 @@
           <div class="stat"><div class="statLabel">Total Time Out of Class</div><div class="statValue">${formatMinutes(report.summary.totalMinutes)}</div></div>
           <div class="stat"><div class="statLabel">Teacher Overrides</div><div class="statValue">${report.summary.overrides}</div></div>
         </div>`;
-        head.innerHTML = '<tr><th>Date</th><th>Schedule</th><th>Period</th><th>Destination</th><th>Requested</th><th>Left</th><th>Returned</th><th>Duration</th><th>Override</th></tr>';
+        head.innerHTML = '<tr><th>Date</th><th>Schedule</th><th>Period</th><th>Destination</th><th>Requested</th><th>Left</th><th>Returned</th><th>Duration</th><th>Status / Override</th></tr>';
         if (!report.detailRows.length) { body.innerHTML = '<tr><td colspan="9">No passes in this date range.</td></tr>'; return; }
         report.detailRows.forEach(function(row) {
           const tr = document.createElement('tr');
@@ -2012,7 +2168,7 @@
         { key: 'left', label: 'Left', type: 'datetime' },
         { key: 'returned', label: 'Returned', type: 'datetime' },
         { key: 'durationMinutes', label: 'Duration', type: 'number' },
-        { key: 'override', label: 'Override', type: 'text' }
+        { key: 'override', label: 'Status / Override', type: 'text' }
       ];
 
       if (!report._drilldownSort) {
@@ -2148,7 +2304,7 @@
           <div class="stat"><div class="label">Total Time Out of Class</div><div class="value">${formatMinutes(summary.totalMinutes)}</div></div>
           <div class="stat"><div class="label">Teacher Overrides</div><div class="value">${Number(summary.overrides || 0)}</div></div>
         </div>
-        <table><thead><tr><th>Date</th><th>Schedule</th><th>Period</th><th>Destination</th><th>Requested</th><th>Left</th><th>Returned</th><th>Duration</th><th>Override</th></tr></thead><tbody>${detailRows}</tbody></table>
+        <table><thead><tr><th>Date</th><th>Schedule</th><th>Period</th><th>Destination</th><th>Requested</th><th>Left</th><th>Returned</th><th>Duration</th><th>Status / Override</th></tr></thead><tbody>${detailRows}</tbody></table>
       </body></html>`;
 
       printWindow.document.open();
@@ -2174,7 +2330,7 @@
       let fileName = 'hall-pass-report.csv';
       if (currentReport.type === 'individual') {
         fileName = sanitizeFileName(currentReport.studentName) + '-hall-pass-report.csv';
-        rows.push(['Date','Schedule','Period','Destination','Requested','Left','Returned','Duration','Override']);
+        rows.push(['Date','Schedule','Period','Destination','Requested','Left','Returned','Duration','Status / Override']);
         currentReport.detailRows.forEach(function(row) {
           rows.push([formatDateOnly(row.date), row.schedule, row.period, row.destination, timeOnly(row.requested), timeOnly(row.left), timeOnly(row.returned), row.completed ? formatMinutes(row.durationMinutes) : '', row.override || '']);
         });
