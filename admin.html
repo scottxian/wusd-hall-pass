@@ -84,7 +84,7 @@
       .roomDangerZone{align-items:flex-start;flex-direction:column}
     }
 
-    /* Hall Pilot DEV UI: live campus boards, calm tables, progressive disclosure */
+    /* Hall Pilot production UI: live campus boards, calm tables, progressive disclosure */
     .adminLiveGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px}
     .adminLiveGrid>.card{min-width:0;margin-bottom:0;height:100%}
     .adminLiveGrid h2{margin:0 0 14px}
@@ -775,6 +775,95 @@
     #adminRestrictionPanel .adminRuleListTools button{margin-bottom:0}
     @media(max-width:600px){#adminRestrictionPanel .adminRuleEditor{padding:12px}#adminRestrictionPanel .adminRuleListTools{width:100%;justify-content:flex-start}#adminRestrictionPanel .adminRuleListTools>div{flex:1}}
 
+
+    /* Room editor: title/actions stay visible, long content scrolls inside. */
+    #roomModal{align-items:center;overflow:hidden;padding:14px}
+    #roomModal > .roomEditorModal{
+      display:flex;flex-direction:column;min-height:0;
+      width:min(850px,100%);max-width:850px;
+      max-height:calc(100vh - 28px);max-height:calc(100dvh - 28px);
+      padding:0;overflow:hidden
+    }
+    #roomModal .roomModalHeader{
+      flex:0 0 auto;padding:16px 22px 14px;
+      border-bottom:1px solid #dce3eb;background:#fff
+    }
+    #roomModal .roomModalHeader h2{margin:0}
+    #roomModal .roomModalBody{
+      flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+      padding:18px 22px;scrollbar-gutter:stable
+    }
+    #roomModal .roomModalFooter{
+      flex:0 0 auto;padding:12px 22px 14px;
+      border-top:1px solid #dce3eb;background:#fff
+    }
+    #roomModal .roomModalFooter .modalActions{border-top:0;margin-top:0;padding-top:0}
+    #roomModal .roomModalFooter .message:not(:empty){margin:0 0 10px}
+    #roomModal .roomModalFooter .message:empty{display:none}
+    #roomModal .roomModalBody > .formGrid,
+    #roomModal .roomModalBody .adminDisclosureBody > .formGrid{
+      grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:14px
+    }
+    #roomModal .roomModalBody .formGrid > div{min-width:0}
+    #roomModal .roomModalBody input:not([type="checkbox"]):not([type="hidden"]),
+    #roomModal .roomModalBody select{min-width:0;min-height:40px}
+    #roomModal .roomModalBody .card{
+      margin:16px 0 0!important;padding:14px!important;
+      box-shadow:none;border-radius:9px
+    }
+    #roomModal .roomModalBody .card h3{margin:0 0 12px!important}
+    #roomModal .roomModalBody .adminDisclosure{margin:16px 0!important;overflow:hidden}
+    #roomModal .adminDisclosureBody{padding:14px 16px}
+    #roomModal .roomPassOptionGrid{
+      display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;margin-top:14px
+    }
+    #roomModal .roomPassOptionGrid label{
+      display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;
+      gap:10px;margin:0;padding:11px 12px;
+      background:#f7fafc;border:1px solid #dce5ef;border-radius:8px;
+      font-size:14px;font-weight:500;line-height:1.35;cursor:pointer
+    }
+    #roomModal input[type="checkbox"]{
+      width:18px;height:18px;min-width:18px;max-width:18px;
+      margin:0;padding:0;accent-color:#1f5ea8;flex:none
+    }
+    #roomModal .roomPassOptionGrid label span{min-width:0;overflow-wrap:anywhere}
+    #roomModal .roomTeacherSection{margin-top:18px}
+    #roomModal .roomTeacherSection h3{margin:0 0 10px}
+    #roomModal .roomTeacherSection .roomChecks{
+      display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:9px;padding:10px;
+      background:#f5f7fa;border:1px solid #e1e7ef;border-radius:9px
+    }
+    #roomModal .roomTeacherSection .roomChecks label{
+      display:grid;grid-template-columns:20px minmax(0,1fr);
+      gap:10px;align-items:center;padding:10px 12px;margin:0;
+      min-height:42px;border:1px solid #dce3eb;border-radius:7px;
+      background:#fff;font-weight:500;line-height:1.35;
+      overflow-wrap:anywhere;cursor:pointer
+    }
+    #roomModal .roomTeacherSection .roomChecks label:has(input:disabled){
+      opacity:.65;cursor:not-allowed
+    }
+    #roomModal .roomCloneSection{margin-top:16px}
+    #roomModal .roomCloneSection .muted{margin-top:7px}
+    #roomModal .roomDangerZone{margin-top:18px}
+    @media(max-width:620px){
+      #roomModal{padding:8px}
+      #roomModal > .roomEditorModal{
+        max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px)
+      }
+      #roomModal .roomModalHeader{padding:13px 15px}
+      #roomModal .roomModalBody{padding:14px 15px;scrollbar-gutter:auto}
+      #roomModal .roomModalFooter{padding:10px 15px}
+      #roomModal .roomModalBody > .formGrid,
+      #roomModal .roomModalBody .adminDisclosureBody > .formGrid,
+      #roomModal .roomPassOptionGrid,
+      #roomModal .roomTeacherSection .roomChecks{grid-template-columns:minmax(0,1fr)}
+      #roomModal .adminDisclosureBody{padding:12px}
+    }
+
 </style>
 <link rel="stylesheet" href="branding.css">
 </head>
@@ -867,7 +956,7 @@
       </section>
 
 
-      <!-- 1.15 DEVELOPMENT: additive, isolated from the existing legacy calendar. -->
+      <!-- 1.15: additive, isolated from the existing legacy calendar. -->
       <section id="roomSchedulePanel" class="panel">
         <div class="card">
           <div class="sectionHead">
@@ -1328,7 +1417,12 @@
 
   <div id="destinationModal" class="modalBackdrop hidden" aria-hidden="true"><div class="modal"><h2 id="destinationModalTitle">Add Destination</h2><input id="destinationEditId" type="hidden"><div class="formGrid"><div><label for="destinationNameInput">Destination Name</label><input id="destinationNameInput" autocomplete="off" placeholder="Nurse"></div><div><label for="destinationEnabledInput">Schoolwide Status</label><select id="destinationEnabledInput"><option value="true">Enabled</option><option value="false">Disabled</option></select></div><div><label for="destinationHallPassInput">Counts as Hall Pass</label><select id="destinationHallPassInput"><option value="true">Yes</option><option value="false">No</option></select></div><div><label for="destinationApprovalInput">Teacher Approval Required</label><select id="destinationApprovalInput"><option value="false">No</option><option value="true">Yes</option></select></div><div><label for="destinationDefaultMaxInput">Default Max Out <span class="muted">(0 = no limit)</span></label><input id="destinationDefaultMaxInput" type="number" min="0" value="0"></div><div><label for="destinationSortInput">Sort Order</label><input id="destinationSortInput" type="number" min="0" value="0"></div></div><div id="destinationModalMessage" class="message"></div><div class="modalActions"><button class="gray" data-close="destinationModal">Cancel</button><button id="saveDestinationButton">Save Destination</button></div></div></div>
 
-  <div id="roomModal" class="modalBackdrop hidden" aria-hidden="true"><div class="modal"><h2 id="roomModalTitle">Add Room</h2><input id="roomEditId" type="hidden"><div class="formGrid"><div><label for="roomKeyInput">Room Key</label><input id="roomKeyInput" placeholder="d1"><div class="muted">Permanent URL key; unique only within this school. Different schools may each use d4.</div></div><div><label for="roomNameInput">Room Name</label><input id="roomNameInput" placeholder="D1"></div><div><label for="roomTimezoneInput">Timezone</label><input id="roomTimezoneInput" value="America/Los_Angeles"></div><div><label for="roomActiveInput">Status</label><select id="roomActiveInput"><option value="true">Active</option><option value="false">Disabled</option></select></div></div><div class="card" style="padding:12px;margin:12px 0;background:#f7fafc;border:1px solid #dde5ee">
+  <div id="roomModal" class="modalBackdrop hidden" aria-hidden="true">
+    <div class="modal roomEditorModal" role="dialog" aria-modal="true" aria-labelledby="roomModalTitle">
+      <div class="roomModalHeader"><h2 id="roomModalTitle">Add Room</h2></div>
+      <div id="roomModalBody" class="roomModalBody">
+        <input id="roomEditId" type="hidden">
+        <div class="formGrid roomIdentityGrid"><div><label for="roomKeyInput">Room Key</label><input id="roomKeyInput" placeholder="d1"><div class="muted">Permanent URL key; unique only within this school. Different schools may each use d4.</div></div><div><label for="roomNameInput">Room Name</label><input id="roomNameInput" placeholder="D1"></div><div><label for="roomTimezoneInput">Timezone</label><input id="roomTimezoneInput" value="America/Los_Angeles"></div><div><label for="roomActiveInput">Status</label><select id="roomActiveInput"><option value="true">Active</option><option value="false">Disabled</option></select></div></div><div class="card" style="padding:12px;margin:12px 0;background:#f7fafc;border:1px solid #dde5ee">
         <h3 style="margin:0 0 9px">Room Default · Restroom Passes</h3>
         <div class="formGrid">
           <div><label for="roomRestroomLimit">Maximum Passes (0 = Unlimited)</label>
@@ -1348,18 +1442,46 @@
             <div><label for="roomLongWarning">Long Pass Warning (Minutes)</label><input id="roomLongWarning" type="number" min="1" max="120" value="5"></div>
             <div><label for="roomVeryLongWarning">Very Long Pass Warning (Minutes)</label><input id="roomVeryLongWarning" type="number" min="1" max="120" value="10"></div>
           </div>
-          <div class="buttonRow">
-            <label><input id="roomBuzzerEnabled" type="checkbox" checked> Buzzer Enabled</label>
-            <label><input id="roomClearQueueAtEnd" type="checkbox" checked> Clear Waiting List at Period End</label>
-            <label><input id="roomTestMode" type="checkbox"> Test Mode (Admin Only)</label>
+          <div class="roomPassOptionGrid" role="group" aria-label="Advanced room pass switches">
+            <label><input id="roomBuzzerEnabled" type="checkbox" checked><span>Buzzer Enabled</span></label>
+            <label><input id="roomClearQueueAtEnd" type="checkbox" checked><span>Clear Waiting List at Period End</span></label>
+            <label><input id="roomAutoCloseEnd" type="checkbox" onchange="updateRoomAutoCloseFields()"><span>Auto-Close Students Out at End of School Day</span></label>
+            <label><input id="roomTestMode" type="checkbox"><span>Test Mode (Admin Only)</span></label>
           </div>
-          <p class="muted">Test Mode should remain off in real classrooms. Teachers cannot change these settings.</p>
+          <div id="roomAutoCloseGraceWrap" class="hidden" style="margin-top:12px;max-width:320px">
+            <label for="roomAutoCloseGrace">Grace Period After Final Bell (Minutes)</label>
+            <input id="roomAutoCloseGrace" type="number" min="0" max="120" step="1" value="15">
+          </div>
+          <p class="muted">Auto-close uses this room's final scheduled bell (including special days) and labels passes as administratively closed, not verified returned. Test Mode should remain off in real classrooms. Teachers cannot change these settings.</p>
         </div>
       </details>
-      <div style="margin-top:12px"><label>Assigned Teachers</label><div id="roomTeacherChecks" class="roomChecks"></div></div><div id="cloneWrap" style="margin-top:12px"><label for="cloneRoomSelect">Start with settings/destinations from</label><select id="cloneRoomSelect"><option value="">Blank defaults</option></select></div><div id="roomEditCloneWrap" class="hidden" style="margin-top:12px"><label for="editCloneRoomSelect">Replace this room's settings/destinations with a copy from</label><select id="editCloneRoomSelect"><option value="">Do not copy</option></select><div class="muted">This replaces room settings and destinations, but not the master bell schedule, students, or pass history.</div></div><div id="roomModalMessage" class="message"></div>
-      <div class="modalActions"><button class="gray" data-close="roomModal">Cancel</button><button id="saveRoomButton">Save Room</button></div>
-      <div id="roomDeleteWrap" class="hidden roomDangerZone"><div class="muted">Permanently remove this room (only if it has no pass history).</div><button type="button" class="small red" id="deleteRoomFromModalButton">Delete Room</button></div>
-    </div></div>
+      <section class="roomTeacherSection">
+          <h3>Assigned Teachers</h3>
+          <div id="roomTeacherChecks" class="roomChecks" role="group" aria-label="Assigned Teachers"></div>
+        </section>
+        <div id="cloneWrap" class="roomCloneSection">
+          <label for="cloneRoomSelect">Start with settings/destinations from</label>
+          <select id="cloneRoomSelect"><option value="">Blank defaults</option></select>
+        </div>
+        <div id="roomEditCloneWrap" class="hidden roomCloneSection">
+          <label for="editCloneRoomSelect">Replace this room's settings/destinations with a copy from</label>
+          <select id="editCloneRoomSelect"><option value="">Do not copy</option></select>
+          <div class="muted">This replaces room settings and destinations, but not the master bell schedule, students, or pass history.</div>
+        </div>
+        <div id="roomDeleteWrap" class="hidden roomDangerZone">
+          <div class="muted">Permanently remove this room (only if it has no pass history).</div>
+          <button type="button" class="small red" id="deleteRoomFromModalButton">Delete Room</button>
+        </div>
+      </div>
+      <div class="roomModalFooter">
+        <div id="roomModalMessage" class="message" role="status" aria-live="polite"></div>
+        <div class="modalActions">
+          <button type="button" class="gray" data-close="roomModal">Cancel</button>
+          <button type="button" id="saveRoomButton">Save Room</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div id="scheduleModal" class="modalBackdrop hidden" aria-hidden="true">
     <div class="modal" style="width:min(900px,calc(100vw - 24px));max-width:900px;max-height:90vh;overflow-y:auto">
@@ -1808,7 +1930,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           +wholeScheduleGroups.filter(x=>x.name.toLowerCase()!==group.name.toLowerCase())
             .map(x=>'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>').join('');
         $('scheduleReplaceWarning').textContent=r.legacyRegularFallback
-          ? 'IMPORTANT: The original calendar mode still uses Regular as its default. After this schedule is deleted, ordinary days will use each room’s assigned Primary schedule instead. This changes the development fallback behavior.'
+          ? 'IMPORTANT: The original calendar mode still uses Regular as its default. After this schedule is deleted, ordinary days will use each room’s assigned Primary schedule instead. This changes the production fallback behavior.'
           : 'Deleting a master schedule does not remove historical pass records.';
         $('confirmScheduleReplace').textContent=total?'Replace & Delete':'Delete Schedule';
         setMsg('scheduleReplaceMessage','');
@@ -3105,6 +3227,11 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function fillRoomChecks(containerId,selectedIds,mode){const items=mode==='teachers'?assignmentTeachers():management.rooms;$(containerId).innerHTML=items.map(x=>{const id=x.id,label=mode==='teachers'?x.name:x.room,isProtected=mode==='teachers'&&adminAccess.organizationAdmin!==true&&x.role==='admin';return `<label><input type="checkbox" value="${esc(id)}" ${(selectedIds||[]).includes(id)?'checked':''} ${isProtected?'disabled':''}>${esc(label)}${x.role==='admin'?' (Organization Admin)':''}${x.active===false?' (disabled)':''}</label>`}).join('')||'<span class="muted">None available.</span>'}
     function selectedChecks(containerId){return Array.from($(containerId).querySelectorAll('input[type=checkbox]:checked')).map(x=>x.value)}
     function fillCloneSelect(id,excludeId='',blankText='Blank defaults'){const options=management.rooms.filter(r=>r.id!==excludeId && r.active).map(r=>`<option value="${esc(r.id)}">${esc(r.room)} (${esc(r.key)})</option>`).join('');$(id).innerHTML=`<option value="">${esc(blankText)}</option>`+options}
+    function updateRoomAutoCloseFields(){
+      const enabled=$('roomAutoCloseEnd').checked;
+      $('roomAutoCloseGraceWrap').classList.toggle('hidden',!enabled);
+      $('roomAutoCloseGrace').disabled=!enabled;
+    }
     function openRoom(id=''){const r=management.rooms.find(x=>x.id===id);$('roomEditId').value=r?.id||'';$('roomModalTitle').textContent=r?'Edit Room':'Add Room';$('roomKeyInput').value=r?.key||'';$('roomKeyInput').disabled=Boolean(r);$('roomNameInput').value=r?.room||'';$('roomTimezoneInput').value=r?.timezone||'America/Los_Angeles';$('roomActiveInput').value=String(r?.active!==false);$('roomRestroomLimit').value=String(r?.restroomLimit??0);$('roomRestroomPeriod').value=r?.restroomPeriod||'Day';
       $('roomPassOpenDelay').value=String(r?.passOpenDelay??10);
       $('roomPassCloseEarly').value=String(r?.passCloseEarly??10);
@@ -3112,11 +3239,16 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       $('roomVeryLongWarning').value=String(r?.veryLongPassWarning??10);
       $('roomBuzzerEnabled').checked=r?.buzzerEnabled!==false;
       $('roomClearQueueAtEnd').checked=r?.clearQueueAtEnd!==false;
-      $('roomTestMode').checked=r?.testMode===true;fillRoomChecks('roomTeacherChecks',r?.teacherIds||[],'teachers');fillCloneSelect('cloneRoomSelect','');fillCloneSelect('editCloneRoomSelect',r?.id||'','Do not copy');$('cloneWrap').classList.toggle('hidden',Boolean(r));$('roomEditCloneWrap').classList.toggle('hidden',!r);$('roomDeleteWrap').classList.toggle('hidden',!r);setMsg('roomModalMessage','');showModal('roomModal')}
+      $('roomAutoCloseEnd').checked=r?.autoClosePassesEndOfDay===true;
+      $('roomAutoCloseGrace').value=String(r?.autoCloseGraceMinutes??15);
+      updateRoomAutoCloseFields();
+      $('roomTestMode').checked=r?.testMode===true;fillRoomChecks('roomTeacherChecks',r?.teacherIds||[],'teachers');fillCloneSelect('cloneRoomSelect','');fillCloneSelect('editCloneRoomSelect',r?.id||'','Do not copy');$('cloneWrap').classList.toggle('hidden',Boolean(r));$('roomEditCloneWrap').classList.toggle('hidden',!r);$('roomDeleteWrap').classList.toggle('hidden',!r);setMsg('roomModalMessage','');showModal('roomModal');$('roomModalBody').scrollTop=0}
     async function saveRoom(){const b=$('saveRoomButton'),id=$('roomEditId').value,data={key:$('roomKeyInput').value.trim().toLowerCase(),room:$('roomNameInput').value.trim(),timezone:$('roomTimezoneInput').value.trim(),active:$('roomActiveInput').value==='true',restroomLimit:Number($('roomRestroomLimit').value),restroomPeriod:$('roomRestroomPeriod').value,
       passOpenDelay:Number($('roomPassOpenDelay').value),passCloseEarly:Number($('roomPassCloseEarly').value),
       longPassWarning:Number($('roomLongWarning').value),veryLongPassWarning:Number($('roomVeryLongWarning').value),
       buzzerEnabled:$('roomBuzzerEnabled').checked,clearQueueAtEnd:$('roomClearQueueAtEnd').checked,
+      autoClosePassesEndOfDay:$('roomAutoCloseEnd').checked,
+      autoCloseGraceMinutes:Number($('roomAutoCloseGrace').value),
       testMode:$('roomTestMode').checked,teacherIds:selectedChecks('roomTeacherChecks')};if(!id)data.cloneFromRoomId=$('cloneRoomSelect').value;b.disabled=true;setMsg('roomModalMessage','Saving...');try{let r;if(id){r=await hallpassApi.call('adminUpdateRoom',[id,data]);if(r.success && $('editCloneRoomSelect').value){const c=await hallpassApi.call('adminCloneRoomConfig',[id,$('editCloneRoomSelect').value]);if(!c.success)r=c}}else r=await hallpassApi.call('adminCreateRoom',[data]);if(!r.success){setMsg('roomModalMessage',r.message,true);return;}hideModal('roomModal');await Promise.all([refreshManagement(),refreshLive()]);setMsg('manageMessage',r.message)}catch(e){setMsg('roomModalMessage',e.message,true)}finally{b.disabled=false}}
     async function deleteRoom(id){const r=management.rooms.find(x=>x.id===id);if(!r)return;const fromModal=!$('roomModal').classList.contains('hidden')&&$('roomEditId').value===id;const messageId=fromModal?'roomModalMessage':'manageMessage';const ok=window.confirm(`Delete room ${r.room}?\nRooms with pass or waiting history cannot be deleted.`);if(!ok)return;setMsg(messageId,'Deleting room...');try{const result=await hallpassApi.call('adminDeleteRoom',[id]);if(!result.success){setMsg(messageId,result.message,true);return;}if(fromModal)hideModal('roomModal');await Promise.all([refreshManagement(),refreshLive()]);setMsg('manageMessage',result.message)}catch(e){setMsg(messageId,e.message,true)}}
     function openTeacher(id=''){const t=management.teachers.find(x=>x.id===id);if((t?.role==='admin'||t?.schoolAdmin)&&adminAccess.organizationAdmin!==true){setMsg('manageMessage','Only an Organization Admin can manage Admin accounts.',true);return}$('teacherEditId').value=t?.id||'';$('teacherModalTitle').textContent=t?'Edit Teacher':'Add Teacher';$('teacherNameInput').value=t?.name||'';$('teacherEmailInput').value=t?.email||'';$('teacherRoleInput').value=t?.role||'teacher';$('teacherSchoolAdminInput').value=String(t?.schoolAdmin===true);$('teacherActiveInput').value=String(t?.active!==false);$('teacherRoleInput').disabled=adminAccess.organizationAdmin!==true;$('teacherSchoolAdminInput').disabled=adminAccess.organizationAdmin!==true;$('teacherPinInput').value='';$('pinHint').textContent=t?'Leave blank to keep the current PIN; enter a new PIN to reset it.':'Required for a new teacher.';fillRoomChecks('teacherRoomChecks',t?.roomIds||[],'rooms');setMsg('teacherModalMessage','');showModal('teacherModal')}
