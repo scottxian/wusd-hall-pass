@@ -1351,9 +1351,14 @@
           <div class="buttonRow">
             <label><input id="roomBuzzerEnabled" type="checkbox" checked> Buzzer Enabled</label>
             <label><input id="roomClearQueueAtEnd" type="checkbox" checked> Clear Waiting List at Period End</label>
+            <label><input id="roomAutoCloseEnd" type="checkbox" onchange="updateRoomAutoCloseFields()"> Auto-Close Students Out at End of School Day</label>
             <label><input id="roomTestMode" type="checkbox"> Test Mode (Admin Only)</label>
           </div>
-          <p class="muted">Test Mode should remain off in real classrooms. Teachers cannot change these settings.</p>
+          <div id="roomAutoCloseGraceWrap" class="hidden" style="margin-top:12px;max-width:320px">
+            <label for="roomAutoCloseGrace">Grace Period After Final Bell (Minutes)</label>
+            <input id="roomAutoCloseGrace" type="number" min="0" max="120" step="1" value="15">
+          </div>
+          <p class="muted">Auto-close uses this room's final scheduled bell (including special days) and labels passes as administratively closed, not verified returned. Test Mode should remain off in real classrooms. Teachers cannot change these settings.</p>
         </div>
       </details>
       <div style="margin-top:12px"><label>Assigned Teachers</label><div id="roomTeacherChecks" class="roomChecks"></div></div><div id="cloneWrap" style="margin-top:12px"><label for="cloneRoomSelect">Start with settings/destinations from</label><select id="cloneRoomSelect"><option value="">Blank defaults</option></select></div><div id="roomEditCloneWrap" class="hidden" style="margin-top:12px"><label for="editCloneRoomSelect">Replace this room's settings/destinations with a copy from</label><select id="editCloneRoomSelect"><option value="">Do not copy</option></select><div class="muted">This replaces room settings and destinations, but not the master bell schedule, students, or pass history.</div></div><div id="roomModalMessage" class="message"></div>
@@ -3105,6 +3110,11 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function fillRoomChecks(containerId,selectedIds,mode){const items=mode==='teachers'?assignmentTeachers():management.rooms;$(containerId).innerHTML=items.map(x=>{const id=x.id,label=mode==='teachers'?x.name:x.room,isProtected=mode==='teachers'&&adminAccess.organizationAdmin!==true&&x.role==='admin';return `<label><input type="checkbox" value="${esc(id)}" ${(selectedIds||[]).includes(id)?'checked':''} ${isProtected?'disabled':''}>${esc(label)}${x.role==='admin'?' (Organization Admin)':''}${x.active===false?' (disabled)':''}</label>`}).join('')||'<span class="muted">None available.</span>'}
     function selectedChecks(containerId){return Array.from($(containerId).querySelectorAll('input[type=checkbox]:checked')).map(x=>x.value)}
     function fillCloneSelect(id,excludeId='',blankText='Blank defaults'){const options=management.rooms.filter(r=>r.id!==excludeId && r.active).map(r=>`<option value="${esc(r.id)}">${esc(r.room)} (${esc(r.key)})</option>`).join('');$(id).innerHTML=`<option value="">${esc(blankText)}</option>`+options}
+    function updateRoomAutoCloseFields(){
+      const enabled=$('roomAutoCloseEnd').checked;
+      $('roomAutoCloseGraceWrap').classList.toggle('hidden',!enabled);
+      $('roomAutoCloseGrace').disabled=!enabled;
+    }
     function openRoom(id=''){const r=management.rooms.find(x=>x.id===id);$('roomEditId').value=r?.id||'';$('roomModalTitle').textContent=r?'Edit Room':'Add Room';$('roomKeyInput').value=r?.key||'';$('roomKeyInput').disabled=Boolean(r);$('roomNameInput').value=r?.room||'';$('roomTimezoneInput').value=r?.timezone||'America/Los_Angeles';$('roomActiveInput').value=String(r?.active!==false);$('roomRestroomLimit').value=String(r?.restroomLimit??0);$('roomRestroomPeriod').value=r?.restroomPeriod||'Day';
       $('roomPassOpenDelay').value=String(r?.passOpenDelay??10);
       $('roomPassCloseEarly').value=String(r?.passCloseEarly??10);
@@ -3112,11 +3122,16 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       $('roomVeryLongWarning').value=String(r?.veryLongPassWarning??10);
       $('roomBuzzerEnabled').checked=r?.buzzerEnabled!==false;
       $('roomClearQueueAtEnd').checked=r?.clearQueueAtEnd!==false;
+      $('roomAutoCloseEnd').checked=r?.autoClosePassesEndOfDay===true;
+      $('roomAutoCloseGrace').value=String(r?.autoCloseGraceMinutes??15);
+      updateRoomAutoCloseFields();
       $('roomTestMode').checked=r?.testMode===true;fillRoomChecks('roomTeacherChecks',r?.teacherIds||[],'teachers');fillCloneSelect('cloneRoomSelect','');fillCloneSelect('editCloneRoomSelect',r?.id||'','Do not copy');$('cloneWrap').classList.toggle('hidden',Boolean(r));$('roomEditCloneWrap').classList.toggle('hidden',!r);$('roomDeleteWrap').classList.toggle('hidden',!r);setMsg('roomModalMessage','');showModal('roomModal')}
     async function saveRoom(){const b=$('saveRoomButton'),id=$('roomEditId').value,data={key:$('roomKeyInput').value.trim().toLowerCase(),room:$('roomNameInput').value.trim(),timezone:$('roomTimezoneInput').value.trim(),active:$('roomActiveInput').value==='true',restroomLimit:Number($('roomRestroomLimit').value),restroomPeriod:$('roomRestroomPeriod').value,
       passOpenDelay:Number($('roomPassOpenDelay').value),passCloseEarly:Number($('roomPassCloseEarly').value),
       longPassWarning:Number($('roomLongWarning').value),veryLongPassWarning:Number($('roomVeryLongWarning').value),
       buzzerEnabled:$('roomBuzzerEnabled').checked,clearQueueAtEnd:$('roomClearQueueAtEnd').checked,
+      autoClosePassesEndOfDay:$('roomAutoCloseEnd').checked,
+      autoCloseGraceMinutes:Number($('roomAutoCloseGrace').value),
       testMode:$('roomTestMode').checked,teacherIds:selectedChecks('roomTeacherChecks')};if(!id)data.cloneFromRoomId=$('cloneRoomSelect').value;b.disabled=true;setMsg('roomModalMessage','Saving...');try{let r;if(id){r=await hallpassApi.call('adminUpdateRoom',[id,data]);if(r.success && $('editCloneRoomSelect').value){const c=await hallpassApi.call('adminCloneRoomConfig',[id,$('editCloneRoomSelect').value]);if(!c.success)r=c}}else r=await hallpassApi.call('adminCreateRoom',[data]);if(!r.success){setMsg('roomModalMessage',r.message,true);return;}hideModal('roomModal');await Promise.all([refreshManagement(),refreshLive()]);setMsg('manageMessage',r.message)}catch(e){setMsg('roomModalMessage',e.message,true)}finally{b.disabled=false}}
     async function deleteRoom(id){const r=management.rooms.find(x=>x.id===id);if(!r)return;const fromModal=!$('roomModal').classList.contains('hidden')&&$('roomEditId').value===id;const messageId=fromModal?'roomModalMessage':'manageMessage';const ok=window.confirm(`Delete room ${r.room}?\nRooms with pass or waiting history cannot be deleted.`);if(!ok)return;setMsg(messageId,'Deleting room...');try{const result=await hallpassApi.call('adminDeleteRoom',[id]);if(!result.success){setMsg(messageId,result.message,true);return;}if(fromModal)hideModal('roomModal');await Promise.all([refreshManagement(),refreshLive()]);setMsg('manageMessage',result.message)}catch(e){setMsg(messageId,e.message,true)}}
     function openTeacher(id=''){const t=management.teachers.find(x=>x.id===id);if((t?.role==='admin'||t?.schoolAdmin)&&adminAccess.organizationAdmin!==true){setMsg('manageMessage','Only an Organization Admin can manage Admin accounts.',true);return}$('teacherEditId').value=t?.id||'';$('teacherModalTitle').textContent=t?'Edit Teacher':'Add Teacher';$('teacherNameInput').value=t?.name||'';$('teacherEmailInput').value=t?.email||'';$('teacherRoleInput').value=t?.role||'teacher';$('teacherSchoolAdminInput').value=String(t?.schoolAdmin===true);$('teacherActiveInput').value=String(t?.active!==false);$('teacherRoleInput').disabled=adminAccess.organizationAdmin!==true;$('teacherSchoolAdminInput').disabled=adminAccess.organizationAdmin!==true;$('teacherPinInput').value='';$('pinHint').textContent=t?'Leave blank to keep the current PIN; enter a new PIN to reset it.':'Required for a new teacher.';fillRoomChecks('teacherRoomChecks',t?.roomIds||[],'rooms');setMsg('teacherModalMessage','');showModal('teacherModal')}
