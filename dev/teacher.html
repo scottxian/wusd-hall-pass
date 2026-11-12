@@ -1905,7 +1905,8 @@
         summary.innerHTML = `<div class="reportSummaryGrid">
           <div class="stat"><div class="statLabel">Total Passes</div><div class="statValue">${report.summary.totalPasses}</div></div>
           <div class="stat"><div class="statLabel">Restroom Passes</div><div class="statValue">${report.summary.restroomPasses}</div></div>
-          <div class="stat"><div class="statLabel">Completed Passes</div><div class="statValue">${report.summary.completedPasses}</div></div>
+          <div class="stat"><div class="statLabel">Verified Returns</div><div class="statValue">${report.summary.completedPasses}</div></div>
+          <div class="stat"><div class="statLabel">Auto-Closed</div><div class="statValue">${report.summary.autoClosedPasses||0}</div></div>
           <div class="stat"><div class="statLabel">Average Completed</div><div class="statValue">${formatMinutes(report.summary.averageMinutes)}</div></div>
           <div class="stat"><div class="statLabel">Longest Completed</div><div class="statValue">${formatMinutes(report.summary.longestMinutes)}</div></div>
           <div class="stat"><div class="statLabel">Total Time Out of Class</div><div class="statValue">${formatMinutes(report.summary.totalMinutes)}</div></div>
@@ -1915,7 +1916,7 @@
         if (!report.detailRows.length) { body.innerHTML = '<tr><td colspan="9">No passes in this date range.</td></tr>'; return; }
         report.detailRows.forEach(function(row) {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${escapeHtml(formatDateOnly(row.date))}</td><td>${escapeHtml(row.schedule)}</td><td>${escapeHtml(row.period)}</td><td>${escapeHtml(row.destination)}</td><td>${escapeHtml(timeOnly(row.requested))}</td><td>${escapeHtml(timeOnly(row.left))}</td><td>${escapeHtml(timeOnly(row.returned) || '—')}</td><td>${row.completed ? formatMinutes(row.durationMinutes) : '—'}</td><td>${escapeHtml(row.override || '—')}</td>`;
+          tr.innerHTML = `<td>${escapeHtml(formatDateOnly(row.date))}</td><td>${escapeHtml(row.schedule)}</td><td>${escapeHtml(row.period)}</td><td>${escapeHtml(row.destination)}</td><td>${escapeHtml(timeOnly(row.requested))}</td><td>${escapeHtml(timeOnly(row.left))}</td><td>${escapeHtml(timeOnly(row.returned) || '—')}</td><td>${row.completed ? formatMinutes(row.durationMinutes) : '—'}</td><td>${escapeHtml((row.override || '—') + (row.autoClosed && row.closedAt ? ' · Admin closed ' + timeOnly(row.closedAt) : ''))}</td>`;
           body.appendChild(tr);
         });
         return;
@@ -1935,7 +1936,8 @@
         { key: 'studentId', label: 'Student ID', type: 'text' },
         { key: 'totalPasses', label: 'Total', type: 'number' },
         { key: 'restroomPasses', label: 'Restroom', type: 'number' },
-        { key: 'completedPasses', label: 'Completed', type: 'number' },
+        { key: 'completedPasses', label: 'Verified Returned', type: 'number' },
+        { key: 'autoClosedPasses', label: 'Auto-Closed', type: 'number' },
         { key: 'averageMinutes', label: 'Average', type: 'number' },
         { key: 'longestMinutes', label: 'Longest', type: 'number' },
         { key: 'totalMinutes', label: 'Total Time', type: 'number' },
@@ -1994,7 +1996,7 @@
 
       body.innerHTML = '';
       if (!visibleSummaryRows.length) {
-        body.innerHTML = '<tr><td colspan="10">No students had passes in this date range.</td></tr>';
+        body.innerHTML = '<tr><td colspan="11">No students had passes in this date range.</td></tr>';
         return;
       }
 
@@ -2003,11 +2005,11 @@
         tr.className = 'reportSummaryRow';
         tr.dataset.studentId = row.studentId;
         const flagHtml = (row.flagLabels || []).map(function(label) { return '<span class="reportFlag">' + escapeHtml(label) + '</span>'; }).join('') || '—';
-        tr.innerHTML = `<td><div class="reportStudentCell"><button class="reportExpandButton" type="button" aria-expanded="false" title="Show individual pass history">▸</button><span class="reportStudentName">${escapeHtml(row.studentName)}</span></div></td><td>${escapeHtml(row.studentId)}</td><td>${row.totalPasses}</td><td>${row.restroomPasses}</td><td>${row.completedPasses}</td><td>${formatMinutes(row.averageMinutes)}</td><td>${formatMinutes(row.longestMinutes)}</td><td>${formatMinutes(row.totalMinutes)}</td><td>${flagHtml}</td><td>${row.overrides}</td>`;
+        tr.innerHTML = `<td><div class="reportStudentCell"><button class="reportExpandButton" type="button" aria-expanded="false" title="Show individual pass history">▸</button><span class="reportStudentName">${escapeHtml(row.studentName)}</span></div></td><td>${escapeHtml(row.studentId)}</td><td>${row.totalPasses}</td><td>${row.restroomPasses}</td><td>${row.completedPasses}</td><td>${row.autoClosedPasses||0}</td><td>${formatMinutes(row.averageMinutes)}</td><td>${formatMinutes(row.longestMinutes)}</td><td>${formatMinutes(row.totalMinutes)}</td><td>${flagHtml}</td><td>${row.overrides}</td>`;
 
         const detailTr = document.createElement('tr');
         detailTr.className = 'reportDetailRow hidden';
-        detailTr.innerHTML = '<td colspan="10"><div class="reportDrilldown"><div class="reportDrilldownMessage">Select the arrow to view this student’s pass history.</div></div></td>';
+        detailTr.innerHTML = '<td colspan="11"><div class="reportDrilldown"><div class="reportDrilldownMessage">Select the arrow to view this student’s pass history.</div></div></td>';
 
         const expandButton = tr.querySelector('.reportExpandButton');
         expandButton.addEventListener('click', function() {
@@ -2194,7 +2196,7 @@
       }).join('') + '</tr></thead><tbody>';
 
       rows.forEach(function(row) {
-        html += `<tr><td>${escapeHtml(formatDateOnly(row.date))}</td><td>${escapeHtml(row.schedule)}</td><td>${escapeHtml(row.period)}</td><td>${escapeHtml(row.destination)}</td><td>${escapeHtml(timeOnly(row.requested))}</td><td>${escapeHtml(timeOnly(row.left))}</td><td>${escapeHtml(timeOnly(row.returned) || '—')}</td><td>${row.completed ? formatMinutes(row.durationMinutes) : '—'}</td><td>${escapeHtml(row.override || '—')}</td></tr>`;
+        html += `<tr><td>${escapeHtml(formatDateOnly(row.date))}</td><td>${escapeHtml(row.schedule)}</td><td>${escapeHtml(row.period)}</td><td>${escapeHtml(row.destination)}</td><td>${escapeHtml(timeOnly(row.requested))}</td><td>${escapeHtml(timeOnly(row.left))}</td><td>${escapeHtml(timeOnly(row.returned) || '—')}</td><td>${row.completed ? formatMinutes(row.durationMinutes) : '—'}</td><td>${escapeHtml((row.override || '—') + (row.autoClosed && row.closedAt ? ' · Admin closed ' + timeOnly(row.closedAt) : ''))}</td></tr>`;
       });
 
       html += '</tbody></table></div>';
@@ -2286,7 +2288,7 @@
         detailRows = '<tr><td colspan="9">No passes in this date range.</td></tr>';
       } else {
         report.detailRows.forEach(function(row) {
-          detailRows += `<tr><td>${escapeHtml(formatDateOnly(row.date))}</td><td>${escapeHtml(row.schedule)}</td><td>${escapeHtml(row.period)}</td><td>${escapeHtml(row.destination)}</td><td>${escapeHtml(timeOnly(row.requested))}</td><td>${escapeHtml(timeOnly(row.left))}</td><td>${escapeHtml(timeOnly(row.returned) || '—')}</td><td>${row.completed ? formatMinutes(row.durationMinutes) : '—'}</td><td>${escapeHtml(row.override || '—')}</td></tr>`;
+          detailRows += `<tr><td>${escapeHtml(formatDateOnly(row.date))}</td><td>${escapeHtml(row.schedule)}</td><td>${escapeHtml(row.period)}</td><td>${escapeHtml(row.destination)}</td><td>${escapeHtml(timeOnly(row.requested))}</td><td>${escapeHtml(timeOnly(row.left))}</td><td>${escapeHtml(timeOnly(row.returned) || '—')}</td><td>${row.completed ? formatMinutes(row.durationMinutes) : '—'}</td><td>${escapeHtml((row.override || '—') + (row.autoClosed && row.closedAt ? ' · Admin closed ' + timeOnly(row.closedAt) : ''))}</td></tr>`;
         });
       }
 
@@ -2298,7 +2300,8 @@
         <div class="summary">
           <div class="stat"><div class="label">Total Passes</div><div class="value">${Number(summary.totalPasses || 0)}</div></div>
           <div class="stat"><div class="label">Restroom Passes</div><div class="value">${Number(summary.restroomPasses || 0)}</div></div>
-          <div class="stat"><div class="label">Completed Passes</div><div class="value">${Number(summary.completedPasses || 0)}</div></div>
+          <div class="stat"><div class="label">Verified Returns</div><div class="value">${Number(summary.completedPasses || 0)}</div></div>
+          <div class="stat"><div class="label">Auto-Closed</div><div class="value">${Number(summary.autoClosedPasses || 0)}</div></div>
           <div class="stat"><div class="label">Average Completed</div><div class="value">${formatMinutes(summary.averageMinutes)}</div></div>
           <div class="stat"><div class="label">Longest Completed</div><div class="value">${formatMinutes(summary.longestMinutes)}</div></div>
           <div class="stat"><div class="label">Total Time Out of Class</div><div class="value">${formatMinutes(summary.totalMinutes)}</div></div>
@@ -2330,16 +2333,16 @@
       let fileName = 'hall-pass-report.csv';
       if (currentReport.type === 'individual') {
         fileName = sanitizeFileName(currentReport.studentName) + '-hall-pass-report.csv';
-        rows.push(['Date','Schedule','Period','Destination','Requested','Left','Returned','Duration','Status / Override']);
+        rows.push(['Date','Schedule','Period','Destination','Requested','Left','Returned','Administratively Closed At','Duration','Status / Override']);
         currentReport.detailRows.forEach(function(row) {
-          rows.push([formatDateOnly(row.date), row.schedule, row.period, row.destination, timeOnly(row.requested), timeOnly(row.left), timeOnly(row.returned), row.completed ? formatMinutes(row.durationMinutes) : '', row.override || '']);
+          rows.push([formatDateOnly(row.date), row.schedule, row.period, row.destination, timeOnly(row.requested), timeOnly(row.left), timeOnly(row.returned), timeOnly(row.closedAt), row.completed ? formatMinutes(row.durationMinutes) : '', row.override || '']);
         });
       } else {
-        rows.push(['Student','Student ID','Total Passes','Restroom Passes','Completed Passes','Average Completed Pass','Longest Completed Pass','Total Time Out','Teacher Overrides']);
+        rows.push(['Student','Student ID','Total Passes','Restroom Passes','Verified Returns','Auto-Closed Passes','Average Verified Pass','Longest Verified Pass','Total Verified Time','Teacher Overrides']);
         (currentReport.summaryRows || []).filter(function(row) {
           return Number(row.totalPasses || 0) > 0;
         }).forEach(function(row) {
-          rows.push([row.studentName,row.studentId,row.totalPasses,row.restroomPasses,row.completedPasses,formatMinutes(row.averageMinutes),formatMinutes(row.longestMinutes),formatMinutes(row.totalMinutes),row.overrides]);
+          rows.push([row.studentName,row.studentId,row.totalPasses,row.restroomPasses,row.completedPasses,row.autoClosedPasses||0,formatMinutes(row.averageMinutes),formatMinutes(row.longestMinutes),formatMinutes(row.totalMinutes),row.overrides]);
         });
       }
       const csv = rows.map(function(row) { return row.map(csvCell).join(','); }).join('\r\n');
