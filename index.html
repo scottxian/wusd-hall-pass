@@ -315,17 +315,25 @@
     /* Live pass timers remain m:ss in all student tables. */
     #statusTimer, #outBody .elapsed {font-variant-numeric:tabular-nums;white-space:nowrap}
 
-    /* Reserve a single stable footprint for all three request stages.
-       Switching from ID to confirmation to destination never shifts the cards below. */
-    .studentRequestFlow { min-height: 236px; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; }
+    /* The three request steps share a compact height, so later cards stay put.
+       Do not use width:100% on Continue: it is alongside the student ID field. */
+    .studentRequestFlow {
+      min-height: 132px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-content: center;
+    }
     .studentRequestFlow > div { min-width: 0; }
-    .studentRequestFlow .studentConfirm { margin: 8px 0 16px; }
+    .studentRequestFlow #idStep { width: 100%; min-width: 0; }
+    .studentRequestFlow #studentId { flex: 1 1 0%; width: 100%; min-width: 0; }
+    .studentRequestFlow #continueButton { flex: 0 0 auto; width: auto; min-width: 154px; }
+    .studentRequestFlow .studentConfirm { margin: 6px 0 10px; }
     .studentRequestFlow .buttonRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .studentRequestFlow .buttonRow button { min-width: 0; }
-    .studentRequestFlow #continueButton { width: 100%; }
-    .studentRequestCard #message, .studentRequestCard #message:empty { min-height: 32px; margin-top: 12px; }
-    @media(max-width: 620px) {
-      .studentRequestFlow { min-height: 252px; }
+    .studentRequestCard #message, .studentRequestCard #message:empty { min-height: 22px; margin-top: 7px; }
+    @media(max-width: 720px) {
+      .studentRequestFlow { min-height: 166px; }
+      .studentRequestFlow #continueButton { width: 100%; min-width: 0; }
       .studentRequestFlow .buttonRow button { font-size: 15px; padding: 11px 7px; }
     }
   </style>
