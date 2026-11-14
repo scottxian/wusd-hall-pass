@@ -533,9 +533,47 @@
     #livePanel .roomPassStatusCard table { min-width: 650px; }
     #livePanel .roomPassOverviewCounts { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
     #livePanel .roomPassGroups { display: grid; gap: 8px; }
+    /* Align labeled columns with the compact schedule summaries. */
+    #livePanel .roomPassColumnHead,
+    #livePanel .roomPassScheduleGroup summary {
+      display: grid;
+      grid-template-columns: minmax(145px, 1.05fr) minmax(135px, .85fr) minmax(270px, 2fr) minmax(125px, .8fr);
+      gap: 12px;
+      align-items: center;
+    }
+    #livePanel .roomPassColumnHead {
+      padding: 8px 12px 8px 32px;
+      color: #4e6279;
+      font-weight: 700;
+      font-size: 12px;
+      border-bottom: 1px solid #dce5ed;
+      margin-bottom: 2px;
+    }
+    #livePanel .roomPassScheduleGroup summary { position: relative; list-style: none; padding: 11px 12px 11px 32px; }
+    #livePanel .roomPassScheduleGroup summary::-webkit-details-marker { display: none; }
+    #livePanel .roomPassScheduleGroup summary::before {
+      content: '▸'; position: absolute; left: 12px; top: 11px;
+      color: #365c87; font-size: 17px; line-height: 1.2;
+    }
+    #livePanel .roomPassScheduleGroup[open] summary::before { transform: rotate(90deg); }
+    #livePanel .roomPassSummaryCell { min-width: 0; }
+    @media(max-width: 900px) {
+      #livePanel .roomPassColumnHead { display: none; }
+      #livePanel .roomPassScheduleGroup summary {
+        display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 12px;
+      }
+      #livePanel .roomPassSummaryCell::before {
+        content: attr(data-label); display: block; margin-bottom: 3px;
+        font-size: 11px; font-weight: 700; color: #61758b;
+      }
+    }
+    @media(max-width: 520px) {
+      #livePanel .roomPassScheduleGroup summary { grid-template-columns: minmax(0, 1fr); }
+    }
     #livePanel .roomPassScheduleGroup { border: 1px solid #d5e0e9; border-radius: 9px; background: #fff; overflow: hidden; }
     #livePanel .roomPassScheduleGroup[open] { border-color: #b0c5db; }
-    #livePanel .roomPassScheduleGroup summary { cursor: pointer; padding: 11px 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 9px 15px; background: #f5f8fb; }
+    #livePanel .roomPassScheduleGroup summary { cursor: pointer; background: #f5f8fb; }
     #livePanel .roomPassScheduleGroup summary:hover { background: #ecf3fa; }
     #livePanel .roomPassScheduleGroup summary:focus-visible { outline: 3px solid #7aa7d8; outline-offset: -3px; }
     #livePanel .roomPassScheduleTitle { font-size: 16px; font-weight: 800; color: #1a395e; }
@@ -977,6 +1015,7 @@
           <div class="sectionHead"><h2>Room Pass Status</h2><span id="roomPassUpdated" aria-live="off"></span></div>
           <p class="roomPassIntro">Current pass availability, schedule, and period for each active classroom. Updates automatically.</p>
           <div id="roomPassStatusOverview" class="roomPassOverviewCounts" aria-live="polite"></div>
+          <div class="roomPassColumnHead"><span>Schedule</span><span>Period / Rooms</span><span>Pass Availability</span><span>Next Change</span></div>
           <div id="roomPassStatusGroups" class="roomPassGroups"><p class="emptyState">Loading room status...</p></div>
         </div>
         <div class="adminLiveGrid" aria-label="Current campus hall passes">
@@ -1947,11 +1986,11 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         }).join('');
         html.push('<details class="roomPassScheduleGroup" data-schedule-key="' + esc(name) + '"' +
           (expanded.has(name) ? ' open' : '') + '>' +
-          '<summary><span class="roomPassScheduleTitle">' + esc(name) + '</span>' +
-          '<span class="roomPassScheduleMeta">' + esc(periodText) + ' · ' + entries.length +
+          '<summary><span class="roomPassSummaryCell roomPassScheduleTitle" data-label="Schedule">' + esc(name) + '</span>' +
+          '<span class="roomPassSummaryCell roomPassScheduleMeta" data-label="Period / Rooms">' + esc(periodText) + ' · ' + entries.length +
           (entries.length === 1 ? ' room' : ' rooms') + '</span>' +
-          '<span class="roomPassQuickCounts">' + quick + '</span>' +
-          (nextText ? '<span class="roomPassScheduleMeta">' + esc(nextText) + '</span>' : '') + '</summary>' +
+          '<span class="roomPassSummaryCell roomPassQuickCounts" data-label="Pass Availability">' + quick + '</span>' +
+          '<span class="roomPassSummaryCell roomPassScheduleMeta" data-label="Next Change">' + (nextText ? esc(nextText.replace(/^Next change: /, '')) : '—') + '</span></summary>' +
           '<div class="roomPassDetailsHint">Room-by-room status and next change</div>' +
           '<div class="tableWrap"><table><thead><tr><th>Room</th><th>Passes</th><th>Period / Source</th><th>Next Change</th></tr></thead>' +
           '<tbody>' + lines + '</tbody></table></div></details>');
