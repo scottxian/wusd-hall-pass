@@ -339,6 +339,7 @@
       margin-top: 7px;
     }
     .studentRequestCard #message.success { font-size: 15px; }
+    .studentRequestCard #message.notice { color: #8a6500; }
     .studentRequestCard #message:empty { display: none; }
     @media(max-width: 720px) {
       .studentRequestFlow { min-height: 166px; }
@@ -346,7 +347,7 @@
       .studentRequestFlow .buttonRow button { font-size: 15px; padding: 11px 7px; }
     }
   </style>
-<link rel="stylesheet" href="branding.css?v=20261113-mobile">
+<link rel="stylesheet" href="branding.css?v=20261114-student-compact">
 </head>
 
 
@@ -1642,9 +1643,11 @@
               'WAITING'
             ) {
 
+              // Waiting is a completed request, not an in-flight operation.
+              // Give the student time to read the notice, then dismiss it.
               setMessage(
                 result.message,
-                'processing'
+                'notice'
               );
 
             }
@@ -2662,7 +2665,7 @@
       const version = ++studentMessageVersion;
       message.textContent = text || '';
       message.className = 'message';
-      if (type === 'processing' || type === 'success' || type === 'error') {
+      if (type === 'processing' || type === 'success' || type === 'error' || type === 'notice') {
         message.classList.add(type);
       }
       if (!text || type === 'processing') return;
