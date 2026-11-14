@@ -1816,7 +1816,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function openRoomLinks(roomId){const room=management.rooms.find(r=>r.id===roomId);if(!room){setMsg('manageMessage','Room links could not be loaded.',true);return}$('roomLinksRoomId').value=room.id;$('roomLinksTitle').textContent=`Room Links — ${room.room}`;$('roomStudentLink').value=studentUrl(room.key);$('roomTeacherLink').value=teacherUrl(room.key);const teachers=teachersForRoom(room);$('roomLinksTeacherSummary').textContent=teachers.length?`Assigned to ${teachers.map(t=>t.name).join(', ')}`:'No teacher is currently assigned to this room.';$('roomSetupMessagePreview').textContent=setupMessageForRoom(room);$('roomTeacherEmails').innerHTML=teachers.length?teachers.map(t=>`<div class="teacherEmailRow"><div class="teacherEmailIdentity"><strong>${esc(t.name)}</strong><span>${t.email?esc(t.email):'No email address on file'}</span></div>${t.email?`<button class="small green" data-email-room-teacher="${esc(t.id)}">Email Teacher</button>`:`<button class="small gray" data-edit-teacher-from-links="${esc(t.id)}">Add Email</button>`}</div>`).join(''):'<div class="muted" style="padding:10px 0">Assign a teacher to this room before sending a setup email.</div>';setMsg('roomLinksMessage','');showModal('roomLinksModal')}
     function currentLinksRoom(){return management.rooms.find(r=>r.id===$('roomLinksRoomId').value)||null}
     function emailRoomTeacher(teacherId){const room=currentLinksRoom(),teacher=management.teachers.find(t=>t.id===teacherId);if(!room||!teacher||!teacher.email){setMsg('roomLinksMessage','That teacher does not have an email address on file.',true);return}const subject=`${adminAccess.selectedSchool?.name||'Hall Pass'} — ${room.room}`,body=`Hi ${teacher.name},\n\n${setupMessageForRoom(room)}\n\nThank you.`;window.location.href=`mailto:${teacher.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`}
-    async function login(){const pin=$('adminPin').value.trim(),b=$('loginButton');if(!pin){setMsg('loginMessage','Enter the Admin PIN.',true);return;}b.disabled=true;b.textContent='UNLOCKING...';try{const r=await hallpassApi.call('adminLogin',[pin]);if(!r.success){setMsg('loginMessage',r.message,true);return;}unlocked=true;applyAdminContext(r);if(r.selectedSchool?.key&&!hallpassApi.schoolKey)setSchoolInUrl(r.selectedSchool.key);$('loginCard').classList.add('hidden');$('dashboard').classList.remove('hidden');$('adminName').textContent=r.admin.name;await Promise.all([refreshLive(),refreshRoomPassStatus(),refreshManagement()]);}catch(e){setMsg('loginMessage',e.message,true)}finally{b.disabled=false;b.textContent='Unlock School Dashboard'}}
+    async function login(){const pin=$('adminPin').value.trim(),b=$('loginButton');if(!pin){setMsg('loginMessage','Enter the Admin PIN.',true);return;}b.disabled=true;b.textContent='UNLOCKING...';try{const r=await hallpassApi.call('adminLogin',[pin]);if(!r.success){setMsg('loginMessage',r.message,true);return;}unlocked=true;applyAdminContext(r);if(r.selectedSchool?.key&&!hallpassApi.schoolKey)setSchoolInUrl(r.selectedSchool.key);$('loginCard').classList.add('hidden');$('dashboard').classList.remove('hidden');$('adminName').textContent=r.admin.name;await refreshLive();await Promise.all([refreshRoomPassStatus(),refreshManagement()]);}catch(e){setMsg('loginMessage',e.message,true)}finally{b.disabled=false;b.textContent='Unlock School Dashboard'}}
     let adminLiveRefreshBusy=false;
     const adminLiveSignatures={out:null,waiting:null,history:null,rooms:null};
     async function refreshLive(button){if(!unlocked||adminLiveRefreshBusy)return;adminLiveRefreshBusy=true;if(button)button.disabled=true;if(button)setMsg('message','Refreshing...');try{const r=await hallpassApi.call('adminState',[$('roomFilter').value,$('search').value.trim()]);if(!r.success){setMsg('message',r.message,true);return;}lastState=r;applyAdminContext(r);renderLive(r);setMsg('message','')}catch(e){setMsg('message',e.message,true)}finally{adminLiveRefreshBusy=false;if(button)button.disabled=false}}
@@ -1841,14 +1841,39 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         adminLiveSignatures.history=historySig;
         $('historyBody').innerHTML=r.history.length?r.history.map(x=>`<tr><td><span class="roomTag">${esc(x.roomKey.toUpperCase())}</span></td><td>${esc(x.name)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${fmt(x.left)}</td><td>${x.statusNote?.startsWith('Auto-Closed — End of School Day')?'—':fmt(x.returned)}</td><td>${esc(x.statusNote||'')}${x.statusNote?.startsWith('Auto-Closed — End of School Day')&&x.returned?'<div class="muted">Admin closed: '+fmt(x.returned)+'</div>':''}</td></tr>`).join(''):'<tr><td colspan="6" class="emptyState">No recent pass activity for this selection.</td></tr>';
       }}
-    // Read-only room pass status, calculated by the staff service with the
-    // same scheduling rules as the Student and Teacher pages.
+    // Read the authoritative room schedule from the EXISTING public page-state
+    // service. No duplicated scheduling calculations or database changes.
     let roomPassStatusRequestId = 0;
     function roomPassClock(value) {
       if (!value) return '—';
       const dt = new Date(value);
       return Number.isNaN(dt.getTime()) ? '—' :
         dt.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
+    }
+    async function fetchRoomPageSchedule(roomKey) {
+      const config = window.HALLPASS_CONFIG || {};
+      const base = String(config.publicApiUrl || config.apiUrl || '');
+      const endpoint = new URL(base);
+      if (!/\/hallpass(?:-(?:public|staff))?\/?$/.test(endpoint.pathname)) {
+        throw new Error('Public Hall Pass service is not configured.');
+      }
+      endpoint.pathname = endpoint.pathname.replace(/\/hallpass(?:-(?:public|staff))?\/?$/, '/hallpass-public');
+      if (!currentOrgKey() || !currentSchoolKey()) {
+        throw new Error('School and organization must be selected.');
+      }
+      const response = await fetch(endpoint.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'getPageState', args: [],
+          orgKey: currentOrgKey(), schoolKey: currentSchoolKey(), roomKey
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.success || !data.schedule) {
+        throw new Error(data?.message || 'Room schedule unavailable.');
+      }
+      return data;
     }
     async function refreshRoomPassStatus() {
       if (!unlocked) return;
@@ -1857,14 +1882,38 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const requestedFilter = $('roomFilter').value;
       const requestId = ++roomPassStatusRequestId;
       try {
-        const result = await hallpassApi.call('adminRoomLiveStatus',[requestedFilter]);
+        if (!lastState || !Array.isArray(lastState.rooms)) {
+          throw new Error('Refresh the campus overview first.');
+        }
+        const schoolRooms = lastState.rooms.filter(r => !requestedFilter || r.key === requestedFilter);
+        const rooms = [];
+        // Limit parallel requests. Kiosk state is already calculated by the
+        // public service, including overrides, locks, and special-day schedules.
+        for (let offset = 0; offset < schoolRooms.length; offset += 4) {
+          const batch = schoolRooms.slice(offset, offset + 4);
+          const items = await Promise.all(batch.map(async r => {
+            try {
+              const data = await fetchRoomPageSchedule(r.key);
+              const state = data.schedule || {};
+              return {
+                key: r.key, room: r.room, status: state.status || 'UNKNOWN',
+                schedule: state.schedule || '', period: state.period,
+                reason: state.reason || '', nextChange: state.nextChange,
+                source: data.settings?.['Schedule Source'] || ''
+              };
+            } catch (error) {
+              return { key: r.key, room: r.room, status: 'UNKNOWN',
+                schedule: '', period: null, nextChange: null,
+                reason: error?.message || 'Status unavailable', source: '' };
+            }
+          }));
+          rooms.push(...items);
+        }
         if (requestId !== roomPassStatusRequestId || requestedFilter !== $('roomFilter').value) return;
-        if (!result || !result.success) throw new Error(result?.message || 'Room status is unavailable.');
-        const rooms = Array.isArray(result.rooms) ? result.rooms : [];
         body.innerHTML = rooms.length ? rooms.map(r => {
           const status = r.status === 'OPEN' ? 'OPEN' : r.status === 'CLOSED' ? 'CLOSED' : 'UNKNOWN';
           const pill = status === 'OPEN' ? 'isOpen' : status === 'CLOSED' ? 'isClosed' : 'isUnknown';
-          const reason = r.reason && status !== 'UNKNOWN' ?
+          const reason = r.reason ?
             '<span class="roomPassSub">'+esc(r.reason)+'</span>' : '';
           const source = r.source && r.source !== 'Room Default' ?
             '<span class="roomPassSub">'+esc(r.source)+'</span>' : '';
@@ -2284,7 +2333,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function renderSchools(){const rows=organizationState.schools||adminAccess.schools||[];$('schoolsBody').innerHTML=rows.length?rows.map(x=>`<tr class="${x.active?'':'inactive'}"><td><strong>${esc(x.name)}</strong></td><td>${esc(x.key)}</td><td>${esc(x.timezone||'')}</td><td>${x.active?'Active':'Disabled'}</td><td>${adminAccess.organizationAdmin?`<button class="small" data-edit-school="${esc(x.id)}">Edit</button>`:'—'}</td></tr>`).join(''):'<tr><td colspan="5">No schools.</td></tr>'}
     function openSchool(id=''){if(adminAccess.organizationAdmin!==true)return;const rows=organizationState.schools||adminAccess.schools||[];const x=rows.find(s=>String(s.id)===String(id));$('schoolEditId').value=x?.id||'';$('schoolModalTitle').textContent=x?'Edit School':'Add School';$('schoolNameInput').value=x?.name||'';$('schoolKeyInput').value=x?.key||'';$('schoolKeyInput').disabled=Boolean(x);$('schoolTimezoneInput').value=x?.timezone||'America/Los_Angeles';$('schoolActiveInput').value=String(x?.active!==false);$('schoolCopyDefaultsWrap').classList.toggle('hidden',Boolean(x));$('schoolCopyDefaultsInput').value='false';setMsg('schoolModalMessage','');showModal('schoolModal')}
     async function saveSchool(){const b=$('saveSchoolButton'),id=$('schoolEditId').value,wasCurrent=Boolean(id&&adminAccess.selectedSchool&&String(adminAccess.selectedSchool.id)===String(id)),data={name:$('schoolNameInput').value.trim(),key:$('schoolKeyInput').value.trim().toLowerCase(),timezone:$('schoolTimezoneInput').value.trim(),active:$('schoolActiveInput').value==='true',copyDefaults:$('schoolCopyDefaultsInput').value==='true'};b.disabled=true;setMsg('schoolModalMessage','Saving...');try{const r=await hallpassApi.call(id?'adminUpdateSchool':'adminCreateSchool',id?[id,data]:[data]);if(!r.success){setMsg('schoolModalMessage',r.message,true);return;}hideModal('schoolModal');await refreshOrganization();if(wasCurrent&&r.school){if(r.school.active!==false){adminAccess.selectedSchool=r.school;setSchoolInUrl(r.school.key)}else{const fallback=(adminAccess.schools||[]).find(x=>x.active!==false&&String(x.id)!==String(r.school.id));if(fallback){adminAccess.selectedSchool=fallback;setSchoolInUrl(fallback.key);lastState=null;management={rooms:[],teachers:[]};destinationsState={rows:[]};reportOptions=null;clearCampusReportOnChange();bulkCalendarPreview=null;await Promise.all([refreshLive(),refreshManagement()])}else{adminAccess.selectedSchool=null;setSchoolInUrl('')}}}applyAdminContext(adminAccess);setMsg('organizationMessage',r.message)}catch(e){setMsg('schoolModalMessage',e.message,true)}finally{b.disabled=false}}
-    async function switchSchool(){const key=$('schoolSelector').value;if(!key||key===currentSchoolKey())return;Object.keys(adminLiveSignatures).forEach(k=>adminLiveSignatures[k]=null);const selected=(adminAccess.schools||[]).find(x=>x.key===key);adminAccess.selectedSchool=selected||{key};setSchoolInUrl(key);lastState=null;management={rooms:[],teachers:[]};destinationsState={rows:[]};reportOptions=null;clearCampusReportOnChange();bulkCalendarPreview=null;rsState=null;rsPreviewData=null;setMsg('message','Switching school...');await Promise.all([refreshLive(),refreshRoomPassStatus(),refreshManagement()]);const active=document.querySelector('.panel.active')?.id;if(active==='studentsPanel')await refreshStudents();else if(active==='destinationsPanel')await refreshDestinations();else if(active==='calendarPanel')await refreshCalendar();else if(active==='roomSchedulePanel')await refreshRoomScheduling();else if(active==='securityPanel')await refreshSecurity();else if(active==='reportsPanel')await refreshReportOptions();else if(active==='auditPanel')await refreshAudit();else if(active==='orgPanel')await refreshOrganization()}
+    async function switchSchool(){const key=$('schoolSelector').value;if(!key||key===currentSchoolKey())return;Object.keys(adminLiveSignatures).forEach(k=>adminLiveSignatures[k]=null);const selected=(adminAccess.schools||[]).find(x=>x.key===key);adminAccess.selectedSchool=selected||{key};setSchoolInUrl(key);lastState=null;management={rooms:[],teachers:[]};destinationsState={rows:[]};reportOptions=null;clearCampusReportOnChange();bulkCalendarPreview=null;rsState=null;rsPreviewData=null;setMsg('message','Switching school...');await refreshLive();await Promise.all([refreshRoomPassStatus(),refreshManagement()]);const active=document.querySelector('.panel.active')?.id;if(active==='studentsPanel')await refreshStudents();else if(active==='destinationsPanel')await refreshDestinations();else if(active==='calendarPanel')await refreshCalendar();else if(active==='roomSchedulePanel')await refreshRoomScheduling();else if(active==='securityPanel')await refreshSecurity();else if(active==='reportsPanel')await refreshReportOptions();else if(active==='auditPanel')await refreshAudit();else if(active==='orgPanel')await refreshOrganization()}
 
     // The backend must return autoSchedulingEnabled as a school-scoped boolean.
     // Never assume an older server supports the toggle.
@@ -3478,7 +3527,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     });
     $('refreshCalendar').addEventListener('click',e=>refreshCalendar(e.currentTarget));$('saveCalendarEntry').addEventListener('click',saveCalendarEntry);$('previewWeeklyCalendar').addEventListener('click',()=>previewBulkCalendar(buildWeeklyCalendarDates(),'weekly'));$('previewListedCalendar').addEventListener('click',()=>previewBulkCalendar(buildListedCalendarDates(),'listed'));$('applyBulkCalendar').addEventListener('click',applyBulkCalendar);$('clearBulkCalendar').addEventListener('click',clearBulkCalendarPreview);$('bulkConflictMode').addEventListener('change',()=>{if(bulkCalendarPreview)previewBulkCalendar(bulkCalendarPreview.dates,bulkCalendarPreview.source)});
     $('refreshReportOptions').addEventListener('click',e=>refreshReportOptions(e.currentTarget));$('generateCampusReport').addEventListener('click',generateCampusReport);$('downloadCampusReport').addEventListener('click',downloadCampusReport);$('downloadCampusPdf').addEventListener('click',downloadCampusReportPdf);$('campusReportBack').addEventListener('click',backCampusReportDrill);$('printCampusStudentDetail').addEventListener('click',printCampusStudentDetail);['campusReportBody','reportSecondaryBody'].forEach(id=>$(id).addEventListener('click',e=>{const btn=e.target.closest('[data-report-drill]');if(btn)drillDownCampusReport(btn.dataset.reportDrill,btn.dataset.reportValue)}));$('reportType').addEventListener('change',clearCampusReportOnChange);['campusReportRoom','campusReportStudent','campusReportDestination','campusReportStart','campusReportEnd','longPassMinutes','frequentPassCount','campusIncludeTestData'].forEach(id=>$(id).addEventListener('change',clearCampusReportOnChange));$('exportStudents').addEventListener('click',e=>exportBackupDataset('students',e.currentTarget));$('exportPasses').addEventListener('click',e=>exportBackupDataset('passes',e.currentTarget));$('exportConfiguration').addEventListener('click',e=>exportBackupDataset('configuration',e.currentTarget));$('exportAudit').addEventListener('click',e=>exportBackupDataset('audit',e.currentTarget));$('downloadFullBackup').addEventListener('click',e=>exportBackupDataset('full',e.currentTarget));
-    $('refreshAudit').addEventListener('click',e=>refreshAudit(e.currentTarget));$('auditRoomFilter').addEventListener('change',()=>refreshAudit());$('auditSearch').addEventListener('keydown',e=>{if(e.key==='Enter')refreshAudit()});$('loginButton').addEventListener('click',login);$('adminPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('refreshLive').addEventListener('click',e=>{refreshLive(e.currentTarget);refreshRoomPassStatus()});$('roomFilter').addEventListener('change',()=>{refreshLive();refreshRoomPassStatus()});$('search').addEventListener('keydown',e=>{if(e.key==='Enter')refreshLive()});$('refreshManage').addEventListener('click',e=>refreshManagement(e.currentTarget));$('refreshSchedules').addEventListener('click',e=>refreshManagement(e.currentTarget));$('addScheduleButton').addEventListener('click',()=>openSchedule());$('saveScheduleButton').addEventListener('click',saveSchedule);$('confirmScheduleReplace').addEventListener('click',confirmScheduleReplacement);$('addSchedulePeriodButton').addEventListener('click',()=>addSchedulePeriod());$('schedulePeriodBody').addEventListener('click',e=>{const b=e.target.closest('[data-remove-period]');if(b)b.closest('.scheduleEditorRow').remove()});$('onboardRoomButton').addEventListener('click',openOnboardingWizard);$('addRoomButton').addEventListener('click',()=>openRoom());$('deleteRoomFromModalButton').addEventListener('click',()=>deleteRoom($('roomEditId').value));$('addTeacherButton').addEventListener('click',()=>openTeacher());$('saveRoomButton').addEventListener('click',saveRoom);$('saveTeacherButton').addEventListener('click',saveTeacher);
+    $('refreshAudit').addEventListener('click',e=>refreshAudit(e.currentTarget));$('auditRoomFilter').addEventListener('change',()=>refreshAudit());$('auditSearch').addEventListener('keydown',e=>{if(e.key==='Enter')refreshAudit()});$('loginButton').addEventListener('click',login);$('adminPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('refreshLive').addEventListener('click',async e=>{await refreshLive(e.currentTarget);refreshRoomPassStatus()});$('roomFilter').addEventListener('change',()=>{refreshLive();refreshRoomPassStatus()});$('search').addEventListener('keydown',e=>{if(e.key==='Enter')refreshLive()});$('refreshManage').addEventListener('click',e=>refreshManagement(e.currentTarget));$('refreshSchedules').addEventListener('click',e=>refreshManagement(e.currentTarget));$('addScheduleButton').addEventListener('click',()=>openSchedule());$('saveScheduleButton').addEventListener('click',saveSchedule);$('confirmScheduleReplace').addEventListener('click',confirmScheduleReplacement);$('addSchedulePeriodButton').addEventListener('click',()=>addSchedulePeriod());$('schedulePeriodBody').addEventListener('click',e=>{const b=e.target.closest('[data-remove-period]');if(b)b.closest('.scheduleEditorRow').remove()});$('onboardRoomButton').addEventListener('click',openOnboardingWizard);$('addRoomButton').addEventListener('click',()=>openRoom());$('deleteRoomFromModalButton').addEventListener('click',()=>deleteRoom($('roomEditId').value));$('addTeacherButton').addEventListener('click',()=>openTeacher());$('saveRoomButton').addEventListener('click',saveRoom);$('saveTeacherButton').addEventListener('click',saveTeacher);
     $('onboardBackButton').addEventListener('click',onboardingBack);$('onboardNextButton').addEventListener('click',onboardingNext);$('onboardCreateButton').addEventListener('click',createOnboardedRoom);$('copyStudentLink').addEventListener('click',()=>copyTextValue($('roomStudentLink').value,'Student link copied.'));$('copyTeacherLink').addEventListener('click',()=>copyTextValue($('roomTeacherLink').value,'Teacher link copied.'));$('copySetupMessage').addEventListener('click',()=>{const room=currentLinksRoom();if(room)copyTextValue(setupMessageForRoom(room),'Setup message copied.')});$('openStudentLink').addEventListener('click',()=>window.open($('roomStudentLink').value,'_blank','noopener'));$('openTeacherLink').addEventListener('click',()=>window.open($('roomTeacherLink').value,'_blank','noopener'));document.querySelectorAll('input[name="onboardTeacherMode"]').forEach(x=>x.addEventListener('change',toggleOnboardingTeacherMode));$('onboardCloneRoom').addEventListener('change',()=>loadOnboardingDestinations($('onboardCloneRoom').value));$('onboardRoomName').addEventListener('blur',()=>{if(!$('onboardRoomKey').value.trim())$('onboardRoomKey').value=$('onboardRoomName').value.trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')});
     $('schoolSelector').addEventListener('change',switchSchool);$('addSchoolButton').addEventListener('click',()=>openSchool());$('refreshOrganization').addEventListener('click',e=>refreshOrganization(e.currentTarget));$('saveSchoolButton').addEventListener('click',saveSchool);
     // Switching pages starts a fresh entry form. This resets only browser
@@ -3545,7 +3594,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       setAdminGlobalMessage('','','');
       // The campus totals now stay visible on every page.
       if(unlocked&&panelId!=='livePanel')refreshLive();
-      if(unlocked&&panelId==='livePanel')refreshRoomPassStatus();
+      if(unlocked&&panelId==='livePanel')refreshLive().then(()=>refreshRoomPassStatus());
       if(['managePanel','teachersPanel','schedulePanel'].includes(panelId))refreshManagement();
       if(panelId==='studentsPanel')refreshStudents();
       if(panelId==='destinationsPanel')refreshDestinations();
