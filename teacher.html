@@ -642,7 +642,7 @@
   <script src="vendor/jspdf.umd.min.js"></script>
   <script src="vendor/jspdf.plugin.autotable.min.js"></script>
   <script src="report-pdf.js"></script>
-  <script src="duration-display.js?v=20261114"></script>
+  <script src="duration-display.js?v=20261114-live-mmss"></script>
 
   <script>
   /* Hall Pass: student name / ID type-ahead. Page-local, zero backend changes. */
@@ -1802,7 +1802,7 @@
           <td>${escapeHtml(student.name)}</td>
           <td>${escapeHtml(student.destination)}</td>
           <td>${formatTime(student.leaveTime)}</td>
-          <td class="elapsed">00:00:00:00</td>
+          <td class="elapsed">00:00</td>
           <td><button class="primary returnButton" ${pending?'disabled aria-busy="true"':''}>${pending?'RETURNING...':'Return'}</button></td>`;
         row.querySelector('.returnButton').addEventListener('click', function() { returnPass(student.passId, this); });
         body.appendChild(row);
@@ -2473,7 +2473,7 @@
         if (!Number.isFinite(start)) return;
         const seconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
         const minutes = Math.floor(seconds / 60);
-        const elapsed = HallPilotDuration.fromSeconds(seconds);
+        const elapsed = HallPilotDuration.timerFromSeconds(seconds);
         row.classList.remove('outWarning', 'outDanger');
         if (minutes >= danger) {
           row.classList.add('outDanger');

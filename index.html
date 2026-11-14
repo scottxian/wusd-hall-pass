@@ -504,7 +504,7 @@
 
   <script src="config.js"></script>
   <script src="api-shim.js"></script><script src="branding.js" defer></script>
-  <script src="duration-display.js?v=20261114"></script>
+  <script src="duration-display.js?v=20261114-live-mmss"></script>
 
   <script>
 
@@ -1210,7 +1210,7 @@
 
 
       timer.textContent =
-        label + ' ' + HallPilotDuration.fromSeconds(remaining);
+        label + ' ' + HallPilotDuration.timerFromSeconds(remaining);
     }
 
 
@@ -2494,7 +2494,7 @@
             );
 
           elapsedCell.textContent =
-            HallPilotDuration.fromSeconds(seconds);
+            HallPilotDuration.timerFromSeconds(seconds);
 
 
           row.classList.remove(

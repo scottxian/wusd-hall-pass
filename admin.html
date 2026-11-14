@@ -1527,7 +1527,7 @@
   <script src="vendor/jspdf.umd.min.js"></script>
   <script src="vendor/jspdf.plugin.autotable.min.js"></script>
   <script src="report-pdf.js"></script>
-  <script src="duration-display.js?v=20261114"></script>
+  <script src="duration-display.js?v=20261114-live-mmss"></script>
 
 
   <dialog id="schedulePreviewDialog" aria-labelledby="schedulePreviewTitle" style="width:min(560px,calc(100% - 28px));max-height:85vh;overflow:auto;border:0;border-radius:12px;padding:20px">
@@ -1692,7 +1692,7 @@
     let unlocked=false,lastState=null,management={rooms:[],teachers:[]},destinationsState={rows:[]},reportOptions=null,currentCampusReport=null,reportSortState={main:null,secondary:null},campusDrillStack=[],campusReportRequestId=0,bulkCalendarPreview=null,onboardingStep=1,onboardingDestinations=[],adminAccess={organization:null,schools:[],selectedSchool:null,organizationAdmin:false},organizationState={schools:[]};
     window.HALLPASS_ADMIN_BUILD='1.15.0-production';
     const $=id=>document.getElementById(id); const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    function fmt(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString([], {month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'});} function elapsed(v){const ms=Date.now()-new Date(v).getTime();if(!Number.isFinite(ms))return '—';return HallPilotDuration.fromSeconds(Math.max(0,Math.floor(ms/1000)));}
+    function fmt(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString([], {month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'});} function elapsed(v){const ms=Date.now()-new Date(v).getTime();if(!Number.isFinite(ms))return '—';return HallPilotDuration.timerFromSeconds(Math.max(0,Math.floor(ms/1000)));}
     const adminMessageTimers=new Map();
     let adminGlobalMessageTimer=null;
     let adminGlobalMessageSource='';
