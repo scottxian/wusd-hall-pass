@@ -1,6 +1,6 @@
 /* Hall Pilot duration display only.
  * Existing numeric minute/second fields and pass-warning thresholds are unchanged.
- * Reports: DD:HH:MM:SS. Live student timers: MM:SS.
+ * Reports: compact d h m s (omit zero units). Live student timers: MM:SS.
  */
 (function (root) {
   'use strict';
@@ -8,13 +8,17 @@
   function fromSeconds(value) {
     const numeric = Number(value);
     const total = Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
+    if (total === 0) return '0s';
     const days = Math.floor(total / 86400);
     const hours = Math.floor((total % 86400) / 3600);
     const minutes = Math.floor((total % 3600) / 60);
     const seconds = total % 60;
-    return [days, hours, minutes, seconds].map(function (part) {
-      return String(part).padStart(2, '0');
-    }).join(':');
+    const parts = [];
+    if (days) parts.push(days + 'd');
+    if (hours) parts.push(hours + 'h');
+    if (minutes) parts.push(minutes + 'm');
+    if (seconds) parts.push(seconds + 's');
+    return parts.join(' ');
   }
 
   // Live countdowns and elapsed student pass timers intentionally use MM:SS.
