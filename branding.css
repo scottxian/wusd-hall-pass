@@ -170,18 +170,39 @@
   }
 }
 
-/* Keep a fixed message slot whether text is present or not.
-   Clearing success/error notices must never resize the request card. */
-.hp-page-student #message {
-  height: 72px;
-  min-height: 72px;
-  margin-top: 8px;
-  padding: 5px 0;
-  box-sizing: border-box;
-  overflow-y: auto;
-  overflow-x: hidden;
+/* Show transient feedback on the same line as the request title.
+   The fixed-height message region cannot expand or collapse the card. */
+.hp-page-student .studentRequestHeader {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  column-gap: 18px;
+  min-height: 42px;
+  margin-bottom: 6px;
 }
-.hp-page-student #message:empty { visibility: hidden; }
+.hp-page-student .studentRequestCard .studentRequestHeader h2 {
+  margin: 3px 0 0;
+}
+.hp-page-student .studentRequestCard #message {
+  height: 42px;
+  min-height: 42px;
+  margin: 0;
+  padding: 1px 0;
+  box-sizing: border-box;
+  text-align: right;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.hp-page-student .studentRequestCard #message:empty { visibility: hidden; }
+@media (max-width: 720px) {
+  .hp-page-student .studentRequestHeader {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 2px;
+    min-height: 70px;
+  }
+  .hp-page-student .studentRequestCard #message { text-align: left; }
+}
 .hp-page-student .container > .card:nth-child(n+2) {
   overflow-x: auto; 
 }
