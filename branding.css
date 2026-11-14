@@ -170,10 +170,18 @@
   }
 }
 
+/* Keep a fixed message slot whether text is present or not.
+   Clearing success/error notices must never resize the request card. */
 .hp-page-student #message {
-  min-height: 0; margin-top: 0;
+  height: 72px;
+  min-height: 72px;
+  margin-top: 8px;
+  padding: 5px 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
-.hp-page-student #message:not(:empty) { margin-top: 10px; }
+.hp-page-student #message:empty { visibility: hidden; }
 .hp-page-student .container > .card:nth-child(n+2) {
   overflow-x: auto; 
 }
