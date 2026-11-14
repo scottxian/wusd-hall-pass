@@ -312,6 +312,8 @@
     .message:not(:empty){line-height:1.4}
     #statusMain{letter-spacing:.01em}
     @media(max-width:620px){.emptyState{padding:18px 10px!important}}
+    /* Four-part timers stay intact inside scrollable phone tables. */
+    #statusTimer, #outBody .elapsed {font-variant-numeric:tabular-nums;white-space:nowrap}
   </style>
 <link rel="stylesheet" href="branding.css?v=20261113-mobile">
 </head>
@@ -502,6 +504,7 @@
 
   <script src="config.js"></script>
   <script src="api-shim.js"></script><script src="branding.js" defer></script>
+  <script src="duration-display.js?v=20261114"></script>
 
   <script>
 
@@ -1206,28 +1209,8 @@
         );
 
 
-      const minutes =
-        Math.floor(
-          remaining /
-          60
-        );
-
-      const seconds =
-        remaining %
-        60;
-
-
       timer.textContent =
-        label +
-        ' ' +
-        minutes +
-        ':' +
-        String(
-          seconds
-        ).padStart(
-          2,
-          '0'
-        );
+        label + ' ' + HallPilotDuration.fromSeconds(remaining);
     }
 
 
@@ -2505,26 +2488,13 @@
             );
 
 
-          const remainder =
-            seconds %
-            60;
-
-
           const elapsedCell =
             row.querySelector(
               '.elapsed'
             );
 
-
           elapsedCell.textContent =
-            minutes +
-            ':' +
-            String(
-              remainder
-            ).padStart(
-              2,
-              '0'
-            );
+            HallPilotDuration.fromSeconds(seconds);
 
 
           row.classList.remove(

@@ -248,6 +248,14 @@
     .teacherToday .statusGrid{margin:0;grid-template-columns:repeat(5,minmax(115px,1fr))}
     .teacherToday .stat{padding:11px 9px}
     .teacherToday .statValue{font-size:20px}
+    /* Keep four-part duration values readable in scrollable reports. */
+    #outBody .elapsed, #reportPrintArea td {font-variant-numeric:tabular-nums;white-space:nowrap}
+    .teacherToday #averageTime, .teacherToday #longestTime {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(15px, 2.6vw, 20px);
+      white-space: nowrap;
+      letter-spacing: -.02em;
+    }
     @media(max-width:800px){.teacherToday .statusGrid{grid-template-columns:repeat(3,minmax(100px,1fr))}}
     @media(max-width:520px){.teacherToday .statusGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
@@ -435,8 +443,8 @@
             <div class="stat"><div class="statLabel">Passes Today</div><div id="passesToday" class="statValue">0</div></div>
             <div class="stat"><div class="statLabel">Restroom Passes</div><div id="restroomToday" class="statValue">0</div></div>
             <div class="stat"><div class="statLabel">Verified Returns</div><div id="completedToday" class="statValue">0</div></div>
-            <div class="stat"><div class="statLabel">Average Verified Pass</div><div id="averageTime" class="statValue">0:00</div></div>
-            <div class="stat"><div class="statLabel">Longest Verified Pass</div><div id="longestTime" class="statValue">0:00</div></div>
+            <div class="stat"><div class="statLabel">Average Verified Pass</div><div id="averageTime" class="statValue">00:00:00:00</div></div>
+            <div class="stat"><div class="statLabel">Longest Verified Pass</div><div id="longestTime" class="statValue">00:00:00:00</div></div>
           </div>
         
 </div>
@@ -634,6 +642,7 @@
   <script src="../vendor/jspdf.umd.min.js"></script>
   <script src="../vendor/jspdf.plugin.autotable.min.js"></script>
   <script src="../report-pdf.js"></script>
+  <script src="../duration-display.js?v=20261114"></script>
 
   <script>
   /* Hall Pass: student name / ID type-ahead. Page-local, zero backend changes. */
@@ -1793,7 +1802,7 @@
           <td>${escapeHtml(student.name)}</td>
           <td>${escapeHtml(student.destination)}</td>
           <td>${formatTime(student.leaveTime)}</td>
-          <td class="elapsed">0:00</td>
+          <td class="elapsed">00:00:00:00</td>
           <td><button class="primary returnButton" ${pending?'disabled aria-busy="true"':''}>${pending?'RETURNING...':'Return'}</button></td>`;
         row.querySelector('.returnButton').addEventListener('click', function() { returnPass(student.passId, this); });
         body.appendChild(row);
@@ -2423,14 +2432,14 @@
         fileName = sanitizeFileName(currentReport.studentName) + '-hall-pass-report.csv';
         rows.push(['Date','Schedule','Period','Destination','Requested','Left','Returned','Administratively Closed At','Duration','Status / Override']);
         currentReport.detailRows.forEach(function(row) {
-          rows.push([formatDateOnly(row.date), row.schedule, row.period, row.destination, timeOnly(row.requested), timeOnly(row.left), timeOnly(row.returned), timeOnly(row.closedAt), row.completed ? formatMinutes(row.durationMinutes) : '', row.override || '']);
+          rows.push([formatDateOnly(row.date), row.schedule, row.period, row.destination, timeOnly(row.requested), timeOnly(row.left), timeOnly(row.returned), timeOnly(row.closedAt), row.completed ? formatMinutesCsv(row.durationMinutes) : '', row.override || '']);
         });
       } else {
         rows.push(['Student','Student ID','Total Passes','Restroom Passes','Verified Returns','Auto-Closed Passes','Average Verified Pass','Longest Verified Pass','Total Verified Time','Teacher Overrides']);
         (currentReport.summaryRows || []).filter(function(row) {
           return Number(row.totalPasses || 0) > 0;
         }).forEach(function(row) {
-          rows.push([row.studentName,row.studentId,row.totalPasses,row.restroomPasses,row.completedPasses,row.autoClosedPasses||0,formatMinutes(row.averageMinutes),formatMinutes(row.longestMinutes),formatMinutes(row.totalMinutes),row.overrides]);
+          rows.push([row.studentName,row.studentId,row.totalPasses,row.restroomPasses,row.completedPasses,row.autoClosedPasses||0,formatMinutesCsv(row.averageMinutes),formatMinutesCsv(row.longestMinutes),formatMinutesCsv(row.totalMinutes),row.overrides]);
         });
       }
       const csv = rows.map(function(row) { return row.map(csvCell).join(','); }).join('\r\n');
@@ -2464,8 +2473,7 @@
         if (!Number.isFinite(start)) return;
         const seconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
         const minutes = Math.floor(seconds / 60);
-        const remainder = seconds % 60;
-        const elapsed = minutes + ':' + String(remainder).padStart(2, '0');
+        const elapsed = HallPilotDuration.fromSeconds(seconds);
         row.classList.remove('outWarning', 'outDanger');
         if (minutes >= danger) {
           row.classList.add('outDanger');
@@ -2491,13 +2499,15 @@
       return new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     }
 
-    function formatMinutes(value) {
+    function formatMinutes(value) { return HallPilotDuration.fromMinutes(value); }
+
+    // Preserve the prior m:ss representation in teacher CSV exports.
+    function formatMinutesCsv(value) {
       value = Number(value);
       if (!Number.isFinite(value) || value <= 0) return '0:00';
       const totalSeconds = Math.round(value * 60);
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
-      return minutes + ':' + String(seconds).padStart(2, '0');
+      return Math.floor(totalSeconds / 60) + ':' +
+        String(totalSeconds % 60).padStart(2, '0');
     }
 
     function escapeHtml(value) {

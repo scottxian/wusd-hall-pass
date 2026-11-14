@@ -158,7 +158,11 @@
     if (typeof pdfFactory !== 'function') {
       throw new Error('PDF generator did not load. Refresh the page and try again.');
     }
-    const doc = new pdfFactory({ orientation: 'landscape', unit: 'pt', format: 'letter', compress: true, putOnlyUsedFonts: true });
+    // Use legal landscape for wider detail tables, Letter for normal reports.
+    const widestTable = Math.max(0, ...(options.tables || []).map(function (table) {
+      return (table && table.headers || []).length;
+    }));
+    const doc = new pdfFactory({ orientation: 'landscape', unit: 'pt', format: widestTable >= 10 ? 'legal' : 'letter', compress: true, putOnlyUsedFonts: true });
     if (typeof doc.autoTable !== 'function' && !(root.jspdfAutoTable && root.jspdfAutoTable.autoTable)) {
       throw new Error('PDF table renderer did not load. Refresh the page and try again.');
     }
@@ -221,10 +225,17 @@
       });
       if (!body.length) body.push([ 'No matching records in the selected date range.' ].concat(Array(Math.max(0, heads.length - 1)).fill('')));
       const size = heads.length >= 11 ? 6.6 : heads.length >= 9 ? 7 : heads.length >= 7 ? 7.5 : 8.2;
+      const durationCols = {};
+      heads.forEach(function (heading, i) {
+        if (/duration|average|longest|total time|^wait$|time gone/i.test(heading)) {
+          durationCols[i] = { minCellWidth: heads.length >= 10 ? 51 : 57 };
+        }
+      });
       const auto = doc.autoTable ? function (params) { return doc.autoTable(params); }
         : function (params) { return root.jspdfAutoTable.autoTable(doc, params); };
       auto({
         head: [heads], body: body, startY: y,
+        columnStyles: durationCols,
         margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: 73, bottom: 56 },
         theme: 'grid',
         styles: {
