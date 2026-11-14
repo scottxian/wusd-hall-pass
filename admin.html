@@ -1844,6 +1844,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     // Read the authoritative room schedule from the EXISTING public page-state
     // service. No duplicated scheduling calculations or database changes.
     let roomPassStatusRequestId = 0;
+    let roomPassNextChangeTimer = null;
     function roomPassClock(value) {
       if (!value) return '—';
       const dt = new Date(value);
@@ -1881,6 +1882,10 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       if (!body) return;
       const requestedFilter = $('roomFilter').value;
       const requestId = ++roomPassStatusRequestId;
+      if (roomPassNextChangeTimer !== null) {
+        clearTimeout(roomPassNextChangeTimer);
+        roomPassNextChangeTimer = null;
+      }
       try {
         if (!lastState || !Array.isArray(lastState.rooms)) {
           throw new Error('Refresh the campus overview first.');
@@ -1926,6 +1931,18 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
             '</td><td>'+esc(period)+'</td><td>'+esc(roomPassClock(r.nextChange))+'</td></tr>';
         }).join('') : '<tr><td colspan="5" class="emptyState">No active rooms match this selection.</td></tr>';
         $('roomPassUpdated').textContent = 'Updated ' + roomPassClock(new Date());
+        // Poll at a normal cadence, but also recheck just after the next
+        // scheduled open/close change, so bell transitions show promptly.
+        const now = Date.now();
+        const futureChanges = rooms.map(r => new Date(r.nextChange).getTime())
+          .filter(time => Number.isFinite(time) && time > now + 250);
+        if (futureChanges.length) {
+          const delay = Math.max(750, Math.min(...futureChanges) - now + 600);
+          roomPassNextChangeTimer = setTimeout(() => {
+            roomPassNextChangeTimer = null;
+            if (unlocked && $('livePanel').classList.contains('active')) refreshRoomPassStatus();
+          }, Math.min(delay, 2147483000));
+        }
       } catch(error) {
         if (requestId !== roomPassStatusRequestId) return;
         body.innerHTML = '<tr><td colspan="5" class="emptyState">Room status unavailable: ' +
