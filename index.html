@@ -352,17 +352,6 @@
     .studentRequestFlow .studentConfirm { margin: 6px 0 10px; min-height: 24px; }
     .studentRequestFlow .buttonRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .studentRequestFlow .buttonRow button { min-width: 0; }
-    /* Temporary notices share a fixed-height slot in branding.css. */
-    .studentRequestCard #message {
-      font-size: 15px;
-      line-height: 1.35;
-      font-weight: 600;
-      min-height: 0;
-      margin-top: 7px;
-    }
-    .studentRequestCard #message.success { font-size: 15px; }
-    .studentRequestCard #message.notice { color: #8a6500; }
-    .studentRequestCard #message:empty { visibility: hidden; }
     @media(max-width: 720px) {
       /* Hidden and active destination stages must have the SAME mobile layout. */
       .studentRequestFlow > #destinationStep { grid-template-columns: minmax(0, 1fr); }
@@ -371,7 +360,7 @@
       .studentRequestFlow .buttonRow button { font-size: 15px; padding: 11px 7px; }
     }
   </style>
-<link rel="stylesheet" href="branding.css?v=20261114-request-header-v2">
+<link rel="stylesheet" href="branding.css?v=20261114-student-message-card">
 </head>
 
 
@@ -396,12 +385,16 @@
 
   <div class="container">
 
+    <div class="card studentMessageCard" aria-label="Student messages">
+      <div class="studentMessagePanel">
+        <h3 class="studentMessageHeading">Messages:</h3>
+        <div id="message" class="message" role="status" aria-live="polite" aria-atomic="true"></div>
+      </div>
+    </div>
+
     <div class="card studentRequestCard">
 
-      <div class="studentRequestHeader">
-        <h2>Request a Hall Pass</h2>
-        <div id="message" class="message" role="status" aria-live="polite"></div>
-      </div>
+      <h2>Request a Hall Pass</h2>
 
       <div class="studentRequestFlow" aria-label="Hall pass request steps">
       <div id="idStep">
