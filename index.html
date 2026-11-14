@@ -330,7 +330,16 @@
     .studentRequestFlow .studentConfirm { margin: 6px 0 10px; }
     .studentRequestFlow .buttonRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .studentRequestFlow .buttonRow button { min-width: 0; }
-    .studentRequestCard #message, .studentRequestCard #message:empty { min-height: 22px; margin-top: 7px; }
+    /* Compact, temporary notices: no permanently blank status strip. */
+    .studentRequestCard #message {
+      font-size: 15px;
+      line-height: 1.35;
+      font-weight: 600;
+      min-height: 0;
+      margin-top: 7px;
+    }
+    .studentRequestCard #message.success { font-size: 15px; }
+    .studentRequestCard #message:empty { display: none; }
     @media(max-width: 720px) {
       .studentRequestFlow { min-height: 166px; }
       .studentRequestFlow #continueButton { width: 100%; min-width: 0; }
@@ -2639,60 +2648,31 @@
        MESSAGE
     ===================================================== */
 
-    function setMessage(
-      text,
-      type = ''
-    ) {
-
-      const message =
-        document.getElementById(
-          'message'
-        );
-
-
-      message.textContent =
-        text || '';
-
-
-      message.className =
-        'message';
-
-
-      if (
-        type ===
-        'processing'
-      ) {
-
-        message.classList.add(
-          'processing'
-        );
-
+    // Messages belong to the current student interaction, not the next one.
+    // Finished notices disappear automatically; processing stays while an
+    // actual request is still running, and a new message cancels the old timer.
+    let studentMessageTimeout = null;
+    let studentMessageVersion = 0;
+    function setMessage(text, type = '') {
+      const message = document.getElementById('message');
+      if (studentMessageTimeout !== null) {
+        clearTimeout(studentMessageTimeout);
+        studentMessageTimeout = null;
       }
-
-
-      else if (
-        type ===
-        'success'
-      ) {
-
-        message.classList.add(
-          'success'
-        );
-
+      const version = ++studentMessageVersion;
+      message.textContent = text || '';
+      message.className = 'message';
+      if (type === 'processing' || type === 'success' || type === 'error') {
+        message.classList.add(type);
       }
-
-
-      else if (
-        type ===
-        'error'
-      ) {
-
-        message.classList.add(
-          'error'
-        );
-
-      }
-
+      if (!text || type === 'processing') return;
+      // Keep errors readable a little longer than confirmations.
+      studentMessageTimeout = setTimeout(function() {
+        if (version !== studentMessageVersion) return;
+        message.textContent = '';
+        message.className = 'message';
+        studentMessageTimeout = null;
+      }, type === 'error' ? 10000 : 6500);
     }
 
 
