@@ -1,6 +1,6 @@
 /* Hall Pilot duration display only.
  * Existing numeric minute/second fields and pass-warning thresholds are unchanged.
- * Reports: compact d h m s (omit zero units). Live student timers: MM:SS.
+ * Reports: compact d h m s (omit zero units). Live student timers: m:ss.
  */
 (function (root) {
   'use strict';
@@ -21,15 +21,14 @@
     return parts.join(' ');
   }
 
-  // Live countdowns and elapsed student pass timers intentionally use MM:SS.
+  // Live countdowns and elapsed student pass timers intentionally use m:ss.
   // Minutes grow past 59 for long passes; report formats remain unchanged.
   function timerFromSeconds(value) {
     const numeric = Number(value);
     const total = Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
     const minutes = Math.floor(total / 60);
     const seconds = total % 60;
-    return String(minutes).padStart(2, '0') + ':' +
-      String(seconds).padStart(2, '0');
+    return String(minutes) + ':' + String(seconds).padStart(2, '0');
   }
 
   function fromMinutes(value) {
