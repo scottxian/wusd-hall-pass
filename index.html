@@ -312,8 +312,22 @@
     .message:not(:empty){line-height:1.4}
     #statusMain{letter-spacing:.01em}
     @media(max-width:620px){.emptyState{padding:18px 10px!important}}
-    /* Four-part timers stay intact inside scrollable phone tables. */
+    /* Live pass timers remain m:ss in all student tables. */
     #statusTimer, #outBody .elapsed {font-variant-numeric:tabular-nums;white-space:nowrap}
+
+    /* Reserve a single stable footprint for all three request stages.
+       Switching from ID to confirmation to destination never shifts the cards below. */
+    .studentRequestFlow { min-height: 236px; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; }
+    .studentRequestFlow > div { min-width: 0; }
+    .studentRequestFlow .studentConfirm { margin: 8px 0 16px; }
+    .studentRequestFlow .buttonRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .studentRequestFlow .buttonRow button { min-width: 0; }
+    .studentRequestFlow #continueButton { width: 100%; }
+    .studentRequestCard #message, .studentRequestCard #message:empty { min-height: 32px; margin-top: 12px; }
+    @media(max-width: 620px) {
+      .studentRequestFlow { min-height: 252px; }
+      .studentRequestFlow .buttonRow button { font-size: 15px; padding: 11px 7px; }
+    }
   </style>
 <link rel="stylesheet" href="branding.css?v=20261113-mobile">
 </head>
@@ -340,10 +354,11 @@
 
   <div class="container">
 
-    <div class="card">
+    <div class="card studentRequestCard">
 
       <h2>Request a Hall Pass</h2>
 
+      <div class="studentRequestFlow" aria-label="Hall pass request steps">
       <div id="idStep">
 
         <label for="studentId" class="srOnly">Student ID</label>
@@ -439,6 +454,8 @@
 
       </div>
 
+
+      </div>
 
       <div
         id="message"
@@ -1383,6 +1400,10 @@
             currentStudent =
               result.student;
 
+            // Remove the mobile keyboard before changing stages; avoid viewport jumps.
+            if (document.activeElement === document.getElementById('studentId')) {
+              document.activeElement.blur();
+            }
 
             document
               .getElementById(
