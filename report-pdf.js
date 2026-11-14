@@ -13,6 +13,7 @@
   const BORDER = [219, 229, 239];
   const PAGE_MARGIN = 39;
   const fontPromises = new Map();
+  let brandMarkPromise;
 
   function plain(value) {
     return String(value == null ? '' : value)
@@ -91,17 +92,75 @@
     return 'HallPilotLato';
   }
 
-  function drawBanner(doc, width, font) {
+  // Use the same Hall Pilot mark that appears in the live site header.
+  // Rasterizing the local SVG allows jsPDF to embed it without external services.
+  function loadBrandMark() {
+    if (!brandMarkPromise) {
+      brandMarkPromise = new Promise(function (resolve) {
+        const image = new Image();
+        image.onload = function () {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 480;
+            canvas.height = 345;
+            const context = canvas.getContext('2d');
+            if (!context) { resolve(null); return; }
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/png'));
+          } catch (error) {
+            resolve(null);
+          }
+        };
+        image.onerror = function () { resolve(null); };
+        image.src = 'assets/hall-pilot-mark.svg';
+      });
+    }
+    return brandMarkPromise;
+  }
+
+  // Keep metadata labels prominent without bolding their values.
+  // Supports multiple labels on a line, such as School: ... Room: D4.
+  function drawDetail(doc, detail, startY, width, font) {
+    const fragments = detail.split(/(School:|Reporting period:|Period:|Room:|Destination:|Student:)/gi).filter(Boolean);
+    const maxX = width - PAGE_MARGIN;
+    let x = PAGE_MARGIN, y = startY;
+    doc.setFontSize(9);
+    fragments.forEach(function (fragment) {
+      const isLabel = /^(School:|Reporting period:|Period:|Room:|Destination:|Student:)$/i.test(fragment);
+      const output = /^Reporting period:$/i.test(fragment) ? 'Reporting Period:' : fragment;
+      doc.setFont(font, isLabel ? 'bold' : 'normal');
+      doc.setTextColor.apply(doc, isLabel ? INK : MUTED);
+      (output.match(/\s+|\S+/g) || []).forEach(function (part) {
+        const isSpace = !part.trim();
+        if (isSpace && x === PAGE_MARGIN) return;
+        const partWidth = doc.getTextWidth(part);
+        if (!isSpace && x + partWidth > maxX && x > PAGE_MARGIN) {
+          y += 12;
+          x = PAGE_MARGIN;
+        }
+        if (isSpace && x + partWidth > maxX) return;
+        doc.text(part, x, y);
+        x += partWidth;
+      });
+    });
+    doc.setFont(font, 'normal');
+    doc.setTextColor.apply(doc, MUTED);
+    return y + 14;
+  }
+
+  function drawBanner(doc, width, font, brandMark) {
     doc.setFillColor.apply(doc, NAVY);
     doc.rect(0, 0, width, 9, 'F');
     doc.setFont(font, 'bold');
     doc.setFontSize(12);
     doc.setTextColor.apply(doc, NAVY);
-    doc.text('HALL PILOT', PAGE_MARGIN, 39);
+    if (brandMark) doc.addImage(brandMark, 'PNG', PAGE_MARGIN, 17, 31, 22);
+    const markOffset = brandMark ? 38 : 0;
+    doc.text('HALL PILOT', PAGE_MARGIN + markOffset, 39);
     doc.setFont(font, 'normal');
     doc.setFontSize(8);
     doc.setTextColor.apply(doc, MUTED);
-    doc.text('Hall Pass Reporting', PAGE_MARGIN + 86, 39);
+    doc.text('Hall Pass Reporting', PAGE_MARGIN + markOffset + 86, 39);
     doc.setFontSize(7);
     doc.text('CONFIDENTIAL  /  SCHOOL USE', width - PAGE_MARGIN, 39, { align: 'right' });
     doc.setDrawColor.apply(doc, BORDER);
@@ -167,6 +226,7 @@
       throw new Error('PDF table renderer did not load. Refresh the page and try again.');
     }
     const font = await installFonts(doc, options.fontDirectory || 'vendor/fonts/');
+    const brandMark = await loadBrandMark();
     const width = doc.internal.pageSize.getWidth(), height = doc.internal.pageSize.getHeight();
     const generated = new Date().toLocaleString(undefined, {
       year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
@@ -178,7 +238,7 @@
       author: 'Hall Pilot',
       keywords: 'hall passes, school report'
     });
-    drawBanner(doc, width, font);
+    drawBanner(doc, width, font, brandMark);
 
     let y = 76;
     doc.setFont(font, 'bold');
@@ -189,13 +249,8 @@
     y += titleLines.length * 22 + 4;
 
     const details = (options.details || []).map(plain).filter(Boolean);
-    doc.setFont(font, 'normal');
-    doc.setTextColor.apply(doc, MUTED);
-    doc.setFontSize(9);
     details.forEach(function (detail) {
-      const lines = doc.splitTextToSize(detail, width - PAGE_MARGIN * 2);
-      doc.text(lines, PAGE_MARGIN, y);
-      y += lines.length * 12 + 2;
+      y = drawDetail(doc, detail, y, width, font);
     });
     y += 12;
     const summaries = (options.summary || []).map(function (entry) {
@@ -211,13 +266,14 @@
     }
     for (let index = 0; index < tables.length; index++) {
       const table = tables[index];
-      if (y > height - 110) {
-        doc.addPage(); drawBanner(doc, width, font); y = 75;
+      if (y > height - 145) {
+        doc.addPage(); drawBanner(doc, width, font, brandMark); y = 75;
       }
       doc.setFont(font, 'bold');
       doc.setFontSize(11);
       doc.setTextColor.apply(doc, BLUE);
-      doc.text(plain(table.title || 'Report Details'), PAGE_MARGIN, y);
+      const tableTitle = plain(table.title || 'Report Details');
+      doc.text(tableTitle, PAGE_MARGIN, y);
       y += 11;
       const heads = table.headers.map(plain);
       const body = (table.rows || []).map(function (row) {
@@ -236,7 +292,8 @@
       auto({
         head: [heads], body: body, startY: y,
         columnStyles: durationCols,
-        margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: 73, bottom: 56 },
+        // Continuation pages reserve a row above the repeated column headings.
+        margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: 96, bottom: 56 },
         theme: 'grid',
         styles: {
           font: font, fontStyle: 'normal', fontSize: size,
@@ -248,7 +305,15 @@
         alternateRowStyles: { fillColor: [247, 250, 254] },
         showHead: 'everyPage',
         rowPageBreak: 'avoid',
-        didDrawPage: function () { drawBanner(doc, width, font); }
+        didDrawPage: function (data) {
+          drawBanner(doc, width, font, brandMark);
+          if (data.pageNumber > 1) {
+            doc.setFont(font, 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor.apply(doc, BLUE);
+            doc.text(tableTitle + ' (continued)', PAGE_MARGIN, 77);
+          }
+        }
       });
       y = ((doc.lastAutoTable || {}).finalY || y) + 28;
     }
