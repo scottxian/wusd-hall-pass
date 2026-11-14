@@ -531,6 +531,22 @@
     #livePanel .roomPassStatusCard h2 { margin: 0; }
     #livePanel .roomPassStatusCard .roomPassIntro { margin: 5px 0 12px; font-size: 13px; color: #556579; }
     #livePanel .roomPassStatusCard table { min-width: 650px; }
+    #livePanel .roomPassOverviewCounts { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
+    #livePanel .roomPassGroups { display: grid; gap: 8px; }
+    #livePanel .roomPassScheduleGroup { border: 1px solid #d5e0e9; border-radius: 9px; background: #fff; overflow: hidden; }
+    #livePanel .roomPassScheduleGroup[open] { border-color: #b0c5db; }
+    #livePanel .roomPassScheduleGroup summary { cursor: pointer; padding: 11px 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 9px 15px; background: #f5f8fb; }
+    #livePanel .roomPassScheduleGroup summary:hover { background: #ecf3fa; }
+    #livePanel .roomPassScheduleGroup summary:focus-visible { outline: 3px solid #7aa7d8; outline-offset: -3px; }
+    #livePanel .roomPassScheduleTitle { font-size: 16px; font-weight: 800; color: #1a395e; }
+    #livePanel .roomPassScheduleMeta { font-size: 13px; color: #586676; }
+    #livePanel .roomPassQuickCounts { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+    #livePanel .roomPassQuickBlock { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; max-width: 100%; }
+    #livePanel .roomPassQuickBlock .roomPassNames { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #435569; }
+    #livePanel .roomPassQuickBlock .roomPassStatePill { min-width: 0; padding: 4px 7px; font-size: 12px; }
+    #livePanel .roomPassScheduleGroup .tableWrap { padding: 0 10px 8px; }
+    #livePanel .roomPassScheduleGroup .roomPassDetailsHint { padding: 7px 12px 0; color: #586676; font-size: 12px; }
+    @media(max-width:720px) { #livePanel .roomPassScheduleGroup summary { gap: 7px 10px; } #livePanel .roomPassQuickBlock .roomPassNames { max-width: 125px; } }
     #livePanel .roomPassStatusCard th,
     #livePanel .roomPassStatusCard td { padding: 9px 12px; white-space: normal; vertical-align: middle; }
     #livePanel .roomPassStatusCard th { font-size: 13px; }
@@ -960,10 +976,8 @@
         <div class="card roomPassStatusCard">
           <div class="sectionHead"><h2>Room Pass Status</h2><span id="roomPassUpdated" aria-live="off"></span></div>
           <p class="roomPassIntro">Current pass availability, schedule, and period for each active classroom. Updates automatically.</p>
-          <div class="tableWrap"><table aria-label="Room pass status and current schedule">
-            <thead><tr><th>Room</th><th>Passes</th><th>Schedule</th><th>Period</th><th>Next Change</th></tr></thead>
-            <tbody id="roomPassStatusBody"><tr><td colspan="5" class="emptyState">Loading room status...</td></tr></tbody>
-          </table></div>
+          <div id="roomPassStatusOverview" class="roomPassOverviewCounts" aria-live="polite"></div>
+          <div id="roomPassStatusGroups" class="roomPassGroups"><p class="emptyState">Loading room status...</p></div>
         </div>
         <div class="adminLiveGrid" aria-label="Current campus hall passes">
         <div class="card"><h2>Students Out Right Now</h2><div class="tableWrap"><table><thead><tr><th>Room</th><th>Student</th><th>Destination</th><th>Left</th><th>Time Gone</th></tr></thead><tbody id="outBody"></tbody></table></div></div>
@@ -1876,9 +1890,77 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       }
       return data;
     }
+    function renderRoomPassStatusGroups(rooms, body) {
+      const overview = $('roomPassStatusOverview');
+      const counts = { OPEN: 0, CLOSED: 0, UNKNOWN: 0 };
+      rooms.forEach(r => {
+        const status = r.status === 'OPEN' ? 'OPEN' : r.status === 'CLOSED' ? 'CLOSED' : 'UNKNOWN';
+        counts[status]++;
+      });
+      overview.innerHTML = '<span class="roomPassStatePill isOpen">' + counts.OPEN + ' Open</span>' +
+        '<span class="roomPassStatePill isClosed">' + counts.CLOSED + ' Closed</span>' +
+        (counts.UNKNOWN ? '<span class="roomPassStatePill isUnknown">' + counts.UNKNOWN + ' Unavailable</span>' : '');
+      if (!rooms.length) {
+        body.innerHTML = '<p class="emptyState">No active rooms match this selection.</p>';
+        return;
+      }
+      const expanded = new Set(Array.from(body.querySelectorAll('details[open][data-schedule-key]'))
+        .map(element => element.dataset.scheduleKey));
+      const grouped = new Map();
+      rooms.forEach(r => {
+        const name = String(r.schedule || 'Schedule unavailable');
+        if (!grouped.has(name)) grouped.set(name, []);
+        grouped.get(name).push(r);
+      });
+      const pillClass = { OPEN: 'isOpen', CLOSED: 'isClosed', UNKNOWN: 'isUnknown' };
+      const keys = ['OPEN', 'CLOSED', 'UNKNOWN'];
+      const statusOf = r => r.status === 'OPEN' ? 'OPEN' : r.status === 'CLOSED' ? 'CLOSED' : 'UNKNOWN';
+      const labelPeriod = r => r.period ? 'Period ' + r.period :
+        (r.reason === 'Between classes' ? 'Between classes' : 'No current period');
+      const html = [];
+      for (const [name, entries] of grouped) {
+        const periods = [...new Set(entries.map(labelPeriod))];
+        const periodText = periods.length === 1 ? periods[0] : 'Different periods';
+        const quick = keys.map(status => {
+          const matching = entries.filter(r => statusOf(r) === status);
+          if (!matching.length) return '';
+          const names = matching.map(r => String(r.key || r.room || '').toUpperCase());
+          const preview = names.slice(0, 5).join(', ') + (names.length > 5 ? ' +' + (names.length - 5) + ' more' : '');
+          return '<span class="roomPassQuickBlock"><span class="roomPassStatePill ' + pillClass[status] +
+            '">' + matching.length + ' ' + (status === 'UNKNOWN' ? 'Unavailable' : status.toLowerCase()) + '</span>' +
+            '<span class="roomPassNames" title="' + esc(names.join(', ')) + '">' + esc(preview) + '</span></span>';
+        }).join('');
+        const nextTimes = entries.map(r => r.nextChange ? new Date(r.nextChange).getTime() : NaN)
+          .filter(n => Number.isFinite(n) && n > Date.now());
+        const nextText = nextTimes.length ? 'Next change: ' + roomPassClock(Math.min(...nextTimes)) : '';
+        const lines = entries.map(r => {
+          const status = statusOf(r);
+          const source = r.source && r.source !== 'Room Default' ?
+            '<span class="roomPassSub">' + esc(r.source) + '</span>' : '';
+          const reason = r.reason ? '<span class="roomPassSub">' + esc(r.reason) + '</span>' : '';
+          return '<tr><td><strong>' + esc(r.room || r.key) + '</strong>' +
+            (r.key && r.room && r.room.toLowerCase() !== r.key.toLowerCase() ?
+              '<span class="roomPassSub">' + esc(r.key.toUpperCase()) + '</span>' : '') +
+            '</td><td><span class="roomPassStatePill ' + pillClass[status] + '">' + status + '</span>' +
+            reason + '</td><td>' + esc(labelPeriod(r)) + source +
+            '</td><td>' + esc(roomPassClock(r.nextChange)) + '</td></tr>';
+        }).join('');
+        html.push('<details class="roomPassScheduleGroup" data-schedule-key="' + esc(name) + '"' +
+          (expanded.has(name) ? ' open' : '') + '>' +
+          '<summary><span class="roomPassScheduleTitle">' + esc(name) + '</span>' +
+          '<span class="roomPassScheduleMeta">' + esc(periodText) + ' · ' + entries.length +
+          (entries.length === 1 ? ' room' : ' rooms') + '</span>' +
+          '<span class="roomPassQuickCounts">' + quick + '</span>' +
+          (nextText ? '<span class="roomPassScheduleMeta">' + esc(nextText) + '</span>' : '') + '</summary>' +
+          '<div class="roomPassDetailsHint">Room-by-room status and next change</div>' +
+          '<div class="tableWrap"><table><thead><tr><th>Room</th><th>Passes</th><th>Period / Source</th><th>Next Change</th></tr></thead>' +
+          '<tbody>' + lines + '</tbody></table></div></details>');
+      }
+      body.innerHTML = html.join('');
+    }
     async function refreshRoomPassStatus() {
       if (!unlocked) return;
-      const body = $('roomPassStatusBody');
+      const body = $('roomPassStatusGroups');
       if (!body) return;
       const requestedFilter = $('roomFilter').value;
       const requestId = ++roomPassStatusRequestId;
@@ -1915,21 +1997,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           rooms.push(...items);
         }
         if (requestId !== roomPassStatusRequestId || requestedFilter !== $('roomFilter').value) return;
-        body.innerHTML = rooms.length ? rooms.map(r => {
-          const status = r.status === 'OPEN' ? 'OPEN' : r.status === 'CLOSED' ? 'CLOSED' : 'UNKNOWN';
-          const pill = status === 'OPEN' ? 'isOpen' : status === 'CLOSED' ? 'isClosed' : 'isUnknown';
-          const reason = r.reason ?
-            '<span class="roomPassSub">'+esc(r.reason)+'</span>' : '';
-          const source = r.source && r.source !== 'Room Default' ?
-            '<span class="roomPassSub">'+esc(r.source)+'</span>' : '';
-          const period = r.period || (r.reason === 'Between classes' ? 'Between classes' : '—');
-          return '<tr><td><strong>'+esc(r.room || r.key)+'</strong>'+
-            (r.key && r.room && r.room.toLowerCase() !== r.key.toLowerCase() ?
-              '<span class="roomPassSub">'+esc(r.key.toUpperCase())+'</span>' : '')+
-            '</td><td><span class="roomPassStatePill '+pill+'">'+status+'</span>'+reason+
-            '</td><td><strong>'+esc(r.schedule || '—')+'</strong>'+source+
-            '</td><td>'+esc(period)+'</td><td>'+esc(roomPassClock(r.nextChange))+'</td></tr>';
-        }).join('') : '<tr><td colspan="5" class="emptyState">No active rooms match this selection.</td></tr>';
+        renderRoomPassStatusGroups(rooms, body);
         $('roomPassUpdated').textContent = 'Updated ' + roomPassClock(new Date());
         // Poll at a normal cadence, but also recheck just after the next
         // scheduled open/close change, so bell transitions show promptly.
@@ -1945,8 +2013,9 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         }
       } catch(error) {
         if (requestId !== roomPassStatusRequestId) return;
-        body.innerHTML = '<tr><td colspan="5" class="emptyState">Room status unavailable: ' +
-          esc(error?.message || 'Please refresh.') + '</td></tr>';
+        $('roomPassStatusOverview').innerHTML = '';
+        body.innerHTML = '<p class="emptyState">Room status unavailable: ' +
+          esc(error?.message || 'Please refresh.') + '</p>';
         $('roomPassUpdated').textContent = '';
       }
     }
