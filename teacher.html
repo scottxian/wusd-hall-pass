@@ -586,6 +586,7 @@
           </details>
           <div class="buttonRow">
             <button class="primary" onclick="generateReport(this)">Generate Report</button>
+            <button id="downloadReportPdfButton" class="primary" onclick="downloadTeacherReportPdf()" disabled>Download PDF</button>
             <button id="printReportButton" class="gray" onclick="printReport()" disabled>Print Report</button>
             <button id="downloadReportButton" class="gray" onclick="downloadReportCsv()" disabled>Download CSV</button>
           </div>
@@ -630,6 +631,9 @@
 
   <script src="config.js"></script>
   <script src="api-shim.js"></script><script src="branding.js" defer></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="vendor/jspdf.plugin.autotable.min.js"></script>
+  <script src="report-pdf.js"></script>
 
   <script>
   /* Hall Pass: student name / ID type-ahead. Page-local, zero backend changes. */
@@ -1885,6 +1889,7 @@
           renderReport(result);
           document.getElementById('printReportButton').disabled = false;
           document.getElementById('downloadReportButton').disabled = false;
+          document.getElementById('downloadReportPdfButton').disabled = false;
           setActionMessage('Report ready.', 'success');
         })
         .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
@@ -2195,7 +2200,7 @@
         return sort.direction === 'asc' ? comparison : -comparison;
       });
 
-      let html = `<div class="reportDrilldownHeader"><div class="reportDrilldownTitle">${escapeHtml(report.studentName)} — Individual Pass History</div><button type="button" class="reportStudentPrintButton">Print Student</button></div>`;
+      let html = `<div class="reportDrilldownHeader"><div class="reportDrilldownTitle">${escapeHtml(report.studentName)} — Individual Pass History</div><div class="buttonRow"><button type="button" class="reportStudentPdfButton primary">Download Student PDF</button><button type="button" class="reportStudentPrintButton">Print Student</button></div></div>`;
       html += '<div class="tableWrap"><table><thead><tr>' + columns.map(function(column) {
         const active = sort.key === column.key;
         const arrow = active ? (sort.direction === 'asc' ? '▲' : '▼') : '';
@@ -2235,6 +2240,10 @@
           printIndividualStudentReport(report);
         });
       }
+      const pdfButton = drilldown.querySelector('.reportStudentPdfButton');
+      if (pdfButton) pdfButton.addEventListener('click', function() {
+        downloadTeacherReportPdf(report, drilldown, pdfButton);
+      });
     }
 
     function compareStudentDetailValues_(a, b, column) {
@@ -2327,6 +2336,78 @@
     function renderStudentReportDrilldownError(detailTr, message) {
       const drilldown = detailTr.querySelector('.reportDrilldown');
       drilldown.innerHTML = '<div class="reportDrilldownMessage reportDrilldownError">' + escapeHtml(message) + '</div>';
+    }
+
+
+    // Exports the currently displayed sort order. A student drill-down uses
+    // its own displayed detail order instead of the full-class summary.
+    async function downloadTeacherReportPdf(studentReport, drilldown, sourceButton) {
+      const report = studentReport || currentReport;
+      if (!report) { setActionMessage('Generate a report first.', 'error'); return; }
+      const button = sourceButton || document.getElementById('downloadReportPdfButton');
+      if (button) button.disabled = true;
+      try {
+        const individual = report.type === 'individual';
+        const schoolNode = document.querySelector('.hp-brand-school-name');
+        const school = schoolNode && schoolNode.textContent.trim() || 'Current school';
+        const room = (new URLSearchParams(window.location.search)).get('room') || '';
+        const summary = [];
+        if (individual) {
+          const s = report.summary || {};
+          summary.push(['Total Passes', s.totalPasses || 0],
+            ['Restroom Passes', s.restroomPasses || 0],
+            ['Verified Returns', s.completedPasses || 0],
+            ['Auto-Closed', s.autoClosedPasses || 0],
+            ['Average Verified Pass', formatMinutes(s.averageMinutes)],
+            ['Longest Verified Pass', formatMinutes(s.longestMinutes)],
+            ['Total Verified Time', formatMinutes(s.totalMinutes)],
+            ['Teacher Overrides', s.overrides || 0]);
+        } else {
+          const entries = (report.summaryRows || []).filter(function(row) {
+            return Number(row.totalPasses || 0) > 0;
+          });
+          const sum = function(key) { return entries.reduce(function(n, row) {
+            return n + Number(row[key] || 0);
+          }, 0); };
+          summary.push(['Students With Passes', entries.length],
+            ['Total Passes', sum('totalPasses')],
+            ['Restroom Passes', sum('restroomPasses')],
+            ['Verified Returns', sum('completedPasses')],
+            ['Auto-Closed', sum('autoClosedPasses')],
+            ['Teacher Overrides', sum('overrides')]);
+        }
+        const head = drilldown ? drilldown.querySelector('thead') : document.getElementById('reportHead');
+        const body = drilldown ? drilldown.querySelector('tbody') : document.getElementById('reportBody');
+        const table = HallPilotReportPdf.fromTable(head, body,
+          individual ? 'tr' : '.reportSummaryRow');
+        const title = individual
+          ? 'Student Pass Report — ' + (report.studentName || 'Student')
+          : 'All Students Pass Report';
+        const details = [
+          'School: ' + school + (room ? '     Room: ' + room.toUpperCase() : ''),
+          'Reporting period: ' + formatDateOnly(report.startDate) +
+            ' through ' + formatDateOnly(report.endDate),
+          'Period: ' + (report.period || 'All periods') +
+            (report.includeTestData ? '     Includes test data' : ''),
+          !individual ? 'Student rows and order match the current sorted report.' : ''
+        ];
+        const fileName = 'hall-pass-teacher-' + (room || 'room') +
+          '-' + (individual ? (report.studentName || report.studentId || 'student') : 'all-students') +
+          '-' + report.startDate + '-to-' + report.endDate;
+        await HallPilotReportPdf.exportPdf({
+          title: title,
+          scope: 'Teacher / classroom',
+          details: details, summary: summary,
+          tables: [{ title: individual ? 'Pass History' : 'Student Summary', headers: table.headers, rows: table.rows }],
+          fontDirectory: 'vendor/fonts/',
+          fileName: fileName
+        });
+        setActionMessage('PDF report prepared for download.', 'success');
+      } catch (error) {
+        setActionMessage('Could not create PDF: ' + (error && error.message || error), 'error');
+      } finally {
+        if (button) button.disabled = false;
+      }
     }
 
     function printReport() {
