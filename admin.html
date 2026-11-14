@@ -1526,7 +1526,7 @@
   <script src="config.js"></script><script src="api-shim.js"></script><script src="branding.js" defer></script>
   <script src="vendor/jspdf.umd.min.js"></script>
   <script src="vendor/jspdf.plugin.autotable.min.js"></script>
-  <script src="report-pdf.js?v=20261114-pdf-header-v2"></script>
+  <script src="report-pdf.js?v=20261114-pdf-labels-v3"></script>
   <script src="duration-display.js?v=20261114-live-mss"></script>
 
 
@@ -3211,10 +3211,10 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         const details=[
           'School: '+school,
           'Reporting period: '+(f.startDate||'')+' through '+(f.endDate||''),
-          f.roomKey?'Room: '+($('campusReportRoom').selectedOptions[0]?.textContent||f.roomKey):'All rooms',
-          f.destination?'Destination: '+f.destination:'All destinations',
+          f.roomKey?'Room: '+($('campusReportRoom').selectedOptions[0]?.textContent||f.roomKey):'Rooms: All rooms',
+          f.destination?'Destination: '+f.destination:'Destinations: All destinations',
           f.studentId?'Student: '+($('campusReportStudent').selectedOptions[0]?.textContent||f.studentId):'',
-          f.includeTestData?'Includes test data':''
+          f.includeTestData?'Note: Includes test data':''
         ];
         const summary=[
           ['Total Passes',s.totalPasses||0],
