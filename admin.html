@@ -959,7 +959,7 @@
         <div class="card adminFilterCard"><div class="controls adminOverviewToolbar"><div><label for="roomFilter">Room</label><select id="roomFilter"><option value="">All Rooms</option></select></div><div><label for="search">History Search</label><input id="search" placeholder="Student, ID, destination, room..."></div><button id="refreshLive" class="gray" type="button">Refresh</button></div><div id="message" class="message"></div></div>
         <div class="card roomPassStatusCard">
           <div class="sectionHead"><h2>Room Pass Status</h2><span id="roomPassUpdated" aria-live="off"></span></div>
-          <p class="roomPassIntro">Current pass availability, schedule, and period for each active classroom.</p>
+          <p class="roomPassIntro">Current pass availability, schedule, and period for each active classroom. Updates automatically.</p>
           <div class="tableWrap"><table aria-label="Room pass status and current schedule">
             <thead><tr><th>Room</th><th>Passes</th><th>Schedule</th><th>Period</th><th>Next Change</th></tr></thead>
             <tbody id="roomPassStatusBody"><tr><td colspan="5" class="emptyState">Loading room status...</td></tr></tbody>
@@ -2094,7 +2094,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
 
 
-    async function setCampusLock(){if(!lastState)return setMsg('campusLockMessage','Refresh campus status before changing the emergency lock.',true);const turnOn=!Boolean(lastState.campusEmergencyLock);if(turnOn&&!window.confirm('Lock every room at this school?\nNew passes stop; waiting lists clear.'))return;const b=$('campusLockButton');b.disabled=true;setMsg('campusLockMessage',turnOn?'Locking campus...':'Unlocking campus...');try{const r=await hallpassApi.call('adminSetCampusLock',[turnOn]);if(!r.success){setMsg('campusLockMessage',r.message,true);return;}await Promise.all([refreshLive(),refreshSecurity()]);setMsg('campusLockMessage',r.message)}catch(e){setMsg('campusLockMessage',e.message,true)}finally{b.disabled=false}}
+    async function setCampusLock(){if(!lastState)return setMsg('campusLockMessage','Refresh campus status before changing the emergency lock.',true);const turnOn=!Boolean(lastState.campusEmergencyLock);if(turnOn&&!window.confirm('Lock every room at this school?\nNew passes stop; waiting lists clear.'))return;const b=$('campusLockButton');b.disabled=true;setMsg('campusLockMessage',turnOn?'Locking campus...':'Unlocking campus...');try{const r=await hallpassApi.call('adminSetCampusLock',[turnOn]);if(!r.success){setMsg('campusLockMessage',r.message,true);return;}await Promise.all([refreshLive(),refreshSecurity()]);await refreshRoomPassStatus();setMsg('campusLockMessage',r.message)}catch(e){setMsg('campusLockMessage',e.message,true)}finally{b.disabled=false}}
 
 
     let roomRuleRows=[],adminRuleEditing=null;
