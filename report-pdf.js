@@ -121,12 +121,12 @@
   // Keep metadata labels prominent without bolding their values.
   // Supports multiple labels on a line, such as School: ... Room: D4.
   function drawDetail(doc, detail, startY, width, font) {
-    const fragments = detail.split(/(School:|Reporting period:|Period:|Room:|Destination:|Student:)/gi).filter(Boolean);
+    const fragments = detail.split(/(School:|Reporting period:|Period:|Rooms:|Room:|Destinations:|Destination:|Student:|Note:)/gi).filter(Boolean);
     const maxX = width - PAGE_MARGIN;
     let x = PAGE_MARGIN, y = startY;
     doc.setFontSize(9);
     fragments.forEach(function (fragment) {
-      const isLabel = /^(School:|Reporting period:|Period:|Room:|Destination:|Student:)$/i.test(fragment);
+      const isLabel = /^(School:|Reporting period:|Period:|Rooms:|Room:|Destinations:|Destination:|Student:|Note:)$/i.test(fragment);
       const output = /^Reporting period:$/i.test(fragment) ? 'Reporting Period:' : fragment;
       doc.setFont(font, isLabel ? 'bold' : 'normal');
       doc.setTextColor.apply(doc, isLabel ? INK : MUTED);
