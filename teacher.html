@@ -641,7 +641,7 @@
   <script src="api-shim.js"></script><script src="branding.js" defer></script>
   <script src="vendor/jspdf.umd.min.js"></script>
   <script src="vendor/jspdf.plugin.autotable.min.js"></script>
-  <script src="report-pdf.js?v=20261114-pdf-header-v2"></script>
+  <script src="report-pdf.js?v=20261114-pdf-labels-v3"></script>
   <script src="duration-display.js?v=20261114-live-mss"></script>
 
   <script>
@@ -2392,13 +2392,15 @@
         const title = individual
           ? 'Student Pass Report — ' + (report.studentName || 'Student')
           : 'All Students Pass Report';
+        const reportNotes = [];
+        if (report.includeTestData) reportNotes.push('Includes test data');
+        if (!individual) reportNotes.push('Student rows and order match the current sorted report');
         const details = [
           'School: ' + school + (room ? '     Room: ' + room.toUpperCase() : ''),
           'Reporting period: ' + formatDateOnly(report.startDate) +
             ' through ' + formatDateOnly(report.endDate),
-          'Period: ' + (report.period || 'All periods') +
-            (report.includeTestData ? '     Includes test data' : ''),
-          !individual ? 'Student rows and order match the current sorted report.' : ''
+          'Period: ' + (report.period || 'All periods'),
+          reportNotes.length ? 'Note: ' + reportNotes.join(' · ') : ''
         ];
         const fileName = 'hall-pass-teacher-' + (room || 'room') +
           '-' + (individual ? (report.studentName || report.studentId || 'student') : 'all-students') +
