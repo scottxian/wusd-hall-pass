@@ -240,8 +240,35 @@
   .hp-page-student #studentId { flex: auto; }
 }
 
-/* The complete school name stays on one line when there is room; on a very
-   narrow phone wrapping is preferable to clipping the school logo/title. */
+/* On phones, keep the two logos on the top row and the page title on
+   its own centered row. Let long school names wrap rather than push the logo
+   or title beyond the screen. These rules do not affect tablet/desktop. */
 @media(max-width:540px) {
-  .hp-brand-school-name { white-space: normal; max-width: 150px; }
+  .hp-brand-inner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "product school" "middle middle";
+  }
+  .hp-brand-product, .hp-brand-school, .hp-brand-words,
+  .hp-brand-school-name, .hp-brand-middle { min-width: 0; }
+  .hp-brand-school-name {
+    white-space: normal;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    font-size: clamp(10px, 2.8vw, 12px);
+    line-height: 1.25;
+  }
+  .hp-brand-middle { width: 100%; }
+  .hp-brand-middle > .header h1 {
+    font-size: clamp(17px, 4.6vw, 21px);
+    margin-bottom: 3px;
+  }
+  .hp-student-room { font-size: clamp(17px, 4.7vw, 20px); }
+}
+@media(max-width:380px) {
+  .hp-brand-inner { padding: 7px 9px; column-gap: 6px; row-gap: 4px; }
+  .hp-brand-mark { width: 32px; height: 32px; }
+  .hp-brand-school-logo { width: 40px; height: 40px; }
+  .hp-brand-product, .hp-brand-school { gap: 5px; }
+  .hp-brand-name { font-size: 15px; }
+  .hp-brand-school-name { font-size: 10px; }
 }
