@@ -330,7 +330,7 @@
     .studentRequestFlow .studentConfirm { margin: 6px 0 10px; }
     .studentRequestFlow .buttonRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .studentRequestFlow .buttonRow button { min-width: 0; }
-    /* Compact, temporary notices: no permanently blank status strip. */
+    /* Temporary notices share a fixed-height slot in branding.css. */
     .studentRequestCard #message {
       font-size: 15px;
       line-height: 1.35;
@@ -340,14 +340,14 @@
     }
     .studentRequestCard #message.success { font-size: 15px; }
     .studentRequestCard #message.notice { color: #8a6500; }
-    .studentRequestCard #message:empty { display: none; }
+    .studentRequestCard #message:empty { visibility: hidden; }
     @media(max-width: 720px) {
       .studentRequestFlow { min-height: 166px; }
       .studentRequestFlow #continueButton { width: 100%; min-width: 0; }
       .studentRequestFlow .buttonRow button { font-size: 15px; padding: 11px 7px; }
     }
   </style>
-<link rel="stylesheet" href="branding.css?v=20261114-student-compact">
+<link rel="stylesheet" href="branding.css?v=20261114-stable-messages">
 </head>
 
 
