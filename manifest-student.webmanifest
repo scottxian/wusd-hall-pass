@@ -1,6 +1,6 @@
 {
-  "name": "Hall Pass Student",
-  "short_name": "Hall Pass Student",
+  "name": "Hall Pilot Student",
+  "short_name": "Hall Pilot Student",
   "id": "/hall-pass-student",
   "description": "Hall Pilot student hall passes.",
   "scope": "./",
