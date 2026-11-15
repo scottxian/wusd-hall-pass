@@ -205,6 +205,12 @@
     dialog.appendChild(el('p', 'hp-install-intro',
       'Open this Hall Pilot page on your phone, then add it to your Home Screen. No app store needed.'));
 
+    // Keep instructions and the room-specific QR side by side on wider screens.
+    const main = el('div', 'hp-install-content');
+    const instructionList = el('div', 'hp-install-instruction-list');
+    main.appendChild(instructionList);
+    dialog.appendChild(main);
+
     function addInstructions(heading, steps, note) {
       const section = el('section', 'hp-install-platform');
       section.appendChild(el('h3', '', heading));
@@ -212,7 +218,7 @@
       for (const step of steps) list.appendChild(el('li', '', step));
       section.appendChild(list);
       if (note) section.appendChild(el('p', 'hp-install-platform-note', note));
-      dialog.appendChild(section);
+      instructionList.appendChild(section);
     }
 
     addInstructions('iPhone — Safari', [
@@ -230,6 +236,42 @@
       'Tap the three-dot menu (⋮).',
       'Select Install app or Add to Home screen and confirm.'
     ]);
+
+    const qrPanel = el('section', 'hp-install-qr-panel');
+    qrPanel.appendChild(el('h3', '', 'Scan with your phone'));
+    qrPanel.appendChild(el('p', 'hp-install-qr-caption',
+      'Scan to open this exact Hall Pilot page, including its classroom or school.'));
+    const qrFrame = el('div', 'hp-install-qr-code');
+    qrFrame.setAttribute('role', 'img');
+    qrFrame.setAttribute('aria-label', 'QR code for this Hall Pilot page');
+    qrPanel.appendChild(qrFrame);
+    qrPanel.appendChild(el('p', 'hp-install-qr-footnote',
+      'Then use the iPhone or Android steps to add it to your Home Screen.'));
+    main.appendChild(qrPanel);
+
+    // Encode only the known routing parameters; never copy unrelated query
+    // values or URL fragments into a QR code. This is generated entirely on
+    // the device using the bundled library, without any external QR service.
+    const qrUrl = new URL(window.location.href);
+    qrUrl.hash = '';
+    for (const key of [...qrUrl.searchParams.keys()]) {
+      if (!['org', 'school', 'room'].includes(key)) qrUrl.searchParams.delete(key);
+    }
+    try {
+      if (typeof QRCode !== 'function') throw new Error('QR generator unavailable');
+      new QRCode(qrFrame, {
+        text: qrUrl.toString(),
+        width: 180,
+        height: 180,
+        colorDark: '#111827',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch (error) {
+      console.warn('Hall Pilot install QR unavailable:', error);
+      qrFrame.classList.add('hp-install-qr-error');
+      qrFrame.textContent = 'QR code unavailable. Open this Hall Pilot page on your phone.';
+    }
 
     if (activePage === 'student') {
       dialog.appendChild(el('p', 'hp-install-note',
