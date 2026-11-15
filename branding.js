@@ -49,9 +49,12 @@
     mark.height = 48;
     const productWords = el('div', 'hp-brand-words');
     productWords.appendChild(el('strong', 'hp-brand-name', 'Hall Pilot'));
-    productWords.appendChild(el('span', 'hp-brand-tagline', 'Digital hall pass'));
+    const taglineRow = el('div', 'hp-brand-tagline-row');
+    taglineRow.appendChild(el('span', 'hp-brand-tagline', 'Digital hall pass'));
     installButton = el('button', 'hp-install-link');
     installButton.type = 'button';
+    installButton.setAttribute('aria-label', 'Add Hall Pilot to your phone');
+    installButton.title = 'Add Hall Pilot to your phone';
     // A real phone outline is clearer than the old text arrow at small sizes.
     const phoneIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     phoneIcon.setAttribute('viewBox', '0 0 24 24');
@@ -76,7 +79,8 @@
     installButton.hidden = true;
     installButton.setAttribute('aria-haspopup', 'dialog');
     installButton.addEventListener('click', showInstallPopup);
-    productWords.appendChild(installButton);
+    taglineRow.appendChild(installButton);
+    productWords.appendChild(taglineRow);
     product.appendChild(mark);
     product.appendChild(productWords);
 
