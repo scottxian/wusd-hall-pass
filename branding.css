@@ -20,12 +20,17 @@
 }
 .hp-brand-school { grid-area: school; justify-content: flex-end; text-align: right; }
 .hp-brand-mark { flex: 0 0 auto; width: 48px; height: 48px; object-fit: contain; }
-.hp-brand-words { display: flex; flex-direction: column; gap: 3px; }
+.hp-brand-words { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .hp-brand-name { font-size: 21px; font-weight: 800; line-height: 1.08; }
+.hp-brand-tagline-row {
+  display: flex; align-items: center; flex-wrap: nowrap;
+  gap: 10px; min-width: 0;
+}
+.hp-brand-tagline-row .hp-brand-tagline { white-space: nowrap; }
 /* Compact, nonintrusive app-install link on the shared branded header. */
 .hp-install-link {
-  align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; width: auto;
-  margin: 1px 0 0; padding: 0;
+  align-self: center; display: inline-flex; align-items: center; gap: 5px; width: auto;
+  flex: 0 0 auto; margin: 0; padding: 0;
   border: 0; background: transparent; box-shadow: none;
   color: #3d658e; text-decoration: underline; text-underline-offset: 2px;
   font-family: inherit; font-size: 11px; font-weight: 600; line-height: 1.2;
@@ -411,6 +416,9 @@
   .hp-brand-mark { width: 36px; height: 36px; }
   .hp-brand-name { font-size: 16px; }
   .hp-brand-tagline { font-size: 10px; }
+  .hp-brand-tagline-row { gap: 6px; }
+  .hp-install-link { font-size: 10px; gap: 0; }
+  .hp-install-link span { display: none; }
   .hp-brand-school-name { font-size: 11px; }
   .hp-brand-school-logo { width: 45px; height: 45px; }
   .hp-brand-middle > .header h1 { font-size: 17px; }
@@ -457,5 +465,6 @@
   .hp-brand-school-logo { width: 40px; height: 40px; }
   .hp-brand-product, .hp-brand-school { gap: 5px; }
   .hp-brand-name { font-size: 15px; }
+  .hp-brand-tagline-row { gap: 4px; }
   .hp-brand-school-name { font-size: 10px; }
 }
