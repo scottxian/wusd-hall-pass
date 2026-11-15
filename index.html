@@ -360,7 +360,7 @@
       .studentRequestFlow .buttonRow button { font-size: 15px; padding: 11px 7px; }
     }
   </style>
-<link rel="stylesheet" href="branding.css?v=20261114-student-message-card">
+<link rel="stylesheet" href="branding.css?v=20261114-install-app">
 </head>
 
 
@@ -551,7 +551,7 @@
 
 
   <script src="config.js"></script>
-  <script src="api-shim.js"></script><script src="branding.js" defer></script>
+  <script src="api-shim.js"></script><script src="branding.js?v=20261114-install-app" defer></script>
   <script src="duration-display.js?v=20261114-live-mss"></script>
 
   <script>
@@ -593,6 +593,12 @@
 
             pageState =
               state;
+
+            if (window.HallPilotBranding?.setStudentInstallAllowed) {
+              window.HallPilotBranding.setStudentInstallAllowed(
+                state?.settings?.['Show Student Install App Link'] === 'Yes'
+              );
+            }
 
             renderRoomScope(state);
 
@@ -697,6 +703,12 @@
               state.settings ||
               pageState.settings ||
               {};
+
+            if (window.HallPilotBranding?.setStudentInstallAllowed) {
+              window.HallPilotBranding.setStudentInstallAllowed(
+                pageState.settings['Show Student Install App Link'] === 'Yes'
+              );
+            }
 
             pageState.destinations =
               state.destinations ||
