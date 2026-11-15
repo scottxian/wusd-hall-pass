@@ -418,7 +418,7 @@
       color:var(--teacher-heading-color);
     }
 </style>
-<link rel="stylesheet" href="branding.css?v=20261114-center-phone-link">
+<link rel="stylesheet" href="branding.css?v=20261115-test-mode-notice">
 </head>
 <body>
   <div class="header">
@@ -678,7 +678,7 @@
   </div>
 
   <script src="config.js"></script>
-  <script src="api-shim.js"></script><script src="vendor/qrcode.min.js?v=20261114-install-qr"></script><script src="branding.js?v=20261114-center-phone-link" defer></script>
+  <script src="api-shim.js"></script><script src="vendor/qrcode.min.js?v=20261114-install-qr"></script><script src="branding.js?v=20261115-test-mode-notice" defer></script>
   <script src="vendor/jspdf.umd.min.js"></script>
   <script src="vendor/jspdf.plugin.autotable.min.js"></script>
   <script src="report-pdf.js?v=20261114-pdf-labels-v3"></script>
@@ -1068,6 +1068,10 @@
 
     function renderStatus(state) {
       const schedule = state.schedule;
+      window.HallPilotBranding?.setTestMode?.(
+        schedule?.testMode === true,
+        schedule?.isTestSchedule === true
+      );
       document.getElementById('statSchedule').textContent = schedule.schedule || '—';
       const rawSource=String(state.settings?.['Schedule Source']||'Room Default').trim();
       const isOverride=rawSource.toLowerCase().includes('teacher override');
