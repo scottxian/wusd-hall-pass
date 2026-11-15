@@ -336,6 +336,32 @@
     .passSettingsDialogHeader button{padding:6px 12px}
     .passSettingsFields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:15px 0}
     .passSettingsFields label{font-size:14px;line-height:1.4}
+    /* Separate phone-install preference from the four pass-timer controls. */
+    .teacherStudentAccessSettings{
+      margin:14px 0 10px;padding:12px 14px;
+      border:1px solid #dce4ec;border-radius:9px;background:#f7f9fc;
+    }
+    .teacherStudentAccessSettings h3{
+      margin:0 0 10px;font-size:16px;line-height:1.35;color:#222;
+    }
+    .teacherStudentAccessSettings .teacherStudentAccessToggle{
+      display:flex;align-items:center;gap:9px;margin:0;
+      font-size:14px;line-height:1.4;font-weight:700;cursor:pointer;
+    }
+    .teacherStudentAccessSettings .teacherStudentAccessToggle input{
+      width:18px;height:18px;min-height:18px;flex:0 0 18px;margin:0;
+    }
+    .teacherStudentAccessSettings .teacherInstallComparison{
+      display:flex;flex-wrap:wrap;gap:4px 9px;margin:10px 0 4px;
+      font-size:13px;line-height:1.4;color:#3b526b;
+    }
+    .teacherStudentAccessSettings .teacherInstallComparison span{
+      white-space:nowrap;
+    }
+    .teacherStudentAccessSettings .teacherInstallComparison strong{color:#263b56}
+    .teacherStudentAccessSettings .teacherInstallHelp{
+      margin:4px 0 0;font-size:12px;line-height:1.4;color:#59697b;
+    }
     .passSettingsActions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
     #teacherPassSettingsMessage{min-height:24px;font-size:14px;margin:10px 0}
     #teacherPassSettingsMessage.error{color:#a52720}
@@ -628,10 +654,20 @@
         <div><label for="teacherPassClose">Close passes before period ends (minutes)</label><input id="teacherPassClose" type="number" min="0" max="30" step="1"></div>
         <div><label for="teacherLongWarning">Long pass warning (minutes)</label><input id="teacherLongWarning" type="number" min="1" max="120" step="1"></div>
         <div><label for="teacherVeryLongWarning">Very long pass warning (minutes)</label><input id="teacherVeryLongWarning" type="number" min="1" max="120" step="1"></div>
-        <div style="grid-column:1/-1"><label style="display:flex;align-items:center;gap:8px;margin:0"><input id="teacherShowStudentInstall" type="checkbox" style="width:18px;min-height:18px;flex:0 0 auto;margin:0">Show Install App Link to Students</label>
-          <div class="subtle" style="font-size:13px;margin-top:5px">Overrides the Admin room default. Controls the install link only, not access from personal devices.</div>
-        </div>
       </div>
+      <section class="teacherStudentAccessSettings" aria-labelledby="teacherStudentAccessTitle">
+        <h3 id="teacherStudentAccessTitle">Student App Access</h3>
+        <label class="teacherStudentAccessToggle" for="teacherShowStudentInstall">
+          <input id="teacherShowStudentInstall" type="checkbox">
+          <span>Show "Add to Phone" on Student Page</span>
+        </label>
+        <div class="teacherInstallComparison" aria-live="polite" aria-atomic="true">
+          <span>Admin Default: <strong id="teacherInstallAdminDefault">—</strong></span>
+          <span aria-hidden="true">|</span>
+          <span>Classroom Setting: <strong id="teacherInstallClassroomValue">—</strong></span>
+        </div>
+        <p class="teacherInstallHelp">Changes take effect when saved. This controls only the link, not access from personal devices.</p>
+      </section>
       <div id="teacherPassSettingsMessage" role="status" aria-live="polite"></div>
       <div class="passSettingsActions">
         <button id="restoreTeacherPassSettings" class="gray" type="button" onclick="restoreTeacherPassSettings()">Restore Room Defaults</button>
@@ -1183,6 +1219,19 @@
       document.getElementById('saveTeacherPassSettings').disabled=busy;
       document.getElementById('restoreTeacherPassSettings').disabled=busy;
     }
+    function updateTeacherInstallComparison(){
+      const checkbox=document.getElementById('teacherShowStudentInstall');
+      const adminValue=document.getElementById('teacherInstallAdminDefault');
+      const classroomValue=document.getElementById('teacherInstallClassroomValue');
+      adminValue.textContent=teacherPassSettingsDefaults
+        ? (teacherPassSettingsDefaults.show_student_install_link===true?'On':'Off')
+        : '—';
+      classroomValue.textContent=teacherPassSettingsDefaults
+        ? (checkbox.checked?'On':'Off')
+        : '—';
+    }
+    document.getElementById('teacherShowStudentInstall')
+      .addEventListener('change',updateTeacherInstallComparison);
     function setTeacherPassSettingsValues(values){
       if(!values)return;
       document.getElementById('teacherPassOpen').value=values.passes_open_after_start;
@@ -1190,8 +1239,11 @@
       document.getElementById('teacherLongWarning').value=values.long_pass_warning;
       document.getElementById('teacherVeryLongWarning').value=values.very_long_pass_warning;
       document.getElementById('teacherShowStudentInstall').checked=values.show_student_install_link===true;
+      updateTeacherInstallComparison();
     }
     function loadTeacherPassSettings(){
+      teacherPassSettingsDefaults=null;
+      updateTeacherInstallComparison();
       teacherPassSettingsMessage('Loading room settings...');
       setTeacherPassSettingsBusy(true);
       google.script.run
