@@ -1,6 +1,6 @@
 {
-  "name": "Hall Pass Admin",
-  "short_name": "Hall Pass Admin",
+  "name": "Hall Pilot Admin",
+  "short_name": "Hall Pilot Admin",
   "id": "/hall-pass-admin",
   "description": "Hall Pilot school administration.",
   "scope": "./",
