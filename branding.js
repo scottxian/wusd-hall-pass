@@ -49,8 +49,7 @@
     mark.height = 48;
     const productWords = el('div', 'hp-brand-words');
     productWords.appendChild(el('strong', 'hp-brand-name', 'Hall Pilot'));
-    const taglineRow = el('div', 'hp-brand-tagline-row');
-    taglineRow.appendChild(el('span', 'hp-brand-tagline', 'Digital hall pass'));
+    productWords.appendChild(el('span', 'hp-brand-tagline', 'Digital hall pass'));
     installButton = el('button', 'hp-install-link');
     installButton.type = 'button';
     installButton.setAttribute('aria-label', 'Add Hall Pilot to your phone');
@@ -79,8 +78,6 @@
     installButton.hidden = true;
     installButton.setAttribute('aria-haspopup', 'dialog');
     installButton.addEventListener('click', showInstallPopup);
-    taglineRow.appendChild(installButton);
-    productWords.appendChild(taglineRow);
     product.appendChild(mark);
     product.appendChild(productWords);
 
@@ -125,6 +122,9 @@
             ? 'Master Administration' : 'School Administration';
       }
     }
+    // Keep the Add to Phone control directly beneath the central page heading
+    // and its identity/status line, rather than widening the logo text column.
+    middle.appendChild(installButton);
 
     const params = new URLSearchParams(window.location.search);
     render({ organizationKey: params.get('org'), schoolKey: params.get('school') });
