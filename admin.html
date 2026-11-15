@@ -1545,13 +1545,13 @@
             <label><input id="roomClearQueueAtEnd" type="checkbox" checked><span>Clear Waiting List at Period End</span></label>
             <label><input id="roomAutoCloseEnd" type="checkbox" onchange="updateRoomAutoCloseFields()"><span>Auto-Close Students Out at End of School Day</span></label>
             <label><input id="roomTestMode" type="checkbox"><span>Test Mode (Admin Only)</span></label>
-            <label><input id="roomShowStudentInstall" type="checkbox"><span>Show Install App Link to Students</span></label>
+            <label><input id="roomShowStudentInstall" type="checkbox"><span>Show "Add to Phone" on Student Page</span></label>
           </div>
           <div id="roomAutoCloseGraceWrap" class="hidden" style="margin-top:12px;max-width:320px">
             <label for="roomAutoCloseGrace">Grace Period After Final Bell (Minutes)</label>
             <input id="roomAutoCloseGrace" type="number" min="0" max="120" step="1" value="15">
           </div>
-          <p class="muted">The Student Install App Link defaults to Off and may be overridden by the Teacher. Other advanced switches are Admin-managed. Auto-close follows the final scheduled bell; keep Test Mode off in real classrooms.</p>
+          <p class="muted">The Student "Add to Phone" link defaults to Off and may be overridden by the Teacher. It only controls whether installation instructions are offered, not phone access. Other advanced switches are Admin-managed. Auto-close follows the final scheduled bell; keep Test Mode off in real classrooms.</p>
         </div>
       </details>
       <details id="roomTeacherOverrideNotice" class="hidden">
@@ -3576,7 +3576,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           ['Passes Close Before End',String(teacherOverride.passes_close_before_end)+' min'],
           ['Long Pass Warning',String(teacherOverride.long_pass_warning)+' min'],
           ['Very Long Pass Warning',String(teacherOverride.very_long_pass_warning)+' min'],
-          ['Student Install App Link',(teacherOverride.show_student_install_link??r.showStudentInstallLink)?'On':'Off']
+          ['Student Add to Phone Link',(teacherOverride.show_student_install_link??r.showStudentInstallLink)?'On':'Off']
         ];
         for(const [label,value] of effectiveValues){
           const item=document.createElement('div');item.className='roomEffectiveItem';
