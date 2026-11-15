@@ -93,6 +93,12 @@
       .roomDangerZone{align-items:flex-start;flex-direction:column}
     }
 
+    /* Admin editor shows saved defaults; teacher overrides are read-only here. */
+    #roomTeacherOverrideNotice{margin:12px 0;padding:11px 13px;border:1px solid #cfdae8;border-radius:8px;background:#f4f8fd}
+    #roomTeacherOverrideNotice summary{color:#214e82;cursor:pointer;font-weight:700;font-size:14px}
+    #roomTeacherOverrideNotice .roomEffectiveGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-top:10px}
+    #roomTeacherOverrideNotice .roomEffectiveItem{padding:8px 10px;background:#fff;border:1px solid #dae4ef;border-radius:6px;font-size:13px}
+    #roomTeacherOverrideNotice .roomEffectiveItem strong{display:block;margin-bottom:3px}
     /* Hall Pilot production UI: live campus boards, calm tables, progressive disclosure */
     .adminLiveGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px}
     .adminLiveGrid>.card{min-width:0;margin-bottom:0;height:100%}
@@ -1539,12 +1545,18 @@
             <label><input id="roomClearQueueAtEnd" type="checkbox" checked><span>Clear Waiting List at Period End</span></label>
             <label><input id="roomAutoCloseEnd" type="checkbox" onchange="updateRoomAutoCloseFields()"><span>Auto-Close Students Out at End of School Day</span></label>
             <label><input id="roomTestMode" type="checkbox"><span>Test Mode (Admin Only)</span></label>
+            <label><input id="roomShowStudentInstall" type="checkbox"><span>Show Install App Link to Students</span></label>
           </div>
           <div id="roomAutoCloseGraceWrap" class="hidden" style="margin-top:12px;max-width:320px">
             <label for="roomAutoCloseGrace">Grace Period After Final Bell (Minutes)</label>
             <input id="roomAutoCloseGrace" type="number" min="0" max="120" step="1" value="15">
           </div>
-          <p class="muted">Auto-close uses this room's final scheduled bell (including special days) and labels passes as administratively closed, not verified returned. Test Mode should remain off in real classrooms. Teachers cannot change these settings.</p>
+          <p class="muted">The Student Install App Link defaults to Off and may be overridden by the Teacher. Other advanced switches are Admin-managed. Auto-close follows the final scheduled bell; keep Test Mode off in real classrooms.</p>
+          <details id="roomTeacherOverrideNotice" class="hidden">
+            <summary>Teacher Override Active — View Effective Settings</summary>
+            <div class="muted" style="margin-top:8px">The form above shows the Admin's saved room defaults. Effective classroom settings are shown below (read-only).</div>
+            <div id="roomEffectiveSettingsList" class="roomEffectiveGrid"></div>
+          </details>
         </div>
       </details>
       <section class="roomTeacherSection">
@@ -3550,14 +3562,37 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       $('roomAutoCloseEnd').checked=r?.autoClosePassesEndOfDay===true;
       $('roomAutoCloseGrace').value=String(r?.autoCloseGraceMinutes??15);
       updateRoomAutoCloseFields();
-      $('roomTestMode').checked=r?.testMode===true;fillRoomChecks('roomTeacherChecks',r?.teacherIds||[],'teachers');fillCloneSelect('cloneRoomSelect','');fillCloneSelect('editCloneRoomSelect',r?.id||'','Do not copy');$('cloneWrap').classList.toggle('hidden',Boolean(r));$('roomEditCloneWrap').classList.toggle('hidden',!r);$('roomDeleteWrap').classList.toggle('hidden',!r);setMsg('roomModalMessage','');showModal('roomModal');$('roomModalBody').scrollTop=0}
+      $('roomTestMode').checked=r?.testMode===true;
+      $('roomShowStudentInstall').checked=r?.showStudentInstallLink===true;
+      const teacherOverride=r?.teacherPassOverride||null;
+      const notice=$('roomTeacherOverrideNotice');
+      notice.classList.toggle('hidden',!teacherOverride);
+      notice.open=false;
+      const effectiveList=$('roomEffectiveSettingsList');
+      effectiveList.replaceChildren();
+      if(teacherOverride){
+        const effectiveValues=[
+          ['Passes Open After Start',String(teacherOverride.passes_open_after_start)+' min'],
+          ['Passes Close Before End',String(teacherOverride.passes_close_before_end)+' min'],
+          ['Long Pass Warning',String(teacherOverride.long_pass_warning)+' min'],
+          ['Very Long Pass Warning',String(teacherOverride.very_long_pass_warning)+' min'],
+          ['Student Install App Link',(teacherOverride.show_student_install_link??r.showStudentInstallLink)?'On':'Off']
+        ];
+        for(const [label,value] of effectiveValues){
+          const item=document.createElement('div');item.className='roomEffectiveItem';
+          const title=document.createElement('strong');title.textContent=label;
+          const val=document.createElement('span');val.textContent=value;
+          item.append(title,val);effectiveList.appendChild(item);
+        }
+      }
+      fillRoomChecks('roomTeacherChecks',r?.teacherIds||[],'teachers');fillCloneSelect('cloneRoomSelect','');fillCloneSelect('editCloneRoomSelect',r?.id||'','Do not copy');$('cloneWrap').classList.toggle('hidden',Boolean(r));$('roomEditCloneWrap').classList.toggle('hidden',!r);$('roomDeleteWrap').classList.toggle('hidden',!r);setMsg('roomModalMessage','');showModal('roomModal');$('roomModalBody').scrollTop=0}
     async function saveRoom(){const b=$('saveRoomButton'),id=$('roomEditId').value,data={key:$('roomKeyInput').value.trim().toLowerCase(),room:$('roomNameInput').value.trim(),timezone:$('roomTimezoneInput').value.trim(),active:$('roomActiveInput').value==='true',restroomLimit:Number($('roomRestroomLimit').value),restroomPeriod:$('roomRestroomPeriod').value,
       passOpenDelay:Number($('roomPassOpenDelay').value),passCloseEarly:Number($('roomPassCloseEarly').value),
       longPassWarning:Number($('roomLongWarning').value),veryLongPassWarning:Number($('roomVeryLongWarning').value),
       buzzerEnabled:$('roomBuzzerEnabled').checked,clearQueueAtEnd:$('roomClearQueueAtEnd').checked,
       autoClosePassesEndOfDay:$('roomAutoCloseEnd').checked,
       autoCloseGraceMinutes:Number($('roomAutoCloseGrace').value),
-      testMode:$('roomTestMode').checked,teacherIds:selectedChecks('roomTeacherChecks')};if(!id)data.cloneFromRoomId=$('cloneRoomSelect').value;b.disabled=true;setMsg('roomModalMessage','Saving...');try{let r;if(id){r=await hallpassApi.call('adminUpdateRoom',[id,data]);if(r.success && $('editCloneRoomSelect').value){const c=await hallpassApi.call('adminCloneRoomConfig',[id,$('editCloneRoomSelect').value]);if(!c.success)r=c}}else r=await hallpassApi.call('adminCreateRoom',[data]);if(!r.success){setMsg('roomModalMessage',r.message,true);return;}hideModal('roomModal');await Promise.all([refreshManagement(),refreshLive()]);setMsg('manageMessage',r.message)}catch(e){setMsg('roomModalMessage',e.message,true)}finally{b.disabled=false}}
+      testMode:$('roomTestMode').checked,showStudentInstallLink:$('roomShowStudentInstall').checked,teacherIds:selectedChecks('roomTeacherChecks')};if(!id)data.cloneFromRoomId=$('cloneRoomSelect').value;b.disabled=true;setMsg('roomModalMessage','Saving...');try{let r;if(id){r=await hallpassApi.call('adminUpdateRoom',[id,data]);if(r.success && $('editCloneRoomSelect').value){const c=await hallpassApi.call('adminCloneRoomConfig',[id,$('editCloneRoomSelect').value]);if(!c.success)r=c}}else r=await hallpassApi.call('adminCreateRoom',[data]);if(!r.success){setMsg('roomModalMessage',r.message,true);return;}hideModal('roomModal');await Promise.all([refreshManagement(),refreshLive()]);setMsg('manageMessage',r.message)}catch(e){setMsg('roomModalMessage',e.message,true)}finally{b.disabled=false}}
     async function deleteRoom(id){const r=management.rooms.find(x=>x.id===id);if(!r)return;const fromModal=!$('roomModal').classList.contains('hidden')&&$('roomEditId').value===id;const messageId=fromModal?'roomModalMessage':'manageMessage';const ok=window.confirm(`Delete room ${r.room}?\nRooms with pass or waiting history cannot be deleted.`);if(!ok)return;setMsg(messageId,'Deleting room...');try{const result=await hallpassApi.call('adminDeleteRoom',[id]);if(!result.success){setMsg(messageId,result.message,true);return;}if(fromModal)hideModal('roomModal');await Promise.all([refreshManagement(),refreshLive()]);setMsg('manageMessage',result.message)}catch(e){setMsg(messageId,e.message,true)}}
     function openTeacher(id=''){const t=management.teachers.find(x=>x.id===id);if((t?.role==='admin'||t?.schoolAdmin)&&adminAccess.organizationAdmin!==true){setMsg('manageMessage','Only an Organization Admin can manage Admin accounts.',true);return}$('teacherEditId').value=t?.id||'';$('teacherModalTitle').textContent=t?'Edit Teacher':'Add Teacher';$('teacherNameInput').value=t?.name||'';$('teacherEmailInput').value=t?.email||'';$('teacherRoleInput').value=t?.role||'teacher';$('teacherSchoolAdminInput').value=String(t?.schoolAdmin===true);$('teacherActiveInput').value=String(t?.active!==false);$('teacherRoleInput').disabled=adminAccess.organizationAdmin!==true;$('teacherSchoolAdminInput').disabled=adminAccess.organizationAdmin!==true;$('teacherPinInput').value='';$('pinHint').textContent=t?'Leave blank to keep the current PIN; enter a new PIN to reset it.':'Required for a new teacher.';fillRoomChecks('teacherRoomChecks',t?.roomIds||[],'rooms');setMsg('teacherModalMessage','');showModal('teacherModal')}
     async function saveTeacher(){const b=$('saveTeacherButton'),id=$('teacherEditId').value,data={name:$('teacherNameInput').value.trim(),email:$('teacherEmailInput').value.trim(),role:$('teacherRoleInput').value,schoolAdmin:$('teacherSchoolAdminInput').value==='true',active:$('teacherActiveInput').value==='true',pin:$('teacherPinInput').value.trim(),roomIds:selectedChecks('teacherRoomChecks')};b.disabled=true;setMsg('teacherModalMessage','Saving...');try{const r=id?await hallpassApi.call('adminUpdateTeacher',[id,data]):await hallpassApi.call('adminCreateTeacher',[data]);if(!r.success){setMsg('teacherModalMessage',r.message,true);return;}hideModal('teacherModal');await refreshManagement();setMsg('manageMessage',r.message)}catch(e){setMsg('teacherModalMessage',e.message,true)}finally{b.disabled=false}}
