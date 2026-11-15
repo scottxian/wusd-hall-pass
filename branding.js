@@ -18,6 +18,8 @@
   }
 
   let banner = null;
+  let testModeBanner = null;
+  let testModeBannerTitle = null;
   let schoolText = null;
   let schoolLogo = null;
   let currentLogo = '';
@@ -126,6 +128,30 @@
     // and its identity/status line, rather than widening the logo text column.
     middle.appendChild(installButton);
 
+    // The testing notice belongs to the room interface, not the logo lockup.
+    // On Teacher it stays inside the sticky status dock; on Student it sits
+    // above the live pass status bar. Admin pages do not need this notice.
+    const statusAnchor = activePage === 'teacher'
+      ? document.getElementById('teacherStatusDock')
+      : activePage === 'student'
+        ? document.getElementById('statusBar')
+        : null;
+    if (statusAnchor) {
+      testModeBanner = el('div', 'hp-test-mode-banner');
+      testModeBannerTitle = el('strong', 'hp-test-mode-title', 'TEST MODE ACTIVE');
+      testModeBanner.appendChild(testModeBannerTitle);
+      testModeBanner.appendChild(el('span', 'hp-test-mode-detail',
+        'New passes are test data and excluded from standard reports.'));
+      testModeBanner.setAttribute('role', 'status');
+      testModeBanner.setAttribute('aria-live', 'polite');
+      testModeBanner.hidden = true;
+      if (activePage === 'teacher') {
+        statusAnchor.insertBefore(testModeBanner, statusAnchor.firstChild);
+      } else {
+        statusAnchor.parentNode.insertBefore(testModeBanner, statusAnchor);
+      }
+    }
+
     const params = new URLSearchParams(window.location.search);
     render({ organizationKey: params.get('org'), schoolKey: params.get('school') });
   }
@@ -185,6 +211,19 @@
   function setStudentInstallAllowed(enabled) {
     studentInstallAllowed = enabled === true;
     refreshInstallLink();
+  }
+
+  // A named Test schedule also tags passes as test data, but unlike Admin
+  // Test Mode it still follows the schedule's bell times.
+  function setTestMode(adminEnabled, isTestSchedule) {
+    if (!testModeBanner) return;
+    const adminTest = adminEnabled === true;
+    const scheduleTest = isTestSchedule === true;
+    testModeBanner.hidden = !(adminTest || scheduleTest);
+    if (testModeBannerTitle) {
+      testModeBannerTitle.textContent = adminTest
+        ? 'TEST MODE ACTIVE' : 'TEST SCHEDULE ACTIVE';
+    }
   }
 
   function showInstallPopup() {
@@ -337,7 +376,7 @@
     refreshInstallLink();
   });
 
-  window.HallPilotBranding = { render, setStudentInstallAllowed };
+  window.HallPilotBranding = { render, setStudentInstallAllowed, setTestMode };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initialize, { once: true });
   } else {
