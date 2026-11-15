@@ -50,8 +50,29 @@
     const productWords = el('div', 'hp-brand-words');
     productWords.appendChild(el('strong', 'hp-brand-name', 'Hall Pilot'));
     productWords.appendChild(el('span', 'hp-brand-tagline', 'Digital hall pass'));
-    installButton = el('button', 'hp-install-link', '↓ Install App');
+    installButton = el('button', 'hp-install-link');
     installButton.type = 'button';
+    // A real phone outline is clearer than the old text arrow at small sizes.
+    const phoneIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    phoneIcon.setAttribute('viewBox', '0 0 24 24');
+    phoneIcon.setAttribute('width', '15');
+    phoneIcon.setAttribute('height', '15');
+    phoneIcon.setAttribute('fill', 'none');
+    phoneIcon.setAttribute('stroke', 'currentColor');
+    phoneIcon.setAttribute('stroke-width', '2');
+    phoneIcon.setAttribute('stroke-linecap', 'round');
+    phoneIcon.setAttribute('stroke-linejoin', 'round');
+    phoneIcon.setAttribute('aria-hidden', 'true');
+    const phoneBody = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    phoneBody.setAttribute('x', '6');
+    phoneBody.setAttribute('y', '2');
+    phoneBody.setAttribute('width', '12');
+    phoneBody.setAttribute('height', '20');
+    phoneBody.setAttribute('rx', '2');
+    const phoneHome = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    phoneHome.setAttribute('d', 'M11 18h2');
+    phoneIcon.append(phoneBody, phoneHome);
+    installButton.append(phoneIcon, el('span', '', 'Add to Phone'));
     installButton.hidden = true;
     installButton.setAttribute('aria-haspopup', 'dialog');
     installButton.addEventListener('click', showInstallPopup);
@@ -173,7 +194,7 @@
     dialog.setAttribute('aria-labelledby', 'hp-install-title');
 
     const head = el('div', 'hp-install-popup-head');
-    const title = el('h2', '', 'Install Hall Pilot');
+    const title = el('h2', '', 'Add Hall Pilot to Your Phone');
     title.id = 'hp-install-title';
     const close = el('button', 'hp-install-close', '×');
     close.type = 'button';
@@ -181,28 +202,46 @@
     head.append(title, close);
     dialog.appendChild(head);
 
-    const context = activePage === 'student' ? 'Student' :
-      activePage === 'teacher' ? 'Teacher' : 'Admin';
-    dialog.appendChild(el('p', '', 'Add Hall Pilot — ' + context +
-      ' to your home screen or desktop for convenient access.'));
+    dialog.appendChild(el('p', 'hp-install-intro',
+      'Open this Hall Pilot page on your phone, then add it to your Home Screen. No app store needed.'));
 
-    const ua = navigator.userAgent || '';
-    const ios = /iPad|iPhone|iPod/.test(ua) ||
-      (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-    const android = /Android/i.test(ua);
-    const instruction = ios
-      ? 'In Safari, tap Share, then Add to Home Screen. Tap Add to finish.'
-      : android
-        ? 'Open your browser menu (⋮) and choose Install app or Add to Home screen.'
-        : 'Use the install icon in your browser address bar, or look for Install in the browser menu.';
-    dialog.appendChild(el('p', 'hp-install-instructions', instruction));
+    function addInstructions(heading, steps, note) {
+      const section = el('section', 'hp-install-platform');
+      section.appendChild(el('h3', '', heading));
+      const list = el('ol', 'hp-install-steps');
+      for (const step of steps) list.appendChild(el('li', '', step));
+      section.appendChild(list);
+      if (note) section.appendChild(el('p', 'hp-install-platform-note', note));
+      dialog.appendChild(section);
+    }
+
+    addInstructions('iPhone — Safari', [
+      'Open Hall Pilot in Safari.',
+      'Tap Share (or open the page menu, then Share).',
+      'Choose Add to Home Screen, then Add.'
+    ]);
+    addInstructions('iPhone — Chrome', [
+      'Open Hall Pilot in Chrome.',
+      'Tap Share beside the address bar.',
+      'Choose Add to Home Screen, then Add.'
+    ], 'Requires Chrome 112+ and iOS 16.4+; use Safari if the option is missing.');
+    addInstructions('Android — Chrome', [
+      'Open Hall Pilot in Chrome.',
+      'Tap the three-dot menu (⋮).',
+      'Select Install app or Add to Home screen and confirm.'
+    ]);
+
     if (activePage === 'student') {
       dialog.appendChild(el('p', 'hp-install-note',
-        'This option is enabled for your room. Follow school rules about personal devices.'));
+        'Follow your school’s rules about student phones and personal devices.'));
     }
+
     const actions = el('div', 'hp-install-actions');
-    if (installPrompt && !inInstalledMode()) {
-      const install = el('button', 'hp-install-confirm', 'Install');
+    // iPhone uses the Share menu. Only offer a native installation prompt on
+    // Android; desktop visitors are here to read phone instructions.
+    const onAndroid = /Android/i.test(navigator.userAgent || '');
+    if (onAndroid && installPrompt && !inInstalledMode()) {
+      const install = el('button', 'hp-install-confirm', 'Install on This Phone');
       install.type = 'button';
       install.addEventListener('click', async function () {
         const pending = installPrompt;
