@@ -24,13 +24,18 @@
 .hp-brand-name { font-size: 21px; font-weight: 800; line-height: 1.08; }
 /* Compact, nonintrusive app-install link on the shared branded header. */
 .hp-install-link {
-  align-self: flex-start; display: inline-block; width: auto;
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; width: auto;
   margin: 1px 0 0; padding: 0;
   border: 0; background: transparent; box-shadow: none;
   color: #3d658e; text-decoration: underline; text-underline-offset: 2px;
   font-family: inherit; font-size: 11px; font-weight: 600; line-height: 1.2;
   white-space: nowrap; cursor: pointer;
 }
+.hp-install-link svg {
+  display: block; flex: 0 0 15px; width: 15px; height: 15px;
+  color: inherit;
+}
+.hp-install-link span { display: inline; }
 .hp-install-link:hover { color: #164a81; }
 .hp-install-link:focus-visible { outline: 2px solid #1765cb; outline-offset: 2px; }
 .hp-install-link[hidden] { display: none !important; }
@@ -54,9 +59,23 @@
   cursor: pointer; font-weight: 400;
 }
 .hp-install-dialog p { font-size: 13px; line-height: 1.45; margin: 12px 0; }
-.hp-install-dialog .hp-install-instructions {
-  padding: 11px; background: #f3f7fb; border: 1px solid #dce5ef;
-  border-radius: 7px;
+.hp-install-dialog .hp-install-intro { margin: 11px 0 13px; }
+.hp-install-dialog .hp-install-platform {
+  padding: 9px 11px; margin: 8px 0;
+  border: 1px solid #dce5ef; border-radius: 7px;
+  background: #f6f9fd;
+}
+.hp-install-dialog .hp-install-platform h3 {
+  margin: 0 0 5px; font-size: 14px; font-weight: 700;
+  line-height: 1.35; color: #1d3e63;
+}
+.hp-install-dialog .hp-install-steps {
+  margin: 4px 0 0 18px; padding: 0;
+  font-size: 12.5px; line-height: 1.4;
+}
+.hp-install-dialog .hp-install-steps li { padding-left: 3px; margin: 3px 0; }
+.hp-install-dialog .hp-install-platform-note {
+  margin: 8px 0 0; font-size: 11.5px; color: #5b6574;
 }
 .hp-install-dialog .hp-install-note { color: #586779; font-size: 12px; }
 .hp-install-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px; }
@@ -66,6 +85,11 @@
   cursor: pointer;
 }
 .hp-install-actions .hp-install-confirm { background: #1f5ea8; color: #fff; }
+.hp-install-dialog button:focus-visible { outline: 3px solid #7aa7d8; outline-offset: 2px; }
+@media(max-width: 420px) {
+  .hp-install-dialog { padding: 14px; }
+  .hp-install-dialog .hp-install-platform { padding: 9px; }
+}
 
 .hp-brand-tagline { color: #597092; font-size: 12px; line-height: 1.25; }
 .hp-brand-school[hidden], .hp-brand-school-logo[hidden] { display: none !important; }
