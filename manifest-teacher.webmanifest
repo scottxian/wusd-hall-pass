@@ -1,6 +1,6 @@
 {
-  "name": "Hall Pass Teacher",
-  "short_name": "Hall Pass Teacher",
+  "name": "Hall Pilot Teacher",
+  "short_name": "Hall Pilot Teacher",
   "id": "/hall-pass-teacher",
   "description": "Hall Pilot classroom controls.",
   "scope": "./",
