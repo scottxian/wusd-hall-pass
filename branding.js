@@ -23,6 +23,9 @@
   let currentLogo = '';
   let studentRoomTitle = null;
   let activePage = 'student';
+  let installButton = null;
+  let studentInstallAllowed = false; // Fail closed until this room's public settings load.
+  let installPrompt = null;
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -47,6 +50,12 @@
     const productWords = el('div', 'hp-brand-words');
     productWords.appendChild(el('strong', 'hp-brand-name', 'Hall Pilot'));
     productWords.appendChild(el('span', 'hp-brand-tagline', 'Digital hall pass'));
+    installButton = el('button', 'hp-install-link', '↓ Install App');
+    installButton.type = 'button';
+    installButton.hidden = true;
+    installButton.setAttribute('aria-haspopup', 'dialog');
+    installButton.addEventListener('click', showInstallPopup);
+    productWords.appendChild(installButton);
     product.appendChild(mark);
     product.appendChild(productWords);
 
@@ -73,6 +82,7 @@
     activePage = page === 'teacher.html' ? 'teacher' :
       (page === 'admin.html' || page === 'master-admin.html') ? 'admin' : 'student';
     document.documentElement.classList.add('hp-page-' + activePage);
+    refreshInstallLink();
 
     if (activePage === 'student') {
       const context = el('div', 'hp-student-context');
@@ -135,7 +145,114 @@
     }
   }
 
-  window.HallPilotBranding = { render };
+  function inInstalledMode() {
+    return (typeof window.matchMedia === 'function' &&
+      window.matchMedia('(display-mode: standalone)').matches) ||
+      window.navigator.standalone === true;
+  }
+
+  function refreshInstallLink() {
+    if (!installButton) return;
+    installButton.hidden = inInstalledMode() ||
+      (activePage === 'student' && studentInstallAllowed !== true);
+  }
+
+  function setStudentInstallAllowed(enabled) {
+    studentInstallAllowed = enabled === true;
+    refreshInstallLink();
+  }
+
+  function showInstallPopup() {
+    if (!installButton || installButton.hidden) return;
+    if (document.querySelector('.hp-install-overlay')) return;
+
+    const overlay = el('div', 'hp-install-overlay');
+    const dialog = el('div', 'hp-install-dialog');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', 'hp-install-title');
+
+    const head = el('div', 'hp-install-popup-head');
+    const title = el('h2', '', 'Install Hall Pilot');
+    title.id = 'hp-install-title';
+    const close = el('button', 'hp-install-close', '×');
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Close installation instructions');
+    head.append(title, close);
+    dialog.appendChild(head);
+
+    const context = activePage === 'student' ? 'Student' :
+      activePage === 'teacher' ? 'Teacher' : 'Admin';
+    dialog.appendChild(el('p', '', 'Add Hall Pilot — ' + context +
+      ' to your home screen or desktop for convenient access.'));
+
+    const ua = navigator.userAgent || '';
+    const ios = /iPad|iPhone|iPod/.test(ua) ||
+      (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    const android = /Android/i.test(ua);
+    const instruction = ios
+      ? 'In Safari, tap Share, then Add to Home Screen. Tap Add to finish.'
+      : android
+        ? 'Open your browser menu (⋮) and choose Install app or Add to Home screen.'
+        : 'Use the install icon in your browser address bar, or look for Install in the browser menu.';
+    dialog.appendChild(el('p', 'hp-install-instructions', instruction));
+    if (activePage === 'student') {
+      dialog.appendChild(el('p', 'hp-install-note',
+        'This option is enabled for your room. Follow school rules about personal devices.'));
+    }
+    const actions = el('div', 'hp-install-actions');
+    if (installPrompt && !inInstalledMode()) {
+      const install = el('button', 'hp-install-confirm', 'Install');
+      install.type = 'button';
+      install.addEventListener('click', async function () {
+        const pending = installPrompt;
+        installPrompt = null;
+        install.disabled = true;
+        try {
+          await pending.prompt();
+          await pending.userChoice;
+        } catch (_) {
+          // Browser refused native installation; manual instructions remain visible.
+        }
+        refreshInstallLink();
+        install.remove();
+      });
+      actions.appendChild(install);
+    }
+    const done = el('button', 'hp-install-done', 'Close');
+    done.type = 'button';
+    actions.appendChild(done);
+    dialog.appendChild(actions);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    function dismiss() {
+      document.removeEventListener('keydown', onKeydown);
+      overlay.remove();
+      if (!installButton.hidden) installButton.focus();
+    }
+    function onKeydown(event) {
+      if (event.key === 'Escape') dismiss();
+    }
+    close.addEventListener('click', dismiss);
+    done.addEventListener('click', dismiss);
+    overlay.addEventListener('click', function (event) {
+      if (event.target === overlay) dismiss();
+    });
+    document.addEventListener('keydown', onKeydown);
+    close.focus();
+  }
+
+  window.addEventListener('beforeinstallprompt', function (event) {
+    event.preventDefault();
+    installPrompt = event;
+    refreshInstallLink();
+  });
+  window.addEventListener('appinstalled', function () {
+    installPrompt = null;
+    refreshInstallLink();
+  });
+
+  window.HallPilotBranding = { render, setStudentInstallAllowed };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initialize, { once: true });
   } else {
