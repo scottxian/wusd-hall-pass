@@ -628,6 +628,9 @@
         <div><label for="teacherPassClose">Close passes before period ends (minutes)</label><input id="teacherPassClose" type="number" min="0" max="30" step="1"></div>
         <div><label for="teacherLongWarning">Long pass warning (minutes)</label><input id="teacherLongWarning" type="number" min="1" max="120" step="1"></div>
         <div><label for="teacherVeryLongWarning">Very long pass warning (minutes)</label><input id="teacherVeryLongWarning" type="number" min="1" max="120" step="1"></div>
+        <div style="grid-column:1/-1"><label style="display:flex;align-items:center;gap:8px;margin:0"><input id="teacherShowStudentInstall" type="checkbox" style="width:18px;min-height:18px;flex:0 0 auto;margin:0">Show Install App Link to Students</label>
+          <div class="subtle" style="font-size:13px;margin-top:5px">Overrides the Admin room default. Controls the install link only, not access from personal devices.</div>
+        </div>
       </div>
       <div id="teacherPassSettingsMessage" role="status" aria-live="polite"></div>
       <div class="passSettingsActions">
@@ -1186,6 +1189,7 @@
       document.getElementById('teacherPassClose').value=values.passes_close_before_end;
       document.getElementById('teacherLongWarning').value=values.long_pass_warning;
       document.getElementById('teacherVeryLongWarning').value=values.very_long_pass_warning;
+      document.getElementById('teacherShowStudentInstall').checked=values.show_student_install_link===true;
     }
     function loadTeacherPassSettings(){
       teacherPassSettingsMessage('Loading room settings...');
@@ -1238,6 +1242,7 @@
           return teacherPassSettingsMessage('Enter whole minutes between '+min+' and '+max+' for '+field.previousElementSibling.textContent+'.','error');
         data[key]=value;
       }
+      data.show_student_install_link=document.getElementById('teacherShowStudentInstall').checked;
       if(data.very_long_pass_warning<=data.long_pass_warning)
         return teacherPassSettingsMessage('Very Long Pass Warning must exceed Long Pass Warning.','error');
       setTeacherPassSettingsBusy(true);
@@ -1258,7 +1263,7 @@
     }
     function restoreTeacherPassSettings(){
       if(passSettingsBusy)return;
-      if(!window.confirm('Restore the Admin room defaults for all four pass settings?'))return;
+      if(!window.confirm('Restore the Admin room defaults for all five classroom settings?'))return;
       setTeacherPassSettingsBusy(true);
       teacherPassSettingsMessage('Restoring Admin room defaults...');
       google.script.run
