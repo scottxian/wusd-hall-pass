@@ -361,7 +361,7 @@
       .studentRequestFlow .buttonRow button { font-size: 15px; padding: 11px 7px; }
     }
   </style>
-<link rel="stylesheet" href="branding.css?v=20261114-center-phone-link">
+<link rel="stylesheet" href="branding.css?v=20261115-test-mode-notice">
 </head>
 
 
@@ -552,7 +552,7 @@
 
 
   <script src="config.js"></script>
-  <script src="api-shim.js"></script><script src="vendor/qrcode.min.js?v=20261114-install-qr"></script><script src="branding.js?v=20261114-center-phone-link" defer></script>
+  <script src="api-shim.js"></script><script src="vendor/qrcode.min.js?v=20261114-install-qr"></script><script src="branding.js?v=20261115-test-mode-notice" defer></script>
   <script src="duration-display.js?v=20261114-live-mss"></script>
 
   <script>
@@ -884,6 +884,12 @@
     function renderStatus(
       schedule
     ) {
+
+      // Admin Test Mode and the reserved "Test" schedule both create test data.
+      window.HallPilotBranding?.setTestMode?.(
+        schedule?.testMode === true,
+        schedule?.isTestSchedule === true
+      );
 
       const bar =
         document.getElementById(
