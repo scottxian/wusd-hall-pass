@@ -22,6 +22,51 @@
 .hp-brand-mark { flex: 0 0 auto; width: 48px; height: 48px; object-fit: contain; }
 .hp-brand-words { display: flex; flex-direction: column; gap: 3px; }
 .hp-brand-name { font-size: 21px; font-weight: 800; line-height: 1.08; }
+/* Compact, nonintrusive app-install link on the shared branded header. */
+.hp-install-link {
+  align-self: flex-start; display: inline-block; width: auto;
+  margin: 1px 0 0; padding: 0;
+  border: 0; background: transparent; box-shadow: none;
+  color: #3d658e; text-decoration: underline; text-underline-offset: 2px;
+  font-family: inherit; font-size: 11px; font-weight: 600; line-height: 1.2;
+  white-space: nowrap; cursor: pointer;
+}
+.hp-install-link:hover { color: #164a81; }
+.hp-install-link:focus-visible { outline: 2px solid #1765cb; outline-offset: 2px; }
+.hp-install-link[hidden] { display: none !important; }
+.hp-install-overlay {
+  position: fixed; inset: 0; z-index: 15000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 14px; background: rgba(17, 31, 50, .55);
+}
+.hp-install-dialog {
+  width: min(390px, 100%); max-height: min(84vh, 560px); overflow-y: auto;
+  padding: 17px 18px; box-sizing: border-box;
+  background: #fff; border-radius: 11px;
+  box-shadow: 0 10px 38px rgba(0,0,0,.28);
+  color: #263447; font-family: Arial, sans-serif; text-align: left;
+}
+.hp-install-popup-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.hp-install-popup-head h2 { margin: 0; font-size: 17px; line-height: 1.3; color: #1d3e63; }
+.hp-install-close {
+  border: 0; background: transparent; color: #526476;
+  font-size: 24px; line-height: 1; padding: 0 4px;
+  cursor: pointer; font-weight: 400;
+}
+.hp-install-dialog p { font-size: 13px; line-height: 1.45; margin: 12px 0; }
+.hp-install-dialog .hp-install-instructions {
+  padding: 11px; background: #f3f7fb; border: 1px solid #dce5ef;
+  border-radius: 7px;
+}
+.hp-install-dialog .hp-install-note { color: #586779; font-size: 12px; }
+.hp-install-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px; }
+.hp-install-actions button {
+  padding: 7px 13px; border: 0; border-radius: 7px;
+  background: #edf1f5; color: #2d455d; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.hp-install-actions .hp-install-confirm { background: #1f5ea8; color: #fff; }
+
 .hp-brand-tagline { color: #597092; font-size: 12px; line-height: 1.25; }
 .hp-brand-school[hidden], .hp-brand-school-logo[hidden] { display: none !important; }
 .hp-brand-school-logo {
