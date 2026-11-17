@@ -3376,13 +3376,28 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         }
         const grouped=[...groups.values()].filter(g=>settings.zero || g.total>0)
           .sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
-        if(settings.primary!==''){
-          const key=Number(settings.primary);
-          const value=g=>key===0?g.name:key===1?g.total:
-            g.rows.reduce((n,row)=>n+(Number(row[key]?.replace(/,/g,'')||0)||0),0);
+        if(settings.primary!==''||settings.secondary!==''){
+          const secs=s=>[...String(s||'').matchAll(/(\\d+)\\s*([dhms])/g)]
+            .reduce((n,m)=>n+Number(m[1])*({d:86400,h:3600,m:60,s:1}[m[2]]),0);
+          const metric=(g,key)=>{
+            if(key===0)return g.name;
+            if(key===1)return g.total;
+            if([5,6,7].includes(key)){
+              if(key===6)return Math.max(0,...g.rows.map(row=>secs(row[6])));
+              if(key===7)return g.rows.reduce((n,row)=>n+secs(row[7]),0);
+              const verified=g.rows.reduce((n,row)=>n+(Number(row[3])||0),0);
+              return verified?g.rows.reduce((n,row)=>n+secs(row[7]),0)/verified:0;
+            }
+            return g.rows.reduce((n,row)=>n+(Number(row[key]?.replace(/,/g,'')||0)||0),0);
+          };
+          const keys=[settings.primary,settings.secondary].filter(v=>v!=='').map(Number);
           grouped.sort((a,b)=>{
-            const x=value(a),y=value(b),n=typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),undefined,{numeric:true});
-            return (settings.direction==='desc'?-1:1)*n;
+            for(const key of keys){
+              const x=metric(a,key),y=metric(b,key);
+              const cmp=typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),undefined,{numeric:true});
+              if(cmp!==0)return (settings.direction==='desc'?-1:1)*Math.sign(cmp);
+            }
+            return a.name.localeCompare(b.name,undefined,{numeric:true});
           });
         }
         const visible=[];
