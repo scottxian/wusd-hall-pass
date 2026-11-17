@@ -3346,8 +3346,15 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const cell=(r,i)=>String(r[i]??'').trim();
       const compare=(a,b)=>{for(const i of keys){
         const av=cell(a,i),bv=cell(b,i);
+        const durationSeconds=s=>{
+          if(!/^(?:(?:\\d+)d\\s*)?(?:(?:\\d+)h\\s*)?(?:(?:\\d+)m\\s*)?(?:(?:\\d+)s\\s*)?$/.test(s)||!s||!/[dhms]/.test(s))return null;
+          return [...s.matchAll(/(\\d+)\\s*([dhms])/g)].reduce((sum,m)=>sum+Number(m[1])*({d:86400,h:3600,m:60,s:1}[m[2]]),0);
+        };
+        const ad=durationSeconds(av),bd=durationSeconds(bv);
         const an=Number(av.replace(/,/g,'')),bn=Number(bv.replace(/,/g,''));
-        let result=av!==''&&bv!==''&&Number.isFinite(an)&&Number.isFinite(bn)?an-bn:av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'});
+        let result=ad!==null&&bd!==null?ad-bd:
+          av!==''&&bv!==''&&Number.isFinite(an)&&Number.isFinite(bn)?an-bn:
+          av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'});
         if(result!==0)return factor*Math.sign(result);
       }return 0;};
       return rows.slice().sort(compare);
