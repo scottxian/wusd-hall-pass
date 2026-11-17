@@ -585,7 +585,7 @@
           <details class="teacherDisclosure reportDisclosure">
             <summary>Advanced Report Options</summary><div class="disclosureBody">
               <div class="reportControls">
-            <div class="checkboxLabel"><label><input id="includeTestData" type="checkbox">Include Test Data</label></div>
+            <div class="checkboxLabel"><label><input id="includeTestData" type="checkbox">Include Test Data</label></div><div id="reportRestroomOnlyWrap" class="checkboxLabel hidden"><label><input id="reportRestroomOnly" type="checkbox" checked>Restroom passes only</label></div>
             <div id="reportAutoExpandWrap" class="checkboxLabel"><label><input id="autoExpandAllDetails" type="checkbox">Auto-expand all student details</label></div>
             <div id="frequentPassWrap"><label for="flagPassCount">Flag Total Passes ≥</label><input id="flagPassCount" type="number" min="1" value="5"></div>
             <div id="frequentTimeWrap"><label for="flagAverageMinutes">Flag Average Minutes ≥</label><input id="flagAverageMinutes" type="number" min="1" value="8"></div>
@@ -1855,7 +1855,10 @@
     function updateReportTypeUI() {
       const individual = document.getElementById('reportType').value === 'individual';
       document.getElementById('reportStudentWrap').classList.toggle('hidden', !individual);
-      document.getElementById('reportAutoExpandWrap').classList.toggle('hidden', individual);
+      document.getElementById('reportAutoExpandWrap').classList.toggle('hidden', document.getElementById('reportType').value !== 'all');
+      const type=document.getElementById('reportType').value;
+      document.getElementById('reportRestroomOnlyWrap').classList.toggle('hidden',type!=='period' && type!=='destination');
+      document.getElementById('reportRestroomOnly').checked=type==='period';
     }
 
     function applyReportPreset() {
@@ -1908,14 +1911,15 @@
           startDate: startDate,
           endDate: endDate,
           period: document.getElementById('reportPeriod').value,
-          includeTestData: document.getElementById('includeTestData').checked
+          includeTestData: document.getElementById('includeTestData').checked,
+          restroomOnly: ['period','destination'].includes(type) && document.getElementById('reportRestroomOnly').checked
         });
     }
 
     function renderReport(report) {
       const area = document.getElementById('reportPrintArea');
       area.classList.remove('hidden');
-      document.getElementById('reportMeta').textContent = formatDateOnly(report.startDate) + ' through ' + formatDateOnly(report.endDate) + (report.period ? ' • Period ' + report.period : '') + (report.includeTestData ? ' • Includes test data' : '');
+      document.getElementById('reportMeta').textContent = formatDateOnly(report.startDate) + ' through ' + formatDateOnly(report.endDate) + (report.period ? ' • Period ' + report.period : '') + (report.restroomOnly ? ' • Restroom only' : '') + (report.includeTestData ? ' • Includes test data' : '');
       const head = document.getElementById('reportHead');
       const body = document.getElementById('reportBody');
       const summary = document.getElementById('reportSummary');
