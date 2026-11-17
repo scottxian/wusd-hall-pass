@@ -1540,7 +1540,7 @@
   <script src="config.js"></script><script src="api-shim.js"></script><script src="branding.js" defer></script>
   <script src="../vendor/jspdf.umd.min.js"></script>
   <script src="../vendor/jspdf.plugin.autotable.min.js"></script>
-  <script src="../report-pdf.js"></script>
+  <script src="report-pdf.js"></script>
   <script src="../duration-display.js?v=20261114-live-mmss"></script>
 
 
@@ -3412,10 +3412,11 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           title:hpPrintSettings().heading||$('campusReportTitle').textContent,
           scope:'School administration',
           details:[...details,...(hpPrintSettings().subtitle?[hpPrintSettings().subtitle]:[])],summary:summary,tables:tables,
+          openInNewTab: true,
           fontDirectory:'../vendor/fonts/',
           fileName:'hall-pass-admin-'+type+'-'+(f.startDate||'start')+'-to-'+(f.endDate||'end')
         });
-        setMsg('reportsMessage','PDF report prepared for download.');
+        setMsg('reportsMessage','PDF report opened in a new tab. Use the browser viewer to print or save.');
       }catch(error){
         setMsg('reportsMessage','Could not create PDF: '+(error&&error.message||error),true);
       }finally{button.disabled=false;}
