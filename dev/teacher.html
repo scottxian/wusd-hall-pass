@@ -16,6 +16,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#103a70">
   <style>
+    /* Keep Verified Returned compact rather than widening the report. */
+    #campusReportHead th[data-sort-key="completedPasses"],
+    #campusReportHead th:nth-child(4),
+    #reportHead th[data-sort-key="completedPasses"],
+    #reportHead th:nth-child(4),
+    #reportHead th:nth-child(5) { white-space: normal; min-width: 66px; max-width: 91px; line-height: 1.3; }
+
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #222; }
     .header { background: #263238; color: white; padding: 18px 20px; }
@@ -1949,7 +1956,7 @@
           '</div></div><div class="stat"><div class="statLabel">Verified Returns</div><div class="statValue">' + verified +
           '</div></div><div class="stat"><div class="statLabel">Groups</div><div class="statValue">' + groups.length + '</div></div></div>';
         head.innerHTML = '<tr><th>' + (periodReport ? 'Period' : 'Destination') +
-          '</th><th>Passes</th><th>Restroom</th><th>Verified Returns</th><th>Auto-Closed</th><th>Average</th><th>Longest</th><th>Total Verified Time</th><th>Overrides</th></tr>';
+          '</th><th>Passes</th><th>Restroom</th><th>Verified<br>Returned</th><th>Auto-Closed</th><th>Average</th><th>Longest</th><th>Total Verified Time</th><th>Overrides</th></tr>';
         for (const g of groups) {
           const tr = document.createElement('tr');
           tr.innerHTML = '<td>' + escapeHtml(g.label) + '</td><td>' + g.totalPasses + '</td><td>' + g.restroomPasses +
