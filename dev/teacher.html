@@ -2548,6 +2548,29 @@
           rows.push([row.studentName,row.studentId,row.totalPasses,row.restroomPasses,row.completedPasses,row.autoClosedPasses||0,formatMinutesCsv(row.averageMinutes),formatMinutesCsv(row.longestMinutes),formatMinutesCsv(row.totalMinutes),row.overrides]);
         });
       }
+      const printSettings=hpPrintSettings();
+      if(rows.length>2 && (printSettings.primary!=='' || printSettings.secondary!=='')){
+        const visibleHeads=Array.from(document.getElementById('reportHead').querySelectorAll('th'))
+          .map(h=>h.textContent.replace(/[▲▼]/g,'').trim().toLowerCase());
+        const csvHeads=rows[0].map(h=>String(h).toLowerCase());
+        const pairs=[['average','average verified pass'],['longest','longest verified pass'],
+          ['total verified time','total verified time'],['auto-closed','auto-closed passes'],
+          ['restroom','restroom passes'],['passes','total passes'],
+          ['student id','student id'],['student','student']];
+        function colFor(ix){
+          if(ix==='')return '';
+          const label=visibleHeads[Number(ix)]||'';
+          let found=csvHeads.indexOf(label);
+          if(found<0){
+            const alias=pairs.find(p=>p[0]===label);
+            if(alias)found=csvHeads.indexOf(alias[1]);
+          }
+          if(found<0)found=csvHeads.findIndex(h=>h.startsWith(label)||label.startsWith(h));
+          return found>=0?String(found):'';
+        }
+        const adapted={...printSettings,primary:colFor(printSettings.primary),secondary:colFor(printSettings.secondary)};
+        rows.splice(1,rows.length-1,...hpSortReportRows(rows.slice(1),adapted));
+      }
       const csv = rows.map(function(row) { return row.map(csvCell).join(','); }).join('\r\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
