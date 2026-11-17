@@ -3358,9 +3358,20 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           subhead.add(new Option('Group by '+header,String(index)));
         }
       });
-      subhead.value=previous.subheading??'';
-      if(!Array.from(subhead.options).some(x=>x.value===subhead.value))subhead.value='';
-      document.getElementById('hpPrintSubheadingWrap').hidden=hpPrintReportType()==='roomperiod';
+      if(grouped){
+        // Classroom-by-Period already has its own group renderer. Expose that
+        // layout and a genuine Period-first layout in the same print selector.
+        subhead.innerHTML='<option value="classroom">Classroom (periods beneath each classroom)</option>'+
+          '<option value="period">Period (classrooms beneath each period)</option>'+
+          '<option value="">No subheadings (flat report)</option>';
+        subhead.value=Object.prototype.hasOwnProperty.call(previous,'subheading')
+          ? previous.subheading : (previous.group===false ? '' : 'classroom');
+      }else{
+        subhead.value=previous.subheading??'';
+      }
+      if(!Array.from(subhead.options).some(x=>x.value===subhead.value))
+        subhead.value=grouped?'classroom':'';
+      document.getElementById('hpPrintSubheadingWrap').hidden=false;
       for(const id of ['hpPrintPrimary','hpPrintSecondary']){
         const select=document.getElementById(id);
         select.innerHTML='';
@@ -3372,7 +3383,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       document.getElementById('hpPrintSecondaryDirection').value=previous.secondaryDirection||'asc';
       document.getElementById('hpPrintGroup').checked=previous.group!==false;
       document.getElementById('hpPrintZero').checked=previous.zero===true;
-      document.getElementById('hpPrintGroupWrap').hidden=!(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
+      document.getElementById('hpPrintGroupWrap').hidden=grouped || !(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
       document.getElementById('hpPrintZeroWrap').hidden=!(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
       opts.style.display='flex';
       document.getElementById('hpPrintHeading').focus();
@@ -3392,7 +3403,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const get=id=>document.getElementById(id);
       return {heading:get('hpPrintHeading').value.trim().slice(0,120),subtitle:get('hpPrintSubtitle').value.trim().slice(0,180),
         primary:get('hpPrintPrimary').value,secondary:get('hpPrintSecondary').value,
-        direction:get('hpPrintDirection').value,secondaryDirection:get('hpPrintSecondaryDirection').value,subheading:get('hpPrintSubheading').value,group:get('hpPrintGroup').checked,zero:get('hpPrintZero').checked};
+        direction:get('hpPrintDirection').value,secondaryDirection:get('hpPrintSecondaryDirection').value,subheading:get('hpPrintSubheading').value,group:hpPrintReportType()==='roomperiod'?get('hpPrintSubheading').value==='classroom':get('hpPrintGroup').checked,zero:get('hpPrintZero').checked};
     }
     function hpPrintSave(){try{localStorage.setItem(hpPrintStorageKey(),JSON.stringify(hpPrintSettings()));}catch(_){}hpPrintClose();}
     function hpSortReportRows(rows,settings){
@@ -3521,7 +3532,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           ['Teacher Overrides',s.overrides||0]
         ];
         const main=hpPrintTable($('campusReportHead'),$('campusReportBody'));
-        let tables=hpPrintGroupedTables(main,$('campusReportTitle').textContent);
+        const printPrefs=hpPrintSettings();
+        let tables=type==='roomperiod'?[{title:$('campusReportTitle').textContent,headers:main.headers,rows:main.rows}]:hpPrintGroupedTables(main,$('campusReportTitle').textContent);
         // A separate table per classroom prevents splitting its six periods
         // unless a group is genuinely too large to fit on one page.
         if(type==='roomperiod'&&hpPrintSettings().group){
@@ -3535,6 +3547,29 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
             }else if(current)current.rows.push(row);
           }
           if(grouped.length)tables=grouped;
+        }
+        if(type==='roomperiod'&&printPrefs.subheading==='period'){
+          // Work from the same filtered/sorted rows used by the visible report.
+          // In flat mode the first cell is "Room / Period".
+          const byPeriod=new Map();
+          for(const row of main.rows){
+            const name=String(row[0]||'');
+            const split=name.lastIndexOf(' / ');
+            if(split<0)continue;
+            const room=name.slice(0,split).trim();
+            const period=name.slice(split+3).trim()||'Unassigned';
+            if(!byPeriod.has(period))byPeriod.set(period,[]);
+            byPeriod.get(period).push([room,...row.slice(1)]);
+          }
+          if(byPeriod.size){
+            tables=[...byPeriod.entries()]
+              .sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true}))
+              .map(([period,rows])=>({
+                title:'Period '+period,
+                headers:['Classroom',...main.headers.slice(1)],
+                rows,keepTogether:true
+              }));
+          }
         }
         if(!$('reportSecondaryWrap').classList.contains('hidden')){
           const second=hpPrintTable($('reportSecondaryHead'),$('reportSecondaryBody'));
