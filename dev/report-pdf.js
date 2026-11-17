@@ -32,7 +32,7 @@
       node.remove();
     });
     clone.querySelectorAll('br').forEach(function (node) {
-      node.replaceWith(document.createTextNode(' / '));
+      node.replaceWith(document.createTextNode(clone.tagName === 'TH' ? ' ' : ' / '));
     });
     clone.querySelectorAll('.muted').forEach(function (node) {
       node.textContent = ' (' + plain(node.textContent) + ')';
