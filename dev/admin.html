@@ -3368,7 +3368,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
             for(const p of periods)visible.push([g.name+' / '+p[0],...p.slice(1)]);
           }
         }
-        return {...result,rows:visible};
+        return {...result,rows:settings.group?visible:hpSortReportRows(visible,settings)};
       }
       return {...result,rows:hpSortReportRows(result.rows,settings)};
     }
