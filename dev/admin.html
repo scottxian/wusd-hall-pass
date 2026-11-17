@@ -1289,8 +1289,21 @@
             </div>
                       <div class="checkRow" style="margin-top:12px"><label><input id="campusIncludeTestData" type="checkbox">Include test data</label></div>
           </details>
-          <div class="actions" style="margin-top:12px"><button id="generateCampusReport" class="green">Generate Report</button><button id="downloadCampusPdf" disabled>Download PDF</button><button id="downloadCampusReport" class="gray" disabled>Download Report CSV</button><button id="printCampusStudentDetail" class="gray hidden" disabled>Print Student Detail</button></div>
-          <div id="reportsMessage" class="message"></div>
+          <div class="actions" style="margin-top:12px"><button id="generateCampusReport" class="green">Generate Report</button><button id="hpPrintOptionsButton" class="gray" type="button" onclick="hpPrintOpen('campusReportHead',document.getElementById('campusReportTitle').textContent)" disabled>Print Options</button><button id="downloadCampusPdf" disabled>Download PDF</button><button id="downloadCampusReport" class="gray" disabled>Download Report CSV</button><button id="printCampusStudentDetail" class="gray hidden" disabled>Print Student Detail</button></div>
+          <div id="reportsMessage" class="message"></div><div id="hpPrintOptions" role="dialog" aria-modal="true" aria-label="Report Print Options" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:16px">
+<div style="background:white;color:#17243b;border-radius:12px;padding:22px;width:min(530px,100%);max-height:90vh;overflow:auto;box-shadow:0 16px 50px #0004">
+<h2 style="margin:0 0 16px">Report Print Options</h2>
+<div class="formGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+<div><label for="hpPrintHeading">Report heading</label><input id="hpPrintHeading" maxlength="120"></div>
+<div><label for="hpPrintSubtitle">Subtitle (optional)</label><input id="hpPrintSubtitle" maxlength="180"></div>
+<div><label for="hpPrintPrimary">Sort by</label><select id="hpPrintPrimary"></select></div>
+<div><label for="hpPrintSecondary">Then by</label><select id="hpPrintSecondary"></select></div>
+<div><label for="hpPrintDirection">Sort order</label><select id="hpPrintDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div>
+</div>
+<div id="hpPrintGroupWrap" style="margin-top:12px"><label><input type="checkbox" id="hpPrintGroup" checked> Group periods under each classroom</label></div>
+<div id="hpPrintZeroWrap" style="margin-top:8px"><label><input type="checkbox" id="hpPrintZero" checked> Include zero-pass periods</label></div>
+<div class="buttonRow actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px"><button type="button" onclick="hpPrintClose()">Cancel</button><button type="button" class="primary" onclick="hpPrintSave()">Save Options</button></div>
+</div></div>
         </div>
         <div id="campusReportResults" class="hidden">
           <div id="campusReportDrillNav" class="reportDrillTrail hidden"><button id="campusReportBack" class="gray" type="button">← Back</button><span class="muted" id="campusReportTrail" aria-live="polite"></span></div>
@@ -3088,7 +3101,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       if(options.studentDetail&&!options.studentId){setMsg('reportsMessage','Choose a student to generate a Student Detail report.',true);renderCampusDrillNavigation();return false;}
       const b=$('generateCampusReport');
       b.disabled=true;setMsg('reportsMessage','Generating report...');
-      currentCampusReport=null;$('campusReportResults').classList.add('hidden');$('downloadCampusReport').disabled=true;$('downloadCampusPdf').disabled=true;$('printCampusStudentDetail').classList.add('hidden');$('printCampusStudentDetail').disabled=true;
+      currentCampusReport=null;$('campusReportResults').classList.add('hidden');$('hpPrintOptionsButton').disabled=true;$('downloadCampusReport').disabled=true;$('downloadCampusPdf').disabled=true;$('printCampusStudentDetail').classList.add('hidden');$('printCampusStudentDetail').disabled=true;
       try{
         const r=await hallpassApi.call('adminCampusReport',[options]);
         if(requestId!==campusReportRequestId||schoolKey!==currentSchoolKey())return false;
@@ -3096,7 +3109,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         if(type!==$('reportType').value||JSON.stringify(options)!==JSON.stringify(campusReportOptionsFromForm())){setMsg('reportsMessage','Report filters changed. Generate again to see the latest selection.');return false;}
         if(type==='detail'&&!r.studentDetail){setMsg('reportsMessage','Student Detail is unavailable from the server.',true);return false;}
         currentCampusReport=r;reportSortState={main:null,secondary:null};renderCampusReport();
-        $('downloadCampusReport').disabled=false;$('downloadCampusPdf').disabled=false;
+        $('downloadCampusReport').disabled=false;$('downloadCampusPdf').disabled=false;$('hpPrintOptionsButton').disabled=false;
         $('printCampusStudentDetail').classList.toggle('hidden',type!=='detail');$('printCampusStudentDetail').disabled=type!=='detail';
         setMsg('reportsMessage','Report generated from '+r.filters.startDate+' through '+r.filters.endDate+'.');
         return true;
@@ -3269,6 +3282,63 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function downloadCsvRows(name,rows){if(!rows.length){setMsg('backupMessage','There are no rows to export.',true);return;}const headers=[...new Set(rows.flatMap(x=>Object.keys(x)))],text=[headers.map(csvValue).join(','),...rows.map(r=>headers.map(h=>csvValue(r[h])).join(','))].join('\r\n');downloadTextFile(name,text,'text/csv;charset=utf-8')}
     function campusReportRows(){if(!currentCampusReport)return [];const r=currentCampusReport,type=$('reportType').value;if(type==='period'||type==='roomperiod'||type==='destination')return (type==='period'?r.byPeriod:type==='roomperiod'?r.byRoomPeriod:r.byDestination).map(x=>({room:type==='roomperiod'?x.room:undefined,room_key:type==='roomperiod'?x.roomKey:undefined,period:type==='destination'?undefined:x.period,destination:type==='destination'?x.destination:undefined,total_passes:x.totalPasses,restroom_passes:x.restroomPasses,completed_passes:x.completedPasses,auto_closed_passes:x.autoClosedPasses,average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes,total_minutes:x.totalMinutes,teacher_overrides:x.overrides}));if(type==='detail')return (r.studentDetail?.rows||[]).map(x=>({date:x.date,room:x.room,room_key:x.roomKey,schedule:x.schedule,period:x.period,destination:x.destination,requested:x.requested,left:x.left,returned:x.returned,administratively_closed_at:x.closedAt,auto_closed:x.autoClosed,duration_minutes:x.durationMinutes,wait_seconds:x.waitSeconds,teacher_override:x.teacherOverride,teacher:x.teacher,override_note:x.overrideNote,status_note:x.statusNote,test_data:x.testData}));if(type==='students'||type==='frequent')return (type==='students'?r.byStudent:r.frequentStudents).map(x=>({student_name:x.studentName,student_id:x.studentId,rooms:x.rooms,total_passes:x.totalPasses,restroom_passes:x.restroomPasses,completed_passes:x.completedPasses,auto_closed_passes:x.autoClosedPasses,average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes,total_minutes:x.totalMinutes,teacher_overrides:x.overrides}));if(type==='long')return r.longPasses.map(x=>({date:x.date,room:x.room,room_key:x.roomKey,student_name:x.studentName,student_id:x.studentId,destination:x.destination,left:x.left,returned:x.returned,administratively_closed_at:x.closedAt,auto_closed:x.autoClosed,duration_minutes:x.durationMinutes,teacher_override:x.teacherOverride}));if(type==='overrides')return r.overrides.map(x=>({date:x.date,room:x.room,room_key:x.roomKey,student_name:x.studentName,student_id:x.studentId,destination:x.destination,teacher:x.teacher,left:x.left,returned:x.returned,administratively_closed_at:x.closedAt,auto_closed:x.autoClosed,duration_minutes:x.durationMinutes,override_note:x.overrideNote,status_note:x.statusNote}));return r.byRoom.map(x=>({room:x.room,room_key:x.roomKey,total_passes:x.totalPasses,completed_passes:x.completedPasses,auto_closed_passes:x.autoClosedPasses,average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes,total_minutes:x.totalMinutes,teacher_overrides:x.overrides}))}
 
+
+    // Print-only options: no mutation of on-screen report order or underlying data.
+    const HP_PRINT_KEY = 'hallpilot.reportPrintOptions.v1';
+    function hpPrintPrefs(){
+      try { return JSON.parse(localStorage.getItem(HP_PRINT_KEY)||'{}') || {}; } catch(_) { return {}; }
+    }
+    function hpPrintOpen(headId,title){
+      const head=document.getElementById(headId);
+      const headers=Array.from(head.querySelectorAll('th')).map(h=>h.textContent.replace(/[▲▼]/g,'').trim());
+      const opts=document.getElementById('hpPrintOptions');
+      const previous=hpPrintPrefs();
+      document.getElementById('hpPrintHeading').value=previous.heading||title||'Report';
+      document.getElementById('hpPrintSubtitle').value=previous.subtitle||'';
+      const choices=[['','On-screen order'],...headers.map((h,i)=>[String(i),h])];
+      for(const id of ['hpPrintPrimary','hpPrintSecondary']){
+        const select=document.getElementById(id);
+        select.innerHTML='';
+        for(const [v,label] of choices){const option=document.createElement('option');option.value=v;option.textContent=label;select.append(option);}
+        select.value=previous[id==='hpPrintPrimary'?'primary':'secondary']??'';
+        if(!select.value && select.value!=='')select.value='';
+      }
+      document.getElementById('hpPrintDirection').value=previous.direction||'asc';
+      document.getElementById('hpPrintGroup').checked=previous.group!==false;
+      document.getElementById('hpPrintZero').checked=previous.zero!==false;
+      document.getElementById('hpPrintGroupWrap').hidden=!(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
+      document.getElementById('hpPrintZeroWrap').hidden=!(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
+      opts.style.display='flex';
+      document.getElementById('hpPrintHeading').focus();
+    }
+    function hpPrintClose(){document.getElementById('hpPrintOptions').style.display='none';}
+    function hpPrintSettings(){
+      const get=id=>document.getElementById(id);
+      return {heading:get('hpPrintHeading').value.trim().slice(0,120),subtitle:get('hpPrintSubtitle').value.trim().slice(0,180),
+        primary:get('hpPrintPrimary').value,secondary:get('hpPrintSecondary').value,
+        direction:get('hpPrintDirection').value,group:get('hpPrintGroup').checked,zero:get('hpPrintZero').checked};
+    }
+    function hpPrintSave(){try{localStorage.setItem(HP_PRINT_KEY,JSON.stringify(hpPrintSettings()));}catch(_){}hpPrintClose();}
+    function hpSortReportRows(rows,settings){
+      if(settings.primary==='' && settings.secondary==='')return rows;
+      const keys=[settings.primary,settings.secondary].filter(v=>v!=='').map(Number);
+      const factor=settings.direction==='desc'?-1:1;
+      const cell=(r,i)=>String(r[i]??'').trim();
+      const compare=(a,b)=>{for(const i of keys){
+        const av=cell(a,i),bv=cell(b,i);
+        const an=Number(av.replace(/,/g,'')),bn=Number(bv.replace(/,/g,''));
+        let result=av!==''&&bv!==''&&Number.isFinite(an)&&Number.isFinite(bn)?an-bn:av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'});
+        if(result!==0)return factor*Math.sign(result);
+      }return 0;};
+      return rows.slice().sort(compare);
+    }
+    function hpPrintTable(head,body,selector){
+      const result=HallPilotReportPdf.fromTable(head,body,selector);
+      const settings=hpPrintSettings();
+      return {...result,rows:hpSortReportRows(result.rows,settings)};
+    }
+
+    window.hpPrintIsRoomPeriod=()=>document.getElementById('reportType').value==='roomperiod';
     async function downloadCampusReportPdf(){
       if(!currentCampusReport){setMsg('reportsMessage','Generate a report first.',true);return;}
       const button=$('downloadCampusPdf');
@@ -3297,16 +3367,16 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           ['Total Verified Time',reportMinutes(s.totalMinutes)],
           ['Teacher Overrides',s.overrides||0]
         ];
-        const main=HallPilotReportPdf.fromTable($('campusReportHead'),$('campusReportBody'));
+        const main=hpPrintTable($('campusReportHead'),$('campusReportBody'));
         const tables=[{title:$('campusReportTitle').textContent,headers:main.headers,rows:main.rows}];
         if(!$('reportSecondaryWrap').classList.contains('hidden')){
-          const second=HallPilotReportPdf.fromTable($('reportSecondaryHead'),$('reportSecondaryBody'));
+          const second=hpPrintTable($('reportSecondaryHead'),$('reportSecondaryBody'));
           tables.push({title:$('reportSecondaryTitle').textContent,headers:second.headers,rows:second.rows});
         }
         await HallPilotReportPdf.exportPdf({
-          title:$('campusReportTitle').textContent,
+          title:hpPrintSettings().heading||$('campusReportTitle').textContent,
           scope:'School administration',
-          details:details,summary:summary,tables:tables,
+          details:[...details,...(hpPrintSettings().subtitle?[hpPrintSettings().subtitle]:[])],summary:summary,tables:tables,
           fontDirectory:'../vendor/fonts/',
           fileName:'hall-pass-admin-'+type+'-'+(f.startDate||'start')+'-to-'+(f.endDate||'end')
         });
@@ -3316,7 +3386,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       }finally{button.disabled=false;}
     }
 
-    function downloadCampusReport(){if(!currentCampusReport)return;const type=$('reportType').value;const id=type==='detail'?'-'+String(currentCampusReport.studentDetail?.studentId||'student').replace(/[^a-z0-9_-]/gi,'-'):'';downloadCsvRows(`hall-pass-${type}${id}-${currentCampusReport.filters.startDate}-to-${currentCampusReport.filters.endDate}.csv`,campusReportRows())}
+    function downloadCampusReport(){if(!currentCampusReport)return;const type=$('reportType').value;const id=type==='detail'?'-'+String(currentCampusReport.studentDetail?.studentId||'student').replace(/[^a-z0-9_-]/gi,'-'):'';const table=hpPrintTable($('campusReportHead'),$('campusReportBody'));const opts=hpPrintSettings();const rows=[Object.fromEntries(table.headers.map((h,i)=>[h,opts.heading&&i===0?'':h]))];const records=table.rows.map(row=>Object.fromEntries(table.headers.map((h,i)=>[h,row[i]])));downloadCsvRows(`hall-pass-${type}${id}-${currentCampusReport.filters.startDate}-to-${currentCampusReport.filters.endDate}.csv`,records)}
     async function exportBackupDataset(dataset,button){if(button)button.disabled=true;setMsg('backupMessage',`Preparing ${dataset} export...`);try{const r=await hallpassApi.call('adminBackupDataset',[dataset]);if(!r.success){setMsg('backupMessage',r.message,true);return;}const stamp=new Date().toISOString().slice(0,10);if(dataset==='students')downloadCsvRows(`hall-pass-students-${stamp}.csv`,r.rows||[]);else if(dataset==='passes')downloadCsvRows(`hall-pass-history-${stamp}.csv`,r.rows||[]);else if(dataset==='audit')downloadCsvRows(`hall-pass-audit-${stamp}.csv`,(r.rows||[]).map(x=>({...x,details:JSON.stringify(x.details||{})})));else if(dataset==='configuration')downloadTextFile(`hall-pass-configuration-${stamp}.json`,JSON.stringify(r.data,null,2),'application/json;charset=utf-8');else if(dataset==='full')downloadTextFile(`${(adminAccess.selectedSchool?.key||'school').replace(/[^a-z0-9_-]+/gi,'-')}-hall-pass-full-backup-${stamp}.json`,JSON.stringify(r.backup,null,2),'application/json;charset=utf-8');setMsg('backupMessage','Download created.')}catch(e){setMsg('backupMessage',e.message,true)}finally{if(button)button.disabled=false}}
 
     function onboardingTeacherMode(){return (document.querySelector('input[name="onboardTeacherMode"]:checked')||{}).value||'new'}
