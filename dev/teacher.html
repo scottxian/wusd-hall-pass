@@ -619,6 +619,7 @@
 <div class="formGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
 <div><label for="hpPrintHeading">Report heading</label><input id="hpPrintHeading" maxlength="120"></div>
 <div><label for="hpPrintSubtitle">Subtitle (optional)</label><input id="hpPrintSubtitle" maxlength="180"></div>
+<div id="hpPrintSubheadingWrap" style="grid-column:1/-1"><label for="hpPrintSubheading">PDF subheadings / group by</label><select id="hpPrintSubheading"><option value="">No subheadings (flat report)</option></select></div>
 <div><label for="hpPrintPrimary">Sort by</label><select id="hpPrintPrimary"></select></div>
 <div><label for="hpPrintSecondary">Then by</label><select id="hpPrintSecondary"></select></div>
 <div><label for="hpPrintDirection">Primary order</label><select id="hpPrintDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div><div><label for="hpPrintSecondaryDirection">Secondary order</label><select id="hpPrintSecondaryDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div>
@@ -2463,6 +2464,17 @@
       opts.dataset.reportType=hpPrintReportType();
       document.getElementById('hpPrintSubtitle').value=previous.subtitle||'';
       const choices=[['','On-screen order'],...headers.map((h,i)=>[String(i),h])];
+      const subhead=document.getElementById('hpPrintSubheading');
+      subhead.innerHTML='<option value="">No subheadings (flat report)</option>';
+      headers.forEach((header,index)=>{
+        const normalized=header.toLowerCase().replace(/\s+/g,' ').trim();
+        if(/^(date|student|student name|room|rooms|period|periods|destination|schedule \/ period|schedule \/period)$/.test(normalized)){
+          subhead.add(new Option('Group by '+header,String(index)));
+        }
+      });
+      subhead.value=previous.subheading??'';
+      if(!Array.from(subhead.options).some(x=>x.value===subhead.value))subhead.value='';
+      document.getElementById('hpPrintSubheadingWrap').hidden=false;
       for(const id of ['hpPrintPrimary','hpPrintSecondary']){
         const select=document.getElementById(id);
         select.innerHTML='';
@@ -2494,7 +2506,7 @@
       const get=id=>document.getElementById(id);
       return {heading:get('hpPrintHeading').value.trim().slice(0,120),subtitle:get('hpPrintSubtitle').value.trim().slice(0,180),
         primary:get('hpPrintPrimary').value,secondary:get('hpPrintSecondary').value,
-        direction:get('hpPrintDirection').value,secondaryDirection:get('hpPrintSecondaryDirection').value,group:get('hpPrintGroup').checked,zero:get('hpPrintZero').checked};
+        direction:get('hpPrintDirection').value,secondaryDirection:get('hpPrintSecondaryDirection').value,subheading:get('hpPrintSubheading').value,group:get('hpPrintGroup').checked,zero:get('hpPrintZero').checked};
     }
     function hpPrintSave(){try{localStorage.setItem(hpPrintStorageKey(),JSON.stringify(hpPrintSettings()));}catch(_){}hpPrintClose();}
     function hpSortReportRows(rows,settings){
@@ -2515,6 +2527,24 @@
         }
         return 0;
       });
+    }
+    // PDF-only: create a titled section for each selected subheading value.
+    // Preserve table data and existing primary/secondary sort order within groups.
+    function hpPrintGroupedTables(table,defaultTitle){
+      const settings=hpPrintSettings();
+      if(settings.subheading===''||settings.subheading==null)return [{title:defaultTitle,headers:table.headers,rows:table.rows}];
+      const index=Number(settings.subheading);
+      if(!Number.isInteger(index)||index<0||index>=table.headers.length)return [{title:defaultTitle,headers:table.headers,rows:table.rows}];
+      const groups=new Map();
+      for(const row of table.rows){
+        const name=String(row[index]??'').trim()||'Unassigned';
+        if(!groups.has(name))groups.set(name,[]);
+        groups.get(name).push(row);
+      }
+      if(!groups.size)return [{title:defaultTitle,headers:table.headers,rows:table.rows}];
+      return [...groups].map(([name,rows])=>({
+        title:table.headers[index]+': '+name,headers:table.headers,rows,keepTogether:true
+      }));
     }
     function hpPrintTable(head,body,selector){
       const result=HallPilotReportPdf.fromTable(head,body,selector);
@@ -2587,7 +2617,7 @@
           title: hpPrintSettings().heading||title,
           scope: 'Teacher / classroom',
           details: [...details,...(hpPrintSettings().subtitle?[hpPrintSettings().subtitle]:[])], summary: summary,
-          tables: [{ title: individual ? 'Pass History' : report.type === 'period' || report.type === 'destination' ? title : 'Student Summary', headers: table.headers, rows: table.rows }],
+          tables: hpPrintGroupedTables(table,individual ? 'Pass History' : report.type === 'dailyMultiple' ? title : report.type === 'period' || report.type === 'destination' ? title : 'Student Summary'),
           openInNewTab: true,
           fontDirectory: '../vendor/fonts/',
           fileName: fileName
