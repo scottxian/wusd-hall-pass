@@ -3389,7 +3389,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         subhead.value=previous.subheading==='period'?'period':
           previous.subheading==='classroom'?'classroom':
           previous.group===false?'':'classroom';
-      }else if(hpPrintReportType()==='students'){
+      }else if(['students','frequent','dailyMultiple','multipleRooms'].includes(hpPrintReportType())){
         // "Rooms" in Student Summary lists *all* rooms used by a student.
         // Never group those combinations as if they were individual rooms.
         subhead.innerHTML='<option value="">No subheadings (schoolwide student totals)</option>'+
@@ -3459,30 +3459,95 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     // Student Summary grouped by classroom is a separate aggregation.
     // It MUST use byStudentRoom (one student+room pair), not byStudent.rooms,
     // which is a comma-separated list of every room that student visited.
-    function hpStudentRoomTables(report,settings,visibleHeaders){
-      const headers=visibleHeaders.map(h=>h==='Rooms'?'Room':h);
+    // Build true room-specific rows for every student report that supports
+    // classroom subheadings. Never group a comma-separated rooms list.
+    function hpPrintClassroomTables(report,settings,type,visibleHeaders){
+      const tracked=['students','frequent','multipleRooms','dailyMultiple'];
+      if(!tracked.includes(type))return [];
+      const allowed=new Set((type==='frequent'?report.frequentStudents||[]:
+        type==='multipleRooms'?report.multipleRoomStudents||[]:[]).map(x=>String(x.studentId)));
+      let records=[];
+      if(type==='dailyMultiple'){
+        const daily=new Map();
+        for(const item of (report.multiplePassDays||[])){
+          for(const pass of (item.details||[])){
+            const roomKey=String(pass.roomKey||pass.room||'Unassigned');
+            const key=JSON.stringify([item.studentId,item.date,roomKey]);
+            let g=daily.get(key);
+            if(!g){
+              g={date:item.date,studentId:item.studentId,studentName:item.studentName,
+                roomKey,room:pass.room||roomKey,totalPasses:0,restroomPasses:0,
+                completedPasses:0,autoClosedPasses:0,totalMinutes:0,overrides:0,periodSet:new Set()};
+              daily.set(key,g);
+            }
+            g.totalPasses++;
+            if(String(pass.destination||'').toLowerCase()==='restroom')g.restroomPasses++;
+            if(pass.autoClosed)g.autoClosedPasses++;
+            if(pass.teacherOverride)g.overrides++;
+            if(pass.period)g.periodSet.add(String(pass.period));
+            if(Number.isFinite(pass.durationMinutes)){
+              g.completedPasses++;g.totalMinutes+=pass.durationMinutes;
+            }
+          }
+        }
+        records=[...daily.values()].map(x=>({...x,periods:[...x.periodSet].sort((a,b)=>
+          a.localeCompare(b,undefined,{numeric:true})).join(', ')}));
+      }else{
+        records=(report.byStudentRoom||[]).filter(x=>type==='students'||allowed.has(String(x.studentId)));
+      }
+      const headers=type==='students'?
+        ['Student','ID','Room','Passes','Restroom','Auto-Closed','Average','Longest','Total Time','Overrides']:
+        type==='frequent'?
+        ['Student','ID','Room','Passes','Restroom','Auto-Closed','Average','Total Time','Overrides']:
+        type==='multipleRooms'?
+        ['Student','ID','Room','Rooms Used','Passes','Restroom','Total Time','Overrides']:
+        ['Date','Student','ID','Room','Passes','Restroom','Periods','Verified Time','Overrides'];
+      const multiRoomCount=new Map((report.multipleRoomStudents||[]).map(x=>[String(x.studentId),x.roomCount]));
+      const cells=x=>{
+        if(type==='students')return [x.studentName,x.studentId,x.room,
+          x.totalPasses,x.restroomPasses,x.autoClosedPasses,reportMinutes(x.averageMinutes),
+          reportMinutes(x.longestMinutes),reportMinutes(x.totalMinutes),x.overrides].map(String);
+        if(type==='frequent')return [x.studentName,x.studentId,x.room,
+          x.totalPasses,x.restroomPasses,x.autoClosedPasses,reportMinutes(x.averageMinutes),
+          reportMinutes(x.totalMinutes),x.overrides].map(String);
+        if(type==='multipleRooms')return [x.studentName,x.studentId,x.room,
+          multiRoomCount.get(String(x.studentId))||0,x.totalPasses,x.restroomPasses,
+          reportMinutes(x.totalMinutes),x.overrides].map(String);
+        return [x.date,x.studentName,x.studentId,x.room,x.totalPasses,x.restroomPasses,
+          x.periods||'',reportMinutes(x.totalMinutes),x.overrides].map(String);
+      };
+      const raw=x=>({
+        classroom:x.room,room_key:x.roomKey,
+        ...(type==='dailyMultiple'?{date:x.date}:{}),
+        student_name:x.studentName,student_id:x.studentId,
+        ...(type==='multipleRooms'?{classrooms_used:multiRoomCount.get(String(x.studentId))||0}:{}),
+        passes:x.totalPasses,restroom_passes:x.restroomPasses,verified_returns:x.completedPasses,
+        auto_closed:x.autoClosedPasses,total_minutes:x.totalMinutes,teacher_overrides:x.overrides,
+        ...(type==='dailyMultiple'?{periods:x.periods}:{
+          average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes})
+      });
+      const remap=key=>{
+        if(key===''||key==null)return '';
+        const label=String(visibleHeaders[Number(key)]||'');
+        const target={'Rooms':'Room','Rooms Used':'Rooms Used','Passes by Classroom':'Passes'}[label]||label;
+        const index=headers.indexOf(target);
+        return index<0?'':String(index);
+      };
+      const scopedSettings={...settings,primary:remap(settings.primary),secondary:remap(settings.secondary)};
       const groups=new Map();
-      for(const x of (report.byStudentRoom||[])){
-        const key=String(x.roomKey||x.room||'');
-        if(!groups.has(key))groups.set(key,{room:x.room||x.roomKey,key,records:[]});
-        groups.get(key).records.push(x);
+      for(const rec of records){
+        const key=String(rec.roomKey||rec.room||'Unassigned');
+        if(!groups.has(key))groups.set(key,{name:String(rec.room||key),records:[]});
+        groups.get(key).records.push(rec);
       }
-      const result=[];
-      for(const group of [...groups.values()].sort((a,b)=>a.room.localeCompare(b.room,undefined,{numeric:true}))){
-        const rows=group.records.map(x=>[
-          x.studentName,x.studentId,x.room,
-          String(x.totalPasses),String(x.restroomPasses),String(x.autoClosedPasses),
-          reportMinutes(x.averageMinutes),reportMinutes(x.longestMinutes),
-          reportMinutes(x.totalMinutes),String(x.overrides)
-        ]);
-        const sorted=hpSortReportRows(rows,settings);
-        const byId=new Map(group.records.map(x=>[String(x.studentId),x]));
-        result.push({
-          title:'Classroom: '+group.room,headers,rows:sorted,keepTogether:true,
-          sourceRows:sorted.map(row=>byId.get(String(row[1]))).filter(Boolean)
+      return [...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}))
+        .map(group=>{
+          const pairs=group.records.map(x=>({cells:cells(x),source:raw(x)}));
+          const sorted=hpSortReportRows(pairs.map(x=>x.cells),scopedSettings);
+          const lookup=new Map(pairs.map(x=>[x.cells,x.source]));
+          return {title:'Classroom: '+group.name,headers,rows:sorted,keepTogether:true,
+            csvRows:sorted.map(row=>lookup.get(row))};
         });
-      }
-      return result;
     }
     function hpPrintGroupedTables(table,defaultTitle){
       const settings=hpPrintSettings();
@@ -3591,8 +3656,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         const main=hpPrintTable($('campusReportHead'),$('campusReportBody'));
         const printPrefs=hpPrintSettings();
         let tables=type==='roomperiod'?[{title:$('campusReportTitle').textContent,headers:main.headers,rows:main.rows}]:hpPrintGroupedTables(main,$('campusReportTitle').textContent);
-        if(type==='students'&&printPrefs.subheading==='classroom'){
-          tables=hpStudentRoomTables(r,printPrefs,main.headers);
+        if(['students','frequent','dailyMultiple','multipleRooms'].includes(type)&&printPrefs.subheading==='classroom'){
+          tables=hpPrintClassroomTables(r,printPrefs,type,main.headers);
           if(!tables.length)tables=[{title:'No classrooms with passes',headers:main.headers,rows:[]}];
         }
         // A separate table per classroom prevents splitting its six periods
@@ -3656,17 +3721,11 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const id=type==='detail'?'-'+String(currentCampusReport.studentDetail?.studentId||'student').replace(/[^a-z0-9_-]/gi,'-'):'';
       const settings=hpPrintSettings();
       let records=campusReportRows();
-      if(type==='students'&&settings.subheading==='classroom'){
-        // Match the grouped PDF, but retain raw numeric CSV values.
-        const columns=Array.from($('campusReportHead').querySelectorAll('th')).map(th=>th.textContent.replace(/[▲▼]/g,'').trim());
-        const tables=hpStudentRoomTables(currentCampusReport,settings,columns);
-        records=tables.flatMap(t=>t.sourceRows.map(x=>({
-          classroom:x.room,room_key:x.roomKey,student_name:x.studentName,student_id:x.studentId,
-          total_passes:x.totalPasses,restroom_passes:x.restroomPasses,
-          completed_passes:x.completedPasses,auto_closed_passes:x.autoClosedPasses,
-          average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes,
-          total_minutes:x.totalMinutes,teacher_overrides:x.overrides
-        })));
+      if(['students','frequent','dailyMultiple','multipleRooms'].includes(type)&&settings.subheading==='classroom'){
+        const columns=Array.from($('campusReportHead').querySelectorAll('th'))
+          .map(th=>th.textContent.replace(/[▲▼]/g,'').trim());
+        const grouped=hpPrintClassroomTables(currentCampusReport,settings,type,columns);
+        records=grouped.flatMap(t=>t.csvRows);
       }else if(settings.primary!==''||settings.secondary!==''||type==='roomperiod'){
         const table=hpPrintTable($('campusReportHead'),$('campusReportBody'));
         records=table.rows.map(row=>Object.fromEntries(table.headers.map((h,i)=>[h,row[i]])));
