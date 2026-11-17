@@ -14,6 +14,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#103a70">
   <style>
+    /* Keep Verified Returned compact rather than widening the report. */
+    #campusReportHead th[data-sort-key="completedPasses"],
+    #campusReportHead th:nth-child(4),
+    #reportHead th[data-sort-key="completedPasses"],
+    #reportHead th:nth-child(4),
+    #reportHead th:nth-child(5) { white-space: normal; min-width: 66px; max-width: 91px; line-height: 1.3; }
+
     *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#222}
     .header{background:#263238;color:#fff;padding:18px 20px}.header h1{margin:0 0 5px;font-size:27px}.header div{opacity:.9}
     .container{max-width:1350px;margin:auto;padding:18px}.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
@@ -3198,10 +3205,10 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     function reportSortValue(row,column){const value=row[column.key];if(column.type==='number'){const n=Number(value);return Number.isFinite(n)?n:-Infinity}if(column.type==='date'){const t=new Date(value||0).getTime();return Number.isFinite(t)?t:0}if(column.type==='boolean')return value?1:0;return String(value==null?'':value).toLowerCase()}
     function sortedReportData(rows,columns,target){const state=reportSortState[target];if(!state||!state.key)return rows.slice();const column=columns.find(c=>c.key===state.key);if(!column)return rows.slice();const dir=state.direction==='desc'?-1:1;return rows.slice().sort((a,b)=>{const av=reportSortValue(a,column),bv=reportSortValue(b,column);let cmp=0;if(column.type==='text')cmp=String(av).localeCompare(String(bv),undefined,{numeric:true,sensitivity:'base'});else cmp=av<bv?-1:av>bv?1:0;if(cmp===0&&column.key!=='studentName'){const an=String(a.studentName||a.room||a.destination||'');const bn=String(b.studentName||b.room||b.destination||'');cmp=an.localeCompare(bn,undefined,{numeric:true,sensitivity:'base'})}return cmp*dir})}
     function setReportSort(target,key,columns){const column=columns.find(c=>c.key===key);if(!column)return;const current=reportSortState[target];if(current&&current.key===key)reportSortState[target]={key:key,direction:current.direction==='asc'?'desc':'asc'};else reportSortState[target]={key:key,direction:column.defaultDir||(column.type==='number'?'desc':'asc')};renderCampusReport()}
-    function renderSortableReportTable(headId,bodyId,columns,data,rowRenderer,target){const state=reportSortState[target];const head=$(headId);head.innerHTML='<tr>'+columns.map(c=>{const active=state&&state.key===c.key;const arrow=active?(state.direction==='asc'?'▲':'▼'):'';const aria=active?(state.direction==='asc'?'ascending':'descending'):'none';return `<th class="sortableReportHeader" data-sort-key="${esc(c.key)}" tabindex="0" role="button" aria-sort="${aria}" title="Click to sort">${esc(c.label)}<span class="sortArrow">${arrow}</span></th>`}).join('')+'</tr>';const sorted=sortedReportData(data,columns,target);$(bodyId).innerHTML=sorted.length?sorted.map(rowRenderer).join(''):`<tr><td colspan="${columns.length}">No matching records.</td></tr>`;head.querySelectorAll('[data-sort-key]').forEach(th=>{const activate=()=>setReportSort(target,th.dataset.sortKey,columns);th.addEventListener('click',activate);th.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();activate()}})})}
+    function renderSortableReportTable(headId,bodyId,columns,data,rowRenderer,target){const state=reportSortState[target];const head=$(headId);head.innerHTML='<tr>'+columns.map(c=>{const active=state&&state.key===c.key;const arrow=active?(state.direction==='asc'?'▲':'▼'):'';const aria=active?(state.direction==='asc'?'ascending':'descending'):'none';return `<th class="sortableReportHeader" data-sort-key="${esc(c.key)}" tabindex="0" role="button" aria-sort="${aria}" title="Click to sort">${c.key==='completedPasses'?'Verified<br>Returned':esc(c.label)}<span class="sortArrow">${arrow}</span></th>`}).join('')+'</tr>';const sorted=sortedReportData(data,columns,target);$(bodyId).innerHTML=sorted.length?sorted.map(rowRenderer).join(''):`<tr><td colspan="${columns.length}">No matching records.</td></tr>`;head.querySelectorAll('[data-sort-key]').forEach(th=>{const activate=()=>setReportSort(target,th.dataset.sortKey,columns);th.addEventListener('click',activate);th.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();activate()}})})}
     function renderClassroomPeriodReport(report){
       const head=$('campusReportHead'),body=$('campusReportBody');
-      head.innerHTML='<tr><th>Classroom / Period</th><th>Passes</th><th>Restroom</th><th>Verified Returns</th><th>Auto-Closed</th><th>Average</th><th>Longest</th><th>Total Verified Time</th><th>Overrides</th></tr>';
+      head.innerHTML='<tr><th>Classroom / Period</th><th>Passes</th><th>Restroom</th><th>Verified<br>Returned</th><th>Auto-Closed</th><th>Average</th><th>Longest</th><th>Total Verified Time</th><th>Overrides</th></tr>';
       const rows=report.byRoomPeriod||[],byRoom=new Map();
       for(const p of rows){
         const key=String(p.roomKey);
