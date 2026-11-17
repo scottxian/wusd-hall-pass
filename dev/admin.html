@@ -3291,9 +3291,11 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
 
 
     // Print-only options: no mutation of on-screen report order or underlying data.
-    const HP_PRINT_KEY = 'hallpilot.reportPrintOptions.v1';
+    const HP_PRINT_KEY = 'hallpilot.reportPrintOptions.v2.' + (document.getElementById('campusReportHead') ? 'admin.' : 'teacher.');
+    const hpPrintReportType=()=>document.getElementById('reportType').value;
+    const hpPrintStorageKey=()=>HP_PRINT_KEY+hpPrintReportType();
     function hpPrintPrefs(){
-      try { return JSON.parse(localStorage.getItem(HP_PRINT_KEY)||'{}') || {}; } catch(_) { return {}; }
+      try { return JSON.parse(localStorage.getItem(hpPrintStorageKey())||'{}') || {}; } catch(_) { return {}; }
     }
     function hpPrintOpen(headId,title){
       const head=document.getElementById(headId);
@@ -3301,6 +3303,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const opts=document.getElementById('hpPrintOptions');
       const previous=hpPrintPrefs();
       document.getElementById('hpPrintHeading').value=previous.heading||title||'Report';
+      opts.dataset.reportType=hpPrintReportType();
       document.getElementById('hpPrintSubtitle').value=previous.subtitle||'';
       const choices=[['','On-screen order'],...headers.map((h,i)=>[String(i),h])];
       for(const id of ['hpPrintPrimary','hpPrintSecondary']){
@@ -3312,7 +3315,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       }
       document.getElementById('hpPrintDirection').value=previous.direction||'asc';
       document.getElementById('hpPrintGroup').checked=previous.group!==false;
-      document.getElementById('hpPrintZero').checked=previous.zero!==false;
+      document.getElementById('hpPrintZero').checked=previous.zero===true;
       document.getElementById('hpPrintGroupWrap').hidden=!(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
       document.getElementById('hpPrintZeroWrap').hidden=!(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
       opts.style.display='flex';
@@ -3320,12 +3323,22 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
     function hpPrintClose(){document.getElementById('hpPrintOptions').style.display='none';}
     function hpPrintSettings(){
+      // An export may occur without opening Print Options. Never inherit another
+      // report type's heading, sort keys, or grouping preferences.
+      const modal=document.getElementById('hpPrintOptions');
+      if(modal.dataset.reportType!==hpPrintReportType()){
+        const isAdmin=!!document.getElementById('campusReportHead');
+        const headId=isAdmin?'campusReportHead':'reportHead';
+        const titleId=isAdmin?'campusReportTitle':'reportTitle';
+        hpPrintOpen(headId,document.getElementById(titleId).textContent);
+        hpPrintClose();
+      }
       const get=id=>document.getElementById(id);
       return {heading:get('hpPrintHeading').value.trim().slice(0,120),subtitle:get('hpPrintSubtitle').value.trim().slice(0,180),
         primary:get('hpPrintPrimary').value,secondary:get('hpPrintSecondary').value,
         direction:get('hpPrintDirection').value,group:get('hpPrintGroup').checked,zero:get('hpPrintZero').checked};
     }
-    function hpPrintSave(){try{localStorage.setItem(HP_PRINT_KEY,JSON.stringify(hpPrintSettings()));}catch(_){}hpPrintClose();}
+    function hpPrintSave(){try{localStorage.setItem(hpPrintStorageKey(),JSON.stringify(hpPrintSettings()));}catch(_){}hpPrintClose();}
     function hpSortReportRows(rows,settings){
       if(settings.primary==='' && settings.secondary==='')return rows;
       const keys=[settings.primary,settings.secondary].filter(v=>v!=='').map(Number);
