@@ -1956,7 +1956,7 @@
           '</div></div><div class="stat"><div class="statLabel">Verified Returns</div><div class="statValue">' + verified +
           '</div></div><div class="stat"><div class="statLabel">Groups</div><div class="statValue">' + groups.length + '</div></div></div>';
         head.innerHTML = '<tr><th>' + (periodReport ? 'Period' : 'Destination') +
-          '</th><th>Passes</th><th>Restroom</th><th>Verified<br>Returned</th><th>Auto-Closed</th><th>Average</th><th>Longest</th><th>Total Verified Time</th><th>Overrides</th></tr>';
+          '</th><th>Passes</th><th>Restroom</th><th>Verified <br>Returned</th><th>Auto-Closed</th><th>Average</th><th>Longest</th><th>Total Verified Time</th><th>Overrides</th></tr>';
         for (const g of groups) {
           const tr = document.createElement('tr');
           tr.innerHTML = '<td>' + escapeHtml(g.label) + '</td><td>' + g.totalPasses + '</td><td>' + g.restroomPasses +
@@ -2016,7 +2016,7 @@
       head.innerHTML = '<tr>' + columns.map(function(column) {
         const active = allReportSort.key === column.key;
         const arrow = active ? (allReportSort.direction === 'asc' ? '▲' : '▼') : '';
-        return '<th class="sortableReportHeader" data-sort-key="' + column.key + '" data-sort-type="' + column.type + '" title="Sort by ' + escapeHtml(column.label) + '">' + (column.key === 'completedPasses' ? 'Verified<br>Returned' : escapeHtml(column.label)) + '<span class="sortArrow">' + arrow + '</span></th>';
+        return '<th class="sortableReportHeader" data-sort-key="' + column.key + '" data-sort-type="' + column.type + '" title="Sort by ' + escapeHtml(column.label) + '">' + (column.key === 'completedPasses' ? 'Verified <br>Returned' : escapeHtml(column.label)) + '<span class="sortArrow">' + arrow + '</span></th>';
       }).join('') + '</tr>';
 
       head.querySelectorAll('.sortableReportHeader').forEach(function(th) {
