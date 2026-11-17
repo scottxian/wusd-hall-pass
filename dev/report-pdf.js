@@ -276,7 +276,10 @@
     }
     for (let index = 0; index < tables.length; index++) {
       const table = tables[index];
-      if (y > height - 145) {
+      const estimatedGroupHeight = 48 + (table.rows || []).length * 30;
+      const minimumSpace = table.keepTogether && estimatedGroupHeight <= height - 150
+        ? estimatedGroupHeight + 56 : 145;
+      if (y > height - minimumSpace) {
         doc.addPage(); drawBanner(doc, width, font, brandMark); y = 75;
       }
       doc.setFont(font, 'bold');
