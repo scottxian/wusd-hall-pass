@@ -584,7 +584,7 @@
           <div class="reportControls">
             <div>
               <label for="reportType">Report Type</label>
-              <select id="reportType" onchange="updateReportTypeUI()"><option value="all">All Students</option><option value="individual">Individual Student</option><option value="period">Passes by Period</option><option value="destination">Passes by Destination</option></select>
+              <select id="reportType" onchange="updateReportTypeUI()"><option value="all">All Students</option><option value="individual">Individual Student</option><option value="period">Passes by Period</option><option value="destination">Passes by Destination</option><option value="dailyMultiple">Multiple Passes in a Day</option></select>
             </div>
             <div id="reportStudentWrap" class="hidden"><label for="reportStudent">Student</label><select id="reportStudent"><option value="">Choose Student</option></select></div>
             <div><label for="reportPeriod">Period</label><select id="reportPeriod"><option value="">All Periods</option></select></div>
@@ -600,7 +600,7 @@
               <div class="reportControls">
             <div class="checkboxLabel"><label><input id="includeTestData" type="checkbox">Include Test Data</label></div><div id="reportRestroomOnlyWrap" class="checkboxLabel hidden"><label><input id="reportRestroomOnly" type="checkbox" checked>Restroom passes only</label></div>
             <div id="reportAutoExpandWrap" class="checkboxLabel"><label><input id="autoExpandAllDetails" type="checkbox">Auto-expand all student details</label></div>
-            <div id="frequentPassWrap"><label for="flagPassCount">Flag Total Passes ≥</label><input id="flagPassCount" type="number" min="1" value="5"></div>
+            <div id="reportDailyThresholdWrap" class="hidden"><label for="reportDailyThreshold">Passes in a day ≥</label><input id="reportDailyThreshold" type="number" min="2" max="1000" value="2"></div><div id="frequentPassWrap"><label for="flagPassCount">Flag Total Passes ≥</label><input id="flagPassCount" type="number" min="1" value="5"></div>
             <div id="frequentTimeWrap"><label for="flagAverageMinutes">Flag Average Minutes ≥</label><input id="flagAverageMinutes" type="number" min="1" value="8"></div>
               </div>
             </div>
@@ -1883,8 +1883,9 @@
       document.getElementById('reportStudentWrap').classList.toggle('hidden', !individual);
       document.getElementById('reportAutoExpandWrap').classList.toggle('hidden', document.getElementById('reportType').value !== 'all');
       const type=document.getElementById('reportType').value;
-      document.getElementById('reportRestroomOnlyWrap').classList.toggle('hidden',type!=='period' && type!=='destination');
-      document.getElementById('reportRestroomOnly').checked=type==='period';
+      document.getElementById('reportRestroomOnlyWrap').classList.toggle('hidden',!['period','destination','dailyMultiple'].includes(type));
+      document.getElementById('reportRestroomOnly').checked=type==='period'||type==='dailyMultiple';
+      document.getElementById('reportDailyThresholdWrap').classList.toggle('hidden',type!=='dailyMultiple');
     }
 
     function applyReportPreset() {
@@ -1939,7 +1940,8 @@
           endDate: endDate,
           period: document.getElementById('reportPeriod').value,
           includeTestData: document.getElementById('includeTestData').checked,
-          restroomOnly: ['period','destination'].includes(type) && document.getElementById('reportRestroomOnly').checked
+          restroomOnly: ['period','destination','dailyMultiple'].includes(type) && document.getElementById('reportRestroomOnly').checked,
+          minDailyPasses: Math.max(2,Number(document.getElementById('reportDailyThreshold').value||2))
         });
     }
 
@@ -1952,6 +1954,10 @@
       const summary = document.getElementById('reportSummary');
       head.innerHTML = ''; body.innerHTML = ''; summary.innerHTML = '';
 
+      if (report.type === 'dailyMultiple') {
+        renderMultiplePassDays(report,head,body,summary);
+        return;
+      }
       if (report.type === 'period' || report.type === 'destination') {
         const periodReport = report.type === 'period';
         document.getElementById('reportTitle').textContent = periodReport ? 'Passes by Period' : 'Passes by Destination';
@@ -1998,6 +2004,43 @@
 
       document.getElementById('reportTitle').textContent = 'All Students Pass Report';
       renderAllStudentsReport(report, false);
+    }
+
+    function renderMultiplePassDays(report,head,body,summary){
+      const cases=report.dailyRows||[],total=cases.reduce((n,x)=>n+x.totalPasses,0);
+      document.getElementById('reportTitle').textContent='Multiple Passes in a Day (≥ '+(report.minDailyPasses||2)+')';
+      summary.innerHTML='<div class="reportSummaryGrid"><div class="stat"><div class="statLabel">Student-Day Cases</div><div class="statValue">'+cases.length+
+        '</div></div><div class="stat"><div class="statLabel">Unique Students</div><div class="statValue">'+new Set(cases.map(x=>x.studentId)).size+
+        '</div></div><div class="stat"><div class="statLabel">Passes in Cases</div><div class="statValue">'+total+
+        '</div></div></div>';
+      head.innerHTML='<tr><th>Date</th><th>Student</th><th>Passes</th><th>Restroom</th><th>Periods</th><th>Total Verified Time</th><th>Overrides</th></tr>';
+      if(!cases.length){
+        body.innerHTML='<tr><td colspan="7">No students had '+(report.minDailyPasses||2)+' or more passes on a single day within these filters.</td></tr>';
+        return;
+      }
+      for(const g of cases){
+        const tr=document.createElement('tr');
+        tr.className='reportDailyRow';
+        tr.innerHTML='<td>'+escapeHtml(formatDateOnly(g.date))+'</td><td><button type="button" class="studentReportLink" aria-expanded="false" title="Show passes on this date">'+
+          escapeHtml(g.studentName)+'</button><div class="muted">'+escapeHtml(g.studentId)+'</div></td><td>'+g.totalPasses+'</td><td>'+g.restroomPasses+'</td><td>'+
+          escapeHtml(g.periods||'—')+'</td><td>'+formatMinutes(g.totalMinutes)+'</td><td>'+g.overrides+'</td>';
+        tr.querySelector('button').addEventListener('click',function(){
+          const next=tr.nextElementSibling;
+          if(next&&next.classList.contains('dailyPassDetail')){
+            next.remove();this.setAttribute('aria-expanded','false');return;
+          }
+          const detail=document.createElement('tr');detail.className='dailyPassDetail';
+          const cell=document.createElement('td');cell.colSpan=7;
+          const info=(g.details||[]).map((p,i)=>'<div style="padding:5px 0;border-bottom:1px solid #ddd">'+
+            (i+1)+'. '+escapeHtml(timeOnly(p.left)||'—')+
+            ' · Period '+escapeHtml(p.period||'—')+' · '+escapeHtml(p.destination||'—')+
+            (p.autoClosed?' · Auto-closed':p.durationMinutes==null?' · Still out':' · '+formatMinutes(p.durationMinutes))+
+            (p.teacherOverride?' · Teacher override':'')+'</div>').join('');
+          cell.innerHTML='<strong>Passes on '+escapeHtml(formatDateOnly(g.date))+'</strong>'+info;
+          detail.appendChild(cell);tr.after(detail);this.setAttribute('aria-expanded','true');
+        });
+        body.appendChild(tr);
+      }
     }
 
     function renderAllStudentsReport(report, preserveExpanded) {
@@ -2491,7 +2534,11 @@
         const school = schoolNode && schoolNode.textContent.trim() || 'Current school';
         const room = (new URLSearchParams(window.location.search)).get('room') || '';
         const summary = [];
-        if (report.type === 'period' || report.type === 'destination') {
+        if(report.type==='dailyMultiple'){
+          const cases=report.dailyRows||[];
+          summary.push(['Student-Day Cases',cases.length],['Unique Students',new Set(cases.map(x=>x.studentId)).size],
+            ['Passes in Cases',cases.reduce((n,x)=>n+x.totalPasses,0)],['Minimum Per Day',report.minDailyPasses||2]);
+        } else if (report.type === 'period' || report.type === 'destination') {
           const groups = report.groupRows || [];
           summary.push(['Groups', groups.length],['Total Passes',groups.reduce((s,g)=>s+g.totalPasses,0)],['Verified Returns',groups.reduce((s,g)=>s+g.completedPasses,0)]);
         } else if (individual) {
@@ -2521,10 +2568,10 @@
         const head = drilldown ? drilldown.querySelector('thead') : document.getElementById('reportHead');
         const body = drilldown ? drilldown.querySelector('tbody') : document.getElementById('reportBody');
         const table = hpPrintTable(head, body,
-          individual || report.type === 'period' || report.type === 'destination' ? 'tr' : '.reportSummaryRow');
+          report.type === 'dailyMultiple' ? '.reportDailyRow' : individual || report.type === 'period' || report.type === 'destination' ? 'tr' : '.reportSummaryRow');
         const title = individual
           ? 'Student Pass Report — ' + (report.studentName || 'Student')
-          : (report.type === 'period' ? 'Passes by Period' : report.type === 'destination' ? 'Passes by Destination' : 'All Students Pass Report');
+          : (report.type === 'period' ? 'Passes by Period' : report.type === 'destination' ? 'Passes by Destination' : report.type === 'dailyMultiple' ? 'Multiple Passes in a Day' : 'All Students Pass Report');
         const details = [
           'School: ' + school + (room ? '     Room: ' + room.toUpperCase() : ''),
           'Reporting period: ' + formatDateOnly(report.startDate) +
@@ -2568,6 +2615,10 @@
         currentReport.detailRows.forEach(function(row) {
           rows.push([formatDateOnly(row.date), row.schedule, row.period, row.destination, timeOnly(row.requested), timeOnly(row.left), timeOnly(row.returned), timeOnly(row.closedAt), row.completed ? formatMinutesCsv(row.durationMinutes) : '', row.override || '']);
         });
+      } else if (currentReport.type === 'dailyMultiple') {
+        fileName='hall-pass-multiple-daily-'+currentReport.startDate+'-to-'+currentReport.endDate+'.csv';
+        rows.push(['Date','Student','Student ID','Passes','Restroom','Periods','Total Verified Time','Overrides']);
+        (currentReport.dailyRows||[]).forEach(g=>rows.push([g.date,g.studentName,g.studentId,g.totalPasses,g.restroomPasses,g.periods,formatMinutesCsv(g.totalMinutes),g.overrides]));
       } else if (currentReport.type === 'period' || currentReport.type === 'destination') {
         fileName = 'hall-pass-' + currentReport.type + '-' + currentReport.startDate + '-to-' + currentReport.endDate + '.csv';
         rows.push([currentReport.type === 'period' ? 'Period' : 'Destination','Passes','Restroom','Verified Returns','Auto-Closed','Average','Longest','Total Verified Time','Overrides']);
