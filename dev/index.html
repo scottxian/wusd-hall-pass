@@ -820,6 +820,15 @@
        STATUS BAR
     ===================================================== */
 
+    function isRestroomClosedForRoom() {
+      const destinations = pageState && pageState.destinations;
+      if (!Array.isArray(destinations)) return false;
+      const restroom = destinations.find(function(destination) {
+        return String(destination.name || '').trim().toLowerCase() === 'restroom';
+      });
+      return Boolean(restroom && restroom.enabled === false);
+    }
+
     function renderStatus(
       schedule
     ) {
@@ -877,6 +886,27 @@
             true;
         }
 
+        return;
+      }
+
+      // A room-level restroom closure is independent of the bell schedule.
+      // Keep other authorized destinations available, but never show green
+      // "HALL PASSES OPEN" when Restroom has been closed by the teacher.
+      const restroomClosed = isRestroomClosedForRoom();
+      if (restroomClosed) {
+        bar.className = 'closed';
+        document.body.className = 'page-closed';
+        main.textContent = '🔴 RESTROOM CLOSED';
+        mode.textContent = schedule.schedule
+          ? 'Schedule Mode: ' + schedule.schedule : '';
+        detail.textContent = 'Restroom requests are closed by the teacher. Other available destinations may still be used.';
+        if (requestButton && !actionRunning) {
+          const remaining = (pageState.destinations || []).some(function(destination) {
+            return destination.enabled === true && String(destination.name || '').trim().toLowerCase() !== 'restroom';
+          });
+          requestButton.disabled = !remaining;
+        }
+        document.getElementById('statusTimer').textContent = '';
         return;
       }
 
@@ -1069,7 +1099,7 @@
         'yes';
 
       if (
-        emergencyLock
+        emergencyLock || isRestroomClosedForRoom()
       ) {
         timer.textContent =
           '';
@@ -2182,6 +2212,7 @@
 
           const canGo =
             !emergencyLock &&
+            Boolean(destinationInfo && destinationInfo.enabled === true) &&
             withinClass &&
             passWindowAllowsGo &&
             isFirstForDestination;
