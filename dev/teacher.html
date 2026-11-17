@@ -594,13 +594,26 @@
           </details>
           <div class="buttonRow">
             <button class="primary" onclick="generateReport(this)">Generate Report</button>
-            <button id="downloadReportPdfButton" class="primary" onclick="downloadTeacherReportPdf()" disabled>Download PDF</button>
+            <button type="button" class="gray" id="hpPrintOptionsButton" onclick="hpPrintOpen('reportHead',document.getElementById('reportTitle').textContent)" disabled>Print Options</button><button id="downloadReportPdfButton" class="primary" onclick="downloadTeacherReportPdf()" disabled>Download PDF</button>
             <button id="printReportButton" class="gray" onclick="printReport()" disabled>Print Report</button>
             <button id="downloadReportButton" class="gray" onclick="downloadReportCsv()" disabled>Download CSV</button>
           </div>
         </div>
 
-        <div id="reportPrintArea" class="card hidden">
+        <div id="hpPrintOptions" role="dialog" aria-modal="true" aria-label="Report Print Options" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:16px">
+<div style="background:white;color:#17243b;border-radius:12px;padding:22px;width:min(530px,100%);max-height:90vh;overflow:auto;box-shadow:0 16px 50px #0004">
+<h2 style="margin:0 0 16px">Report Print Options</h2>
+<div class="formGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+<div><label for="hpPrintHeading">Report heading</label><input id="hpPrintHeading" maxlength="120"></div>
+<div><label for="hpPrintSubtitle">Subtitle (optional)</label><input id="hpPrintSubtitle" maxlength="180"></div>
+<div><label for="hpPrintPrimary">Sort by</label><select id="hpPrintPrimary"></select></div>
+<div><label for="hpPrintSecondary">Then by</label><select id="hpPrintSecondary"></select></div>
+<div><label for="hpPrintDirection">Sort order</label><select id="hpPrintDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div>
+</div>
+<div id="hpPrintGroupWrap" style="margin-top:12px"><label><input type="checkbox" id="hpPrintGroup" checked> Group periods under each classroom</label></div>
+<div id="hpPrintZeroWrap" style="margin-top:8px"><label><input type="checkbox" id="hpPrintZero" checked> Include zero-pass periods</label></div>
+<div class="buttonRow actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px"><button type="button" onclick="hpPrintClose()">Cancel</button><button type="button" class="primary" onclick="hpPrintSave()">Save Options</button></div>
+</div></div><div id="reportPrintArea" class="card hidden">
           <h2 id="reportTitle" class="reportTitle">Report</h2>
           <div id="reportMeta" class="reportMeta"></div>
           <div id="reportSummary"></div>
@@ -1902,6 +1915,7 @@
           document.getElementById('printReportButton').disabled = false;
           document.getElementById('downloadReportButton').disabled = false;
           document.getElementById('downloadReportPdfButton').disabled = false;
+          document.getElementById('hpPrintOptionsButton').disabled = false;
           setActionMessage('Report ready.', 'success');
         })
         .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
@@ -2376,6 +2390,63 @@
 
     // Exports the currently displayed sort order. A student drill-down uses
     // its own displayed detail order instead of the full-class summary.
+
+    // Print-only options: no mutation of on-screen report order or underlying data.
+    const HP_PRINT_KEY = 'hallpilot.reportPrintOptions.v1';
+    function hpPrintPrefs(){
+      try { return JSON.parse(localStorage.getItem(HP_PRINT_KEY)||'{}') || {}; } catch(_) { return {}; }
+    }
+    function hpPrintOpen(headId,title){
+      const head=document.getElementById(headId);
+      const headers=Array.from(head.querySelectorAll('th')).map(h=>h.textContent.replace(/[▲▼]/g,'').trim());
+      const opts=document.getElementById('hpPrintOptions');
+      const previous=hpPrintPrefs();
+      document.getElementById('hpPrintHeading').value=previous.heading||title||'Report';
+      document.getElementById('hpPrintSubtitle').value=previous.subtitle||'';
+      const choices=[['','On-screen order'],...headers.map((h,i)=>[String(i),h])];
+      for(const id of ['hpPrintPrimary','hpPrintSecondary']){
+        const select=document.getElementById(id);
+        select.innerHTML='';
+        for(const [v,label] of choices){const option=document.createElement('option');option.value=v;option.textContent=label;select.append(option);}
+        select.value=previous[id==='hpPrintPrimary'?'primary':'secondary']??'';
+        if(!select.value && select.value!=='')select.value='';
+      }
+      document.getElementById('hpPrintDirection').value=previous.direction||'asc';
+      document.getElementById('hpPrintGroup').checked=previous.group!==false;
+      document.getElementById('hpPrintZero').checked=previous.zero!==false;
+      document.getElementById('hpPrintGroupWrap').hidden=!(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
+      document.getElementById('hpPrintZeroWrap').hidden=!(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
+      opts.style.display='flex';
+      document.getElementById('hpPrintHeading').focus();
+    }
+    function hpPrintClose(){document.getElementById('hpPrintOptions').style.display='none';}
+    function hpPrintSettings(){
+      const get=id=>document.getElementById(id);
+      return {heading:get('hpPrintHeading').value.trim().slice(0,120),subtitle:get('hpPrintSubtitle').value.trim().slice(0,180),
+        primary:get('hpPrintPrimary').value,secondary:get('hpPrintSecondary').value,
+        direction:get('hpPrintDirection').value,group:get('hpPrintGroup').checked,zero:get('hpPrintZero').checked};
+    }
+    function hpPrintSave(){try{localStorage.setItem(HP_PRINT_KEY,JSON.stringify(hpPrintSettings()));}catch(_){}hpPrintClose();}
+    function hpSortReportRows(rows,settings){
+      if(settings.primary==='' && settings.secondary==='')return rows;
+      const keys=[settings.primary,settings.secondary].filter(v=>v!=='').map(Number);
+      const factor=settings.direction==='desc'?-1:1;
+      const cell=(r,i)=>String(r[i]??'').trim();
+      const compare=(a,b)=>{for(const i of keys){
+        const av=cell(a,i),bv=cell(b,i);
+        const an=Number(av.replace(/,/g,'')),bn=Number(bv.replace(/,/g,''));
+        let result=av!==''&&bv!==''&&Number.isFinite(an)&&Number.isFinite(bn)?an-bn:av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'});
+        if(result!==0)return factor*Math.sign(result);
+      }return 0;};
+      return rows.slice().sort(compare);
+    }
+    function hpPrintTable(head,body,selector){
+      const result=HallPilotReportPdf.fromTable(head,body,selector);
+      const settings=hpPrintSettings();
+      return {...result,rows:hpSortReportRows(result.rows,settings)};
+    }
+
+    window.hpPrintIsRoomPeriod=()=>false;
     async function downloadTeacherReportPdf(studentReport, drilldown, sourceButton) {
       const report = studentReport || currentReport;
       if (!report) { setActionMessage('Generate a report first.', 'error'); return; }
@@ -2416,7 +2487,7 @@
         }
         const head = drilldown ? drilldown.querySelector('thead') : document.getElementById('reportHead');
         const body = drilldown ? drilldown.querySelector('tbody') : document.getElementById('reportBody');
-        const table = HallPilotReportPdf.fromTable(head, body,
+        const table = hpPrintTable(head, body,
           individual || report.type === 'period' || report.type === 'destination' ? 'tr' : '.reportSummaryRow');
         const title = individual
           ? 'Student Pass Report — ' + (report.studentName || 'Student')
@@ -2433,9 +2504,9 @@
           '-' + (individual ? (report.studentName || report.studentId || 'student') : report.type === 'period' || report.type === 'destination' ? report.type : 'all-students') +
           '-' + report.startDate + '-to-' + report.endDate;
         await HallPilotReportPdf.exportPdf({
-          title: title,
+          title: hpPrintSettings().heading||title,
           scope: 'Teacher / classroom',
-          details: details, summary: summary,
+          details: [...details,...(hpPrintSettings().subtitle?[hpPrintSettings().subtitle]:[])], summary: summary,
           tables: [{ title: individual ? 'Pass History' : report.type === 'period' || report.type === 'destination' ? title : 'Student Summary', headers: table.headers, rows: table.rows }],
           fontDirectory: '../vendor/fonts/',
           fileName: fileName
