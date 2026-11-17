@@ -615,7 +615,7 @@
 <div><label for="hpPrintSubtitle">Subtitle (optional)</label><input id="hpPrintSubtitle" maxlength="180"></div>
 <div><label for="hpPrintPrimary">Sort by</label><select id="hpPrintPrimary"></select></div>
 <div><label for="hpPrintSecondary">Then by</label><select id="hpPrintSecondary"></select></div>
-<div><label for="hpPrintDirection">Sort order</label><select id="hpPrintDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div>
+<div><label for="hpPrintDirection">Primary order</label><select id="hpPrintDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div><div><label for="hpPrintSecondaryDirection">Secondary order</label><select id="hpPrintSecondaryDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div>
 </div>
 <div id="hpPrintGroupWrap" style="margin-top:12px"><label><input type="checkbox" id="hpPrintGroup" checked> Group periods under each classroom</label></div>
 <div id="hpPrintZeroWrap" style="margin-top:8px"><label><input type="checkbox" id="hpPrintZero" checked> Include zero-pass periods</label></div>
@@ -2422,6 +2422,7 @@
         if(!select.value && select.value!=='')select.value='';
       }
       document.getElementById('hpPrintDirection').value=previous.direction||'asc';
+      document.getElementById('hpPrintSecondaryDirection').value=previous.secondaryDirection||'asc';
       document.getElementById('hpPrintGroup').checked=previous.group!==false;
       document.getElementById('hpPrintZero').checked=previous.zero===true;
       document.getElementById('hpPrintGroupWrap').hidden=!(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
@@ -2444,28 +2445,27 @@
       const get=id=>document.getElementById(id);
       return {heading:get('hpPrintHeading').value.trim().slice(0,120),subtitle:get('hpPrintSubtitle').value.trim().slice(0,180),
         primary:get('hpPrintPrimary').value,secondary:get('hpPrintSecondary').value,
-        direction:get('hpPrintDirection').value,group:get('hpPrintGroup').checked,zero:get('hpPrintZero').checked};
+        direction:get('hpPrintDirection').value,secondaryDirection:get('hpPrintSecondaryDirection').value,group:get('hpPrintGroup').checked,zero:get('hpPrintZero').checked};
     }
     function hpPrintSave(){try{localStorage.setItem(hpPrintStorageKey(),JSON.stringify(hpPrintSettings()));}catch(_){}hpPrintClose();}
     function hpSortReportRows(rows,settings){
-      if(settings.primary==='' && settings.secondary==='')return rows;
-      const keys=[settings.primary,settings.secondary].filter(v=>v!=='').map(Number);
-      const factor=settings.direction==='desc'?-1:1;
-      const cell=(r,i)=>String(r[i]??'').trim();
-      const compare=(a,b)=>{for(const i of keys){
-        const av=cell(a,i),bv=cell(b,i);
-        const durationSeconds=s=>{
-          if(!/^(?:(?:\\d+)d\\s*)?(?:(?:\\d+)h\\s*)?(?:(?:\\d+)m\\s*)?(?:(?:\\d+)s\\s*)?$/.test(s)||!s||!/[dhms]/.test(s))return null;
-          return [...s.matchAll(/(\\d+)\\s*([dhms])/g)].reduce((sum,m)=>sum+Number(m[1])*({d:86400,h:3600,m:60,s:1}[m[2]]),0);
-        };
-        const ad=durationSeconds(av),bd=durationSeconds(bv);
-        const an=Number(av.replace(/,/g,'')),bn=Number(bv.replace(/,/g,''));
-        let result=ad!==null&&bd!==null?ad-bd:
-          av!==''&&bv!==''&&Number.isFinite(an)&&Number.isFinite(bn)?an-bn:
-          av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'});
-        if(result!==0)return factor*Math.sign(result);
-      }return 0;};
-      return rows.slice().sort(compare);
+      const keys=[settings.primary,settings.secondary].filter(v=>v!==''&&v!=null).map(Number);
+      if(!keys.length)return rows.slice();
+      const parseDuration=s=>{
+        if(!/^(?:(?:\d+)d\s*)?(?:(?:\d+)h\s*)?(?:(?:\d+)m\s*)?(?:(?:\d+)s\s*)?$/.test(s)||!/[dhms]/.test(s))return null;
+        return [...s.matchAll(/(\d+)\s*([dhms])/g)].reduce((n,m)=>n+Number(m[1])*({d:86400,h:3600,m:60,s:1}[m[2]]),0);
+      };
+      return rows.slice().sort((a,b)=>{
+        for(let i=0;i<keys.length;i++){
+          const key=keys[i],av=String(a[key]??'').trim(),bv=String(b[key]??'').trim();
+          const ad=parseDuration(av),bd=parseDuration(bv),an=Number(av.replace(/,/g,'')),bn=Number(bv.replace(/,/g,''));
+          const cmp=ad!==null&&bd!==null?ad-bd:
+            av!==''&&bv!==''&&Number.isFinite(an)&&Number.isFinite(bn)?an-bn:
+            av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'});
+          if(cmp!==0)return Math.sign(cmp)*((i===0?settings.direction:settings.secondaryDirection)==='desc'?-1:1);
+        }
+        return 0;
+      });
     }
     function hpPrintTable(head,body,selector){
       const result=HallPilotReportPdf.fromTable(head,body,selector);
