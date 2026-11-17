@@ -3356,7 +3356,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const result=HallPilotReportPdf.fromTable(head,body,selector);
       const settings=hpPrintSettings();
       if(document.getElementById('reportType').value==='roomperiod' && head.id==='campusReportHead'){
-        const records=[],groups=new Map();
+        const groups=new Map();
         let current=null;
         for(const tr of body.querySelectorAll('tr')){
           if(tr.classList.contains('classroomPeriodHeading')){
@@ -3367,8 +3367,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
             if(settings.zero || Number(cells[1]||0)>0)current.rows.push(cells);
           }
         }
-        const grouped=[...groups.values()];
-        const compare=(a,b)=>hpSortReportRows([a,b],settings)[0]===a?-1:1;
+        const grouped=[...groups.values()].filter(g=>settings.zero || g.total>0)
+          .sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
         if(settings.primary!==''){
           const key=Number(settings.primary);
           const value=g=>key===0?g.name:key===1?g.total:
@@ -3380,7 +3380,8 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         }
         const visible=[];
         for(const g of grouped){
-          const periods=hpSortReportRows(g.rows,settings);
+          const periods=settings.primary==='' && settings.secondary==='' ?
+            g.rows.slice().sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})) : hpSortReportRows(g.rows,settings);
           if(settings.group){
             visible.push([g.name,String(g.total),'','','','','','','']);
             visible.push(...periods);
@@ -3423,7 +3424,21 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
           ['Teacher Overrides',s.overrides||0]
         ];
         const main=hpPrintTable($('campusReportHead'),$('campusReportBody'));
-        const tables=[{title:$('campusReportTitle').textContent,headers:main.headers,rows:main.rows}];
+        let tables=[{title:$('campusReportTitle').textContent,headers:main.headers,rows:main.rows}];
+        // A separate table per classroom prevents splitting its six periods
+        // unless a group is genuinely too large to fit on one page.
+        if(type==='roomperiod'&&hpPrintSettings().group){
+          const grouped=[];
+          let current=null;
+          for(const row of main.rows){
+            const isHeading=row.slice(2).every(v=>v===''||v==='—');
+            if(isHeading){
+              current={title:row[0],headers:main.headers,rows:[],keepTogether:true};
+              grouped.push(current);
+            }else if(current)current.rows.push(row);
+          }
+          if(grouped.length)tables=grouped;
+        }
         if(!$('reportSecondaryWrap').classList.contains('hidden')){
           const second=hpPrintTable($('reportSecondaryHead'),$('reportSecondaryBody'));
           tables.push({title:$('reportSecondaryTitle').textContent,headers:second.headers,rows:second.rows});
@@ -3442,7 +3457,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       }finally{button.disabled=false;}
     }
 
-    function downloadCampusReport(){if(!currentCampusReport)return;const type=$('reportType').value;const id=type==='detail'?'-'+String(currentCampusReport.studentDetail?.studentId||'student').replace(/[^a-z0-9_-]/gi,'-'):'';const settings=hpPrintSettings();let records=campusReportRows();if(settings.primary!==''||settings.secondary!==''||type==='roomperiod'&&(!settings.group||!settings.zero)){const table=hpPrintTable($('campusReportHead'),$('campusReportBody'));records=table.rows.map(row=>Object.fromEntries(table.headers.map((h,i)=>[h,row[i]])));}downloadCsvRows(`hall-pass-${type}${id}-${currentCampusReport.filters.startDate}-to-${currentCampusReport.filters.endDate}.csv`,records)}
+    function downloadCampusReport(){if(!currentCampusReport)return;const type=$('reportType').value;const id=type==='detail'?'-'+String(currentCampusReport.studentDetail?.studentId||'student').replace(/[^a-z0-9_-]/gi,'-'):'';const settings=hpPrintSettings();let records=campusReportRows();if(settings.primary!==''||settings.secondary!==''||type==='roomperiod'){const table=hpPrintTable($('campusReportHead'),$('campusReportBody'));records=table.rows.map(row=>Object.fromEntries(table.headers.map((h,i)=>[h,row[i]])));}downloadCsvRows(`hall-pass-${type}${id}-${currentCampusReport.filters.startDate}-to-${currentCampusReport.filters.endDate}.csv`,records)}
     async function exportBackupDataset(dataset,button){if(button)button.disabled=true;setMsg('backupMessage',`Preparing ${dataset} export...`);try{const r=await hallpassApi.call('adminBackupDataset',[dataset]);if(!r.success){setMsg('backupMessage',r.message,true);return;}const stamp=new Date().toISOString().slice(0,10);if(dataset==='students')downloadCsvRows(`hall-pass-students-${stamp}.csv`,r.rows||[]);else if(dataset==='passes')downloadCsvRows(`hall-pass-history-${stamp}.csv`,r.rows||[]);else if(dataset==='audit')downloadCsvRows(`hall-pass-audit-${stamp}.csv`,(r.rows||[]).map(x=>({...x,details:JSON.stringify(x.details||{})})));else if(dataset==='configuration')downloadTextFile(`hall-pass-configuration-${stamp}.json`,JSON.stringify(r.data,null,2),'application/json;charset=utf-8');else if(dataset==='full')downloadTextFile(`${(adminAccess.selectedSchool?.key||'school').replace(/[^a-z0-9_-]+/gi,'-')}-hall-pass-full-backup-${stamp}.json`,JSON.stringify(r.backup,null,2),'application/json;charset=utf-8');setMsg('backupMessage','Download created.')}catch(e){setMsg('backupMessage',e.message,true)}finally{if(button)button.disabled=false}}
 
     function onboardingTeacherMode(){return (document.querySelector('input[name="onboardTeacherMode"]:checked')||{}).value||'new'}
