@@ -571,7 +571,7 @@
           <div class="reportControls">
             <div>
               <label for="reportType">Report Type</label>
-              <select id="reportType" onchange="updateReportTypeUI()"><option value="all">All Students</option><option value="individual">Individual Student</option></select>
+              <select id="reportType" onchange="updateReportTypeUI()"><option value="all">All Students</option><option value="individual">Individual Student</option><option value="period">Passes by Period</option><option value="destination">Passes by Destination</option></select>
             </div>
             <div id="reportStudentWrap" class="hidden"><label for="reportStudent">Student</label><select id="reportStudent"><option value="">Choose Student</option></select></div>
             <div><label for="reportPeriod">Period</label><select id="reportPeriod"><option value="">All Periods</option></select></div>
@@ -1921,6 +1921,28 @@
       const summary = document.getElementById('reportSummary');
       head.innerHTML = ''; body.innerHTML = ''; summary.innerHTML = '';
 
+      if (report.type === 'period' || report.type === 'destination') {
+        const periodReport = report.type === 'period';
+        document.getElementById('reportTitle').textContent = periodReport ? 'Passes by Period' : 'Passes by Destination';
+        const groups = report.groupRows || [];
+        const total = groups.reduce((sum, g) => sum + Number(g.totalPasses || 0), 0);
+        const verified = groups.reduce((sum, g) => sum + Number(g.completedPasses || 0), 0);
+        summary.innerHTML = '<div class="reportSummaryGrid"><div class="stat"><div class="statLabel">Passes</div><div class="statValue">' + total +
+          '</div></div><div class="stat"><div class="statLabel">Verified Returns</div><div class="statValue">' + verified +
+          '</div></div><div class="stat"><div class="statLabel">Groups</div><div class="statValue">' + groups.length + '</div></div></div>';
+        head.innerHTML = '<tr><th>' + (periodReport ? 'Period' : 'Destination') +
+          '</th><th>Passes</th><th>Restroom</th><th>Verified Returns</th><th>Auto-Closed</th><th>Average</th><th>Longest</th><th>Total Verified Time</th><th>Overrides</th></tr>';
+        for (const g of groups) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + escapeHtml(g.label) + '</td><td>' + g.totalPasses + '</td><td>' + g.restroomPasses +
+            '</td><td>' + g.completedPasses + '</td><td>' + g.autoClosedPasses + '</td><td>' +
+            formatMinutes(g.averageMinutes) + '</td><td>' + formatMinutes(g.longestMinutes) +
+            '</td><td>' + formatMinutes(g.totalMinutes) + '</td><td>' + g.overrides + '</td>';
+          body.appendChild(tr);
+        }
+        if (!groups.length) body.innerHTML = '<tr><td colspan="9">No passes in this date range.</td></tr>';
+        return;
+      }
       if (report.type === 'individual') {
         document.getElementById('reportTitle').textContent = 'Student Pass Report: ' + report.studentName;
         summary.innerHTML = `<div class="reportSummaryGrid">
@@ -2361,7 +2383,10 @@
         const school = schoolNode && schoolNode.textContent.trim() || 'Current school';
         const room = (new URLSearchParams(window.location.search)).get('room') || '';
         const summary = [];
-        if (individual) {
+        if (report.type === 'period' || report.type === 'destination') {
+          const groups = report.groupRows || [];
+          summary.push(['Groups', groups.length],['Total Passes',groups.reduce((s,g)=>s+g.totalPasses,0)],['Verified Returns',groups.reduce((s,g)=>s+g.completedPasses,0)]);
+        } else if (individual) {
           const s = report.summary || {};
           summary.push(['Total Passes', s.totalPasses || 0],
             ['Restroom Passes', s.restroomPasses || 0],
@@ -2388,26 +2413,26 @@
         const head = drilldown ? drilldown.querySelector('thead') : document.getElementById('reportHead');
         const body = drilldown ? drilldown.querySelector('tbody') : document.getElementById('reportBody');
         const table = HallPilotReportPdf.fromTable(head, body,
-          individual ? 'tr' : '.reportSummaryRow');
+          individual || report.type === 'period' || report.type === 'destination' ? 'tr' : '.reportSummaryRow');
         const title = individual
           ? 'Student Pass Report — ' + (report.studentName || 'Student')
-          : 'All Students Pass Report';
+          : (report.type === 'period' ? 'Passes by Period' : report.type === 'destination' ? 'Passes by Destination' : 'All Students Pass Report');
         const details = [
           'School: ' + school + (room ? '     Room: ' + room.toUpperCase() : ''),
           'Reporting period: ' + formatDateOnly(report.startDate) +
             ' through ' + formatDateOnly(report.endDate),
           'Period: ' + (report.period || 'All periods') +
             (report.includeTestData ? '     Includes test data' : ''),
-          !individual ? 'Student rows and order match the current sorted report.' : ''
+          report.type === 'all' ? 'Student rows and order match the current sorted report.' : ''
         ];
         const fileName = 'hall-pass-teacher-' + (room || 'room') +
-          '-' + (individual ? (report.studentName || report.studentId || 'student') : 'all-students') +
+          '-' + (individual ? (report.studentName || report.studentId || 'student') : report.type === 'period' || report.type === 'destination' ? report.type : 'all-students') +
           '-' + report.startDate + '-to-' + report.endDate;
         await HallPilotReportPdf.exportPdf({
           title: title,
           scope: 'Teacher / classroom',
           details: details, summary: summary,
-          tables: [{ title: individual ? 'Pass History' : 'Student Summary', headers: table.headers, rows: table.rows }],
+          tables: [{ title: individual ? 'Pass History' : report.type === 'period' || report.type === 'destination' ? title : 'Student Summary', headers: table.headers, rows: table.rows }],
           fontDirectory: '../vendor/fonts/',
           fileName: fileName
         });
@@ -2433,6 +2458,12 @@
         rows.push(['Date','Schedule','Period','Destination','Requested','Left','Returned','Administratively Closed At','Duration','Status / Override']);
         currentReport.detailRows.forEach(function(row) {
           rows.push([formatDateOnly(row.date), row.schedule, row.period, row.destination, timeOnly(row.requested), timeOnly(row.left), timeOnly(row.returned), timeOnly(row.closedAt), row.completed ? formatMinutesCsv(row.durationMinutes) : '', row.override || '']);
+        });
+      } else if (currentReport.type === 'period' || currentReport.type === 'destination') {
+        fileName = 'hall-pass-' + currentReport.type + '-' + currentReport.startDate + '-to-' + currentReport.endDate + '.csv';
+        rows.push([currentReport.type === 'period' ? 'Period' : 'Destination','Passes','Restroom','Verified Returns','Auto-Closed','Average','Longest','Total Verified Time','Overrides']);
+        (currentReport.groupRows || []).forEach(function(g) {
+          rows.push([g.label,g.totalPasses,g.restroomPasses,g.completedPasses,g.autoClosedPasses,formatMinutesCsv(g.averageMinutes),formatMinutesCsv(g.longestMinutes),formatMinutesCsv(g.totalMinutes),g.overrides]);
         });
       } else {
         rows.push(['Student','Student ID','Total Passes','Restroom Passes','Verified Returns','Auto-Closed Passes','Average Verified Pass','Longest Verified Pass','Total Verified Time','Teacher Overrides']);
