@@ -14,6 +14,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#103a70">
   <style>
+    /* Print options: ordinary form input sizing must not stretch checkboxes. */
+    #hpPrintOptions .hpPrintCheck{display:flex;align-items:center;gap:10px;margin:0;line-height:1.35;cursor:pointer;font-weight:600;text-align:left}
+    #hpPrintOptions .hpPrintCheck input[type="checkbox"]{display:inline-block;width:18px!important;min-width:18px;max-width:18px;height:18px!important;min-height:18px;margin:0;padding:0;flex:0 0 18px;vertical-align:middle}
+    #hpPrintOptions .hpPrintCheck span{flex:1;min-width:0}
+    #hpPrintGroupWrap,#hpPrintZeroWrap{margin-top:12px}
+
     /* Keep Verified Returned compact rather than widening the report. */
     #campusReportHead th[data-sort-key="completedPasses"],
     #campusReportHead th:nth-child(4),
@@ -1308,12 +1314,12 @@
 <div class="formGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
 <div><label for="hpPrintHeading">Report heading</label><input id="hpPrintHeading" maxlength="120"></div>
 <div><label for="hpPrintSubtitle">Subtitle (optional)</label><input id="hpPrintSubtitle" maxlength="180"></div>
-<div><label for="hpPrintPrimary">Sort by</label><select id="hpPrintPrimary"></select></div>
-<div><label for="hpPrintSecondary">Then by</label><select id="hpPrintSecondary"></select></div>
+<div><label id="hpPrintPrimaryLabel" for="hpPrintPrimary">Sort by</label><select id="hpPrintPrimary"></select></div>
+<div><label id="hpPrintSecondaryLabel" for="hpPrintSecondary">Then by</label><select id="hpPrintSecondary"></select></div>
 <div><label for="hpPrintDirection">Primary order</label><select id="hpPrintDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div><div><label for="hpPrintSecondaryDirection">Secondary order</label><select id="hpPrintSecondaryDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div>
 </div>
-<div id="hpPrintGroupWrap" style="margin-top:12px"><label><input type="checkbox" id="hpPrintGroup" checked> Group periods under each classroom</label></div>
-<div id="hpPrintZeroWrap" style="margin-top:8px"><label><input type="checkbox" id="hpPrintZero" checked> Include zero-pass periods</label></div>
+<div id="hpPrintGroupWrap"><label class="hpPrintCheck" for="hpPrintGroup"><input type="checkbox" id="hpPrintGroup" checked><span>Group periods under each classroom</span></label></div>
+<div id="hpPrintZeroWrap"><label class="hpPrintCheck" for="hpPrintZero"><input type="checkbox" id="hpPrintZero" checked><span>Include zero-pass periods</span></label></div>
 <div class="buttonRow actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px"><button type="button" onclick="hpPrintClose()">Cancel</button><button type="button" class="primary" onclick="hpPrintSave()">Save Options</button></div>
 </div></div>
         </div>
@@ -3307,6 +3313,9 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       const headers=Array.from(head.querySelectorAll('th')).map(h=>h.textContent.replace(/[▲▼]/g,'').trim());
       const opts=document.getElementById('hpPrintOptions');
       const previous=hpPrintPrefs();
+      const grouped=hpPrintReportType()==='roomperiod';
+      document.getElementById('hpPrintPrimaryLabel').textContent=grouped?'Sort classrooms by':'Sort by';
+      document.getElementById('hpPrintSecondaryLabel').textContent=grouped?'Sort periods by':'Then by';
       document.getElementById('hpPrintHeading').value=previous.heading||title||'Report';
       opts.dataset.reportType=hpPrintReportType();
       document.getElementById('hpPrintSubtitle').value=previous.subtitle||'';
