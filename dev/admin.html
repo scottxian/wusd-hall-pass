@@ -3364,8 +3364,11 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         subhead.innerHTML='<option value="classroom">Classroom (periods beneath each classroom)</option>'+
           '<option value="period">Period (classrooms beneath each period)</option>'+
           '<option value="">No subheadings (flat report)</option>';
-        subhead.value=Object.prototype.hasOwnProperty.call(previous,'subheading')
-          ? previous.subheading : (previous.group===false ? '' : 'classroom');
+        // Older saved options stored an empty (hidden) subheading even when
+        // "group under classroom" was enabled; preserve that existing choice.
+        subhead.value=previous.subheading==='period'?'period':
+          previous.subheading==='classroom'?'classroom':
+          previous.group===false?'':'classroom';
       }else{
         subhead.value=previous.subheading??'';
       }
