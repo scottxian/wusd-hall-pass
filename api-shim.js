@@ -133,6 +133,12 @@
 
     if (staff && result && result._teacherSessionToken) {
       sessionStorage.setItem(sessionKey(), result._teacherSessionToken);
+      // Admin login may add ?org= to the URL after this call. Preserve the
+      // fresh session under that organization-scoped key before the redirect.
+      if (action === 'adminLogin' && result.success && result.organization?.key) {
+        const organizationKey = String(result.organization.key).trim().toLowerCase();
+        sessionStorage.setItem(`${SESSION_PREFIX}:${configuredApiUrl('staff')}:${organizationKey}`, result._teacherSessionToken);
+      }
       delete result._teacherSessionToken;
     }
 
