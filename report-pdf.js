@@ -32,7 +32,7 @@
       node.remove();
     });
     clone.querySelectorAll('br').forEach(function (node) {
-      node.replaceWith(document.createTextNode(' / '));
+      node.replaceWith(document.createTextNode(clone.tagName === 'TH' ? ' ' : ' / '));
     });
     clone.querySelectorAll('.muted').forEach(function (node) {
       node.textContent = ' (' + plain(node.textContent) + ')';
@@ -217,6 +217,16 @@
     if (typeof pdfFactory !== 'function') {
       throw new Error('PDF generator did not load. Refresh the page and try again.');
     }
+    // Open a blank tab while the user click is still active, before asynchronous
+    // font and image loading. This avoids browser popup blockers for the preview.
+    const previewWindow = options.openInNewTab ? window.open('', '_blank') : null;
+    if (options.openInNewTab && !previewWindow) {
+      throw new Error('Your browser blocked the report tab. Allow pop-ups for Hall Pilot and try again.');
+    }
+    if (previewWindow) {
+      previewWindow.document.title = 'Preparing Hall Pilot PDF…';
+      previewWindow.document.body.innerHTML = '<p style="font:16px sans-serif;padding:24px">Preparing Hall Pilot PDF report…</p>';
+    }
     // Use legal landscape for wider detail tables, Letter for normal reports.
     const widestTable = Math.max(0, ...(options.tables || []).map(function (table) {
       return (table && table.headers || []).length;
@@ -266,7 +276,10 @@
     }
     for (let index = 0; index < tables.length; index++) {
       const table = tables[index];
-      if (y > height - 145) {
+      const estimatedGroupHeight = 48 + (table.rows || []).length * 30;
+      const minimumSpace = table.keepTogether && estimatedGroupHeight <= height - 150
+        ? estimatedGroupHeight + 56 : 145;
+      if (y > height - minimumSpace) {
         doc.addPage(); drawBanner(doc, width, font, brandMark); y = 75;
       }
       doc.setFont(font, 'bold');
@@ -323,7 +336,15 @@
       drawFooter(doc, page, total, width, height, font, generated);
     }
     const fileName = safeName(options.fileName || title) + '.pdf';
-    doc.save(fileName);
+    if (previewWindow) {
+      const blobUrl = URL.createObjectURL(doc.output('blob'));
+      previewWindow.location.replace(blobUrl);
+      // Allow the built-in PDF viewer time to load and provide Save/Print.
+      // Do not revoke immediately: users may still be reading or printing.
+      setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 30 * 60 * 1000);
+    } else {
+      doc.save(fileName);
+    }
     return fileName;
   }
 
