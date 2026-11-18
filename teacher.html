@@ -17,6 +17,20 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#103a70">
   <style>
+    /* Print options: ordinary form input sizing must not stretch checkboxes. */
+    #hpPrintOptions .hpPrintCheck{display:flex;align-items:center;gap:10px;margin:0;line-height:1.35;cursor:pointer;font-weight:600;text-align:left}
+    #hpPrintOptions .hpPrintCheck input[type="checkbox"]{display:inline-block;width:18px!important;min-width:18px;max-width:18px;height:18px!important;min-height:18px;margin:0;padding:0;flex:0 0 18px;vertical-align:middle}
+    #hpPrintOptions .hpPrintCheck span{flex:1;min-width:0}
+    #hpPrintGroupWrap,#hpPrintZeroWrap{margin-top:12px}
+
+    /* Keep Verified Returned compact rather than widening the report. */
+    #campusReportHead th[data-sort-key="completedPasses"],
+    #campusReportHead th:nth-child(4),
+    #reportHead th[data-sort-key="completedPasses"],
+    #reportHead th:nth-child(4),
+    #reportHead th:nth-child(5) { white-space: normal; min-width: 66px; max-width: 91px; line-height: 1.3; }
+
+    
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #222; }
     .header { background: #263238; color: white; padding: 18px 20px; }
@@ -598,7 +612,7 @@
           <div class="reportControls">
             <div>
               <label for="reportType">Report Type</label>
-              <select id="reportType" onchange="updateReportTypeUI()"><option value="all">All Students</option><option value="individual">Individual Student</option></select>
+              <select id="reportType" onchange="updateReportTypeUI()"><option value="all">All Students</option><option value="individual">Individual Student</option><option value="period">Passes by Period</option><option value="destination">Passes by Destination</option><option value="dailyMultiple">Multiple Passes in a Day</option></select>
             </div>
             <div id="reportStudentWrap" class="hidden"><label for="reportStudent">Student</label><select id="reportStudent"><option value="">Choose Student</option></select></div>
             <div><label for="reportPeriod">Period</label><select id="reportPeriod"><option value="">All Periods</option></select></div>
@@ -612,22 +626,36 @@
           <details class="teacherDisclosure reportDisclosure">
             <summary>Advanced Report Options</summary><div class="disclosureBody">
               <div class="reportControls">
-            <div class="checkboxLabel"><label><input id="includeTestData" type="checkbox">Include Test Data</label></div>
+            <div class="checkboxLabel"><label><input id="includeTestData" type="checkbox">Include Test Data</label></div><div id="reportRestroomOnlyWrap" class="checkboxLabel hidden"><label><input id="reportRestroomOnly" type="checkbox" checked>Restroom passes only</label></div>
             <div id="reportAutoExpandWrap" class="checkboxLabel"><label><input id="autoExpandAllDetails" type="checkbox">Auto-expand all student details</label></div>
-            <div id="frequentPassWrap"><label for="flagPassCount">Flag Total Passes ≥</label><input id="flagPassCount" type="number" min="1" value="5"></div>
+            <div id="reportDailyThresholdWrap" class="hidden"><label for="reportDailyThreshold">Passes in a day ≥</label><input id="reportDailyThreshold" type="number" min="2" max="1000" value="2"></div><div id="frequentPassWrap"><label for="flagPassCount">Flag Total Passes ≥</label><input id="flagPassCount" type="number" min="1" value="5"></div>
             <div id="frequentTimeWrap"><label for="flagAverageMinutes">Flag Average Minutes ≥</label><input id="flagAverageMinutes" type="number" min="1" value="8"></div>
               </div>
             </div>
           </details>
           <div class="buttonRow">
             <button class="primary" onclick="generateReport(this)">Generate Report</button>
-            <button id="downloadReportPdfButton" class="primary" onclick="downloadTeacherReportPdf()" disabled>Download PDF</button>
+            <button type="button" class="gray" id="hpPrintOptionsButton" onclick="hpPrintOpen('reportHead',document.getElementById('reportTitle').textContent)" disabled>Print Options</button><button id="downloadReportPdfButton" class="primary" onclick="downloadTeacherReportPdf()" disabled>Open PDF</button>
             <button id="printReportButton" class="gray" onclick="printReport()" disabled>Print Report</button>
             <button id="downloadReportButton" class="gray" onclick="downloadReportCsv()" disabled>Download CSV</button>
           </div>
         </div>
 
-        <div id="reportPrintArea" class="card hidden">
+        <div id="hpPrintOptions" role="dialog" aria-modal="true" aria-label="Report Print Options" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:16px">
+<div style="background:white;color:#17243b;border-radius:12px;padding:22px;width:min(530px,100%);max-height:90vh;overflow:auto;box-shadow:0 16px 50px #0004">
+<h2 style="margin:0 0 16px">Report Print Options</h2>
+<div class="formGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+<div><label for="hpPrintHeading">Report heading</label><input id="hpPrintHeading" maxlength="120"></div>
+<div><label for="hpPrintSubtitle">Subtitle (optional)</label><input id="hpPrintSubtitle" maxlength="180"></div>
+<div id="hpPrintSubheadingWrap" style="grid-column:1/-1"><label for="hpPrintSubheading">PDF subheadings / group by</label><select id="hpPrintSubheading"><option value="">No subheadings (flat report)</option></select></div>
+<div><label for="hpPrintPrimary">Sort by</label><select id="hpPrintPrimary"></select></div>
+<div><label for="hpPrintSecondary">Then by</label><select id="hpPrintSecondary"></select></div>
+<div><label for="hpPrintDirection">Primary order</label><select id="hpPrintDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div><div><label for="hpPrintSecondaryDirection">Secondary order</label><select id="hpPrintSecondaryDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div>
+</div>
+<div id="hpPrintGroupWrap"><label class="hpPrintCheck" for="hpPrintGroup"><input type="checkbox" id="hpPrintGroup" checked><span>Group periods under each classroom</span></label></div>
+<div id="hpPrintZeroWrap"><label class="hpPrintCheck" for="hpPrintZero"><input type="checkbox" id="hpPrintZero" checked><span>Include zero-pass periods</span></label></div>
+<div class="buttonRow actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px"><button type="button" onclick="hpPrintClose()">Cancel</button><button type="button" class="primary" onclick="hpPrintSave()">Save Options</button></div>
+</div></div><div id="reportPrintArea" class="card hidden">
           <h2 id="reportTitle" class="reportTitle">Report</h2>
           <div id="reportMeta" class="reportMeta"></div>
           <div id="reportSummary"></div>
@@ -681,7 +709,7 @@
   <script src="api-shim.js"></script><script src="vendor/qrcode.min.js?v=20261114-install-qr"></script><script src="branding.js?v=20261115-test-mode-notice" defer></script>
   <script src="vendor/jspdf.umd.min.js"></script>
   <script src="vendor/jspdf.plugin.autotable.min.js"></script>
-  <script src="report-pdf.js?v=20261114-pdf-labels-v3"></script>
+  <script src="report-pdf.js?v=20261117-preview"></script>
   <script src="duration-display.js?v=20261114-live-mss"></script>
 
   <script>
@@ -1917,7 +1945,11 @@
     function updateReportTypeUI() {
       const individual = document.getElementById('reportType').value === 'individual';
       document.getElementById('reportStudentWrap').classList.toggle('hidden', !individual);
-      document.getElementById('reportAutoExpandWrap').classList.toggle('hidden', individual);
+      document.getElementById('reportAutoExpandWrap').classList.toggle('hidden', document.getElementById('reportType').value !== 'all');
+      const type=document.getElementById('reportType').value;
+      document.getElementById('reportRestroomOnlyWrap').classList.toggle('hidden',!['period','destination','dailyMultiple'].includes(type));
+      document.getElementById('reportRestroomOnly').checked=type==='period'||type==='dailyMultiple';
+      document.getElementById('reportDailyThresholdWrap').classList.toggle('hidden',type!=='dailyMultiple');
     }
 
     function applyReportPreset() {
@@ -1961,6 +1993,7 @@
           document.getElementById('printReportButton').disabled = false;
           document.getElementById('downloadReportButton').disabled = false;
           document.getElementById('downloadReportPdfButton').disabled = false;
+          document.getElementById('hpPrintOptionsButton').disabled = false;
           setActionMessage('Report ready.', 'success');
         })
         .withFailureHandler(function(error) { finishButtonAction(button); handleActionFailure(error); })
@@ -1970,19 +2003,47 @@
           startDate: startDate,
           endDate: endDate,
           period: document.getElementById('reportPeriod').value,
-          includeTestData: document.getElementById('includeTestData').checked
+          includeTestData: document.getElementById('includeTestData').checked,
+          restroomOnly: ['period','destination','dailyMultiple'].includes(type) && document.getElementById('reportRestroomOnly').checked,
+          minDailyPasses: Math.max(2,Number(document.getElementById('reportDailyThreshold').value||2))
         });
     }
 
     function renderReport(report) {
       const area = document.getElementById('reportPrintArea');
       area.classList.remove('hidden');
-      document.getElementById('reportMeta').textContent = formatDateOnly(report.startDate) + ' through ' + formatDateOnly(report.endDate) + (report.period ? ' • Period ' + report.period : '') + (report.includeTestData ? ' • Includes test data' : '');
+      document.getElementById('reportMeta').textContent = formatDateOnly(report.startDate) + ' through ' + formatDateOnly(report.endDate) + (report.period ? ' • Period ' + report.period : '') + (report.restroomOnly ? ' • Restroom only' : '') + (report.includeTestData ? ' • Includes test data' : '');
       const head = document.getElementById('reportHead');
       const body = document.getElementById('reportBody');
       const summary = document.getElementById('reportSummary');
       head.innerHTML = ''; body.innerHTML = ''; summary.innerHTML = '';
 
+      if (report.type === 'dailyMultiple') {
+        renderMultiplePassDays(report,head,body,summary);
+        return;
+      }
+      if (report.type === 'period' || report.type === 'destination') {
+        const periodReport = report.type === 'period';
+        document.getElementById('reportTitle').textContent = periodReport ? 'Passes by Period' : 'Passes by Destination';
+        const groups = report.groupRows || [];
+        const total = groups.reduce((sum, g) => sum + Number(g.totalPasses || 0), 0);
+        const verified = groups.reduce((sum, g) => sum + Number(g.completedPasses || 0), 0);
+        summary.innerHTML = '<div class="reportSummaryGrid"><div class="stat"><div class="statLabel">Passes</div><div class="statValue">' + total +
+          '</div></div><div class="stat"><div class="statLabel">Verified Returns</div><div class="statValue">' + verified +
+          '</div></div><div class="stat"><div class="statLabel">Groups</div><div class="statValue">' + groups.length + '</div></div></div>';
+        head.innerHTML = '<tr><th>' + (periodReport ? 'Period' : 'Destination') +
+          '</th><th>Passes</th><th>Restroom</th><th>Verified <br>Returned</th><th>Auto-Closed</th><th>Average</th><th>Longest</th><th>Total Verified Time</th><th>Overrides</th></tr>';
+        for (const g of groups) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + escapeHtml(g.label) + '</td><td>' + g.totalPasses + '</td><td>' + g.restroomPasses +
+            '</td><td>' + g.completedPasses + '</td><td>' + g.autoClosedPasses + '</td><td>' +
+            formatMinutes(g.averageMinutes) + '</td><td>' + formatMinutes(g.longestMinutes) +
+            '</td><td>' + formatMinutes(g.totalMinutes) + '</td><td>' + g.overrides + '</td>';
+          body.appendChild(tr);
+        }
+        if (!groups.length) body.innerHTML = '<tr><td colspan="9">No passes in this date range.</td></tr>';
+        return;
+      }
       if (report.type === 'individual') {
         document.getElementById('reportTitle').textContent = 'Student Pass Report: ' + report.studentName;
         summary.innerHTML = `<div class="reportSummaryGrid">
@@ -2009,6 +2070,43 @@
       renderAllStudentsReport(report, false);
     }
 
+    function renderMultiplePassDays(report,head,body,summary){
+      const cases=report.dailyRows||[],total=cases.reduce((n,x)=>n+x.totalPasses,0);
+      document.getElementById('reportTitle').textContent='Multiple Passes in a Day (≥ '+(report.minDailyPasses||2)+')';
+      summary.innerHTML='<div class="reportSummaryGrid"><div class="stat"><div class="statLabel">Student-Day Cases</div><div class="statValue">'+cases.length+
+        '</div></div><div class="stat"><div class="statLabel">Unique Students</div><div class="statValue">'+new Set(cases.map(x=>x.studentId)).size+
+        '</div></div><div class="stat"><div class="statLabel">Passes in Cases</div><div class="statValue">'+total+
+        '</div></div></div>';
+      head.innerHTML='<tr><th>Date</th><th>Student</th><th>Passes</th><th>Restroom</th><th>Periods</th><th>Total Verified Time</th><th>Overrides</th></tr>';
+      if(!cases.length){
+        body.innerHTML='<tr><td colspan="7">No students had '+(report.minDailyPasses||2)+' or more passes on a single day within these filters.</td></tr>';
+        return;
+      }
+      for(const g of cases){
+        const tr=document.createElement('tr');
+        tr.className='reportDailyRow';
+        tr.innerHTML='<td>'+escapeHtml(formatDateOnly(g.date))+'</td><td><button type="button" class="studentReportLink" aria-expanded="false" title="Show passes on this date">'+
+          escapeHtml(g.studentName)+'</button><div class="muted">'+escapeHtml(g.studentId)+'</div></td><td>'+g.totalPasses+'</td><td>'+g.restroomPasses+'</td><td>'+
+          escapeHtml(g.periods||'—')+'</td><td>'+formatMinutes(g.totalMinutes)+'</td><td>'+g.overrides+'</td>';
+        tr.querySelector('button').addEventListener('click',function(){
+          const next=tr.nextElementSibling;
+          if(next&&next.classList.contains('dailyPassDetail')){
+            next.remove();this.setAttribute('aria-expanded','false');return;
+          }
+          const detail=document.createElement('tr');detail.className='dailyPassDetail';
+          const cell=document.createElement('td');cell.colSpan=7;
+          const info=(g.details||[]).map((p,i)=>'<div style="padding:5px 0;border-bottom:1px solid #ddd">'+
+            (i+1)+'. '+escapeHtml(timeOnly(p.left)||'—')+
+            ' · Period '+escapeHtml(p.period||'—')+' · '+escapeHtml(p.destination||'—')+
+            (p.autoClosed?' · Auto-closed':p.durationMinutes==null?' · Still out':' · '+formatMinutes(p.durationMinutes))+
+            (p.teacherOverride?' · Teacher override':'')+'</div>').join('');
+          cell.innerHTML='<strong>Passes on '+escapeHtml(formatDateOnly(g.date))+'</strong>'+info;
+          detail.appendChild(cell);tr.after(detail);this.setAttribute('aria-expanded','true');
+        });
+        body.appendChild(tr);
+      }
+    }
+
     function renderAllStudentsReport(report, preserveExpanded) {
       const head = document.getElementById('reportHead');
       const body = document.getElementById('reportBody');
@@ -2031,7 +2129,7 @@
       head.innerHTML = '<tr>' + columns.map(function(column) {
         const active = allReportSort.key === column.key;
         const arrow = active ? (allReportSort.direction === 'asc' ? '▲' : '▼') : '';
-        return '<th class="sortableReportHeader" data-sort-key="' + column.key + '" data-sort-type="' + column.type + '" title="Sort by ' + escapeHtml(column.label) + '">' + escapeHtml(column.label) + '<span class="sortArrow">' + arrow + '</span></th>';
+        return '<th class="sortableReportHeader" data-sort-key="' + column.key + '" data-sort-type="' + column.type + '" title="Sort by ' + escapeHtml(column.label) + '">' + (column.key === 'completedPasses' ? 'Verified <br>Returned' : escapeHtml(column.label)) + '<span class="sortArrow">' + arrow + '</span></th>';
       }).join('') + '</tr>';
 
       head.querySelectorAll('.sortableReportHeader').forEach(function(th) {
@@ -2412,6 +2510,112 @@
 
     // Exports the currently displayed sort order. A student drill-down uses
     // its own displayed detail order instead of the full-class summary.
+
+    // Print-only options: no mutation of on-screen report order or underlying data.
+    const HP_PRINT_KEY = 'hallpilot.reportPrintOptions.v2.' + (document.getElementById('campusReportHead') ? 'admin.' : 'teacher.');
+    const hpPrintReportType=()=>document.getElementById('reportType').value;
+    const hpPrintStorageKey=()=>HP_PRINT_KEY+hpPrintReportType();
+    function hpPrintPrefs(){
+      try { return JSON.parse(localStorage.getItem(hpPrintStorageKey())||'{}') || {}; } catch(_) { return {}; }
+    }
+    function hpPrintOpen(headId,title){
+      const head=document.getElementById(headId);
+      const headers=Array.from(head.querySelectorAll('th')).map(h=>h.textContent.replace(/[▲▼]/g,'').trim());
+      const opts=document.getElementById('hpPrintOptions');
+      const previous=hpPrintPrefs();
+      document.getElementById('hpPrintHeading').value=previous.heading||title||'Report';
+      opts.dataset.reportType=hpPrintReportType();
+      document.getElementById('hpPrintSubtitle').value=previous.subtitle||'';
+      const choices=[['','On-screen order'],...headers.map((h,i)=>[String(i),h])];
+      const subhead=document.getElementById('hpPrintSubheading');
+      subhead.innerHTML='<option value="">No subheadings (flat report)</option>';
+      headers.forEach((header,index)=>{
+        const normalized=header.toLowerCase().replace(/\s+/g,' ').trim();
+        if(/^(date|student|student name|room|rooms|period|periods|destination|schedule \/ period|schedule \/period)$/.test(normalized)){
+          subhead.add(new Option('Group by '+header,String(index)));
+        }
+      });
+      subhead.value=previous.subheading??'';
+      if(!Array.from(subhead.options).some(x=>x.value===subhead.value))subhead.value='';
+      document.getElementById('hpPrintSubheadingWrap').hidden=false;
+      for(const id of ['hpPrintPrimary','hpPrintSecondary']){
+        const select=document.getElementById(id);
+        select.innerHTML='';
+        for(const [v,label] of choices){const option=document.createElement('option');option.value=v;option.textContent=label;select.append(option);}
+        select.value=previous[id==='hpPrintPrimary'?'primary':'secondary']??'';
+        if(!select.value && select.value!=='')select.value='';
+      }
+      document.getElementById('hpPrintDirection').value=previous.direction||'asc';
+      document.getElementById('hpPrintSecondaryDirection').value=previous.secondaryDirection||'asc';
+      document.getElementById('hpPrintGroup').checked=previous.group!==false;
+      document.getElementById('hpPrintZero').checked=previous.zero===true;
+      document.getElementById('hpPrintGroupWrap').hidden=!(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
+      document.getElementById('hpPrintZeroWrap').hidden=!(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
+      opts.style.display='flex';
+      document.getElementById('hpPrintHeading').focus();
+    }
+    function hpPrintClose(){document.getElementById('hpPrintOptions').style.display='none';}
+    function hpPrintSettings(){
+      // An export may occur without opening Print Options. Never inherit another
+      // report type's heading, sort keys, or grouping preferences.
+      const modal=document.getElementById('hpPrintOptions');
+      if(modal.dataset.reportType!==hpPrintReportType()){
+        const isAdmin=!!document.getElementById('campusReportHead');
+        const headId=isAdmin?'campusReportHead':'reportHead';
+        const titleId=isAdmin?'campusReportTitle':'reportTitle';
+        hpPrintOpen(headId,document.getElementById(titleId).textContent);
+        hpPrintClose();
+      }
+      const get=id=>document.getElementById(id);
+      return {heading:get('hpPrintHeading').value.trim().slice(0,120),subtitle:get('hpPrintSubtitle').value.trim().slice(0,180),
+        primary:get('hpPrintPrimary').value,secondary:get('hpPrintSecondary').value,
+        direction:get('hpPrintDirection').value,secondaryDirection:get('hpPrintSecondaryDirection').value,subheading:get('hpPrintSubheading').value,group:get('hpPrintGroup').checked,zero:get('hpPrintZero').checked};
+    }
+    function hpPrintSave(){try{localStorage.setItem(hpPrintStorageKey(),JSON.stringify(hpPrintSettings()));}catch(_){}hpPrintClose();}
+    function hpSortReportRows(rows,settings){
+      const keys=[settings.primary,settings.secondary].filter(v=>v!==''&&v!=null).map(Number);
+      if(!keys.length)return rows.slice();
+      const parseDuration=s=>{
+        if(!/^(?:(?:\d+)d\s*)?(?:(?:\d+)h\s*)?(?:(?:\d+)m\s*)?(?:(?:\d+)s\s*)?$/.test(s)||!/[dhms]/.test(s))return null;
+        return [...s.matchAll(/(\d+)\s*([dhms])/g)].reduce((n,m)=>n+Number(m[1])*({d:86400,h:3600,m:60,s:1}[m[2]]),0);
+      };
+      return rows.slice().sort((a,b)=>{
+        for(let i=0;i<keys.length;i++){
+          const key=keys[i],av=String(a[key]??'').trim(),bv=String(b[key]??'').trim();
+          const ad=parseDuration(av),bd=parseDuration(bv),an=Number(av.replace(/,/g,'')),bn=Number(bv.replace(/,/g,''));
+          const cmp=ad!==null&&bd!==null?ad-bd:
+            av!==''&&bv!==''&&Number.isFinite(an)&&Number.isFinite(bn)?an-bn:
+            av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'});
+          if(cmp!==0)return Math.sign(cmp)*((i===0?settings.direction:settings.secondaryDirection)==='desc'?-1:1);
+        }
+        return 0;
+      });
+    }
+    // PDF-only: create a titled section for each selected subheading value.
+    // Preserve table data and existing primary/secondary sort order within groups.
+    function hpPrintGroupedTables(table,defaultTitle){
+      const settings=hpPrintSettings();
+      if(settings.subheading===''||settings.subheading==null)return [{title:defaultTitle,headers:table.headers,rows:table.rows}];
+      const index=Number(settings.subheading);
+      if(!Number.isInteger(index)||index<0||index>=table.headers.length)return [{title:defaultTitle,headers:table.headers,rows:table.rows}];
+      const groups=new Map();
+      for(const row of table.rows){
+        const name=String(row[index]??'').trim()||'Unassigned';
+        if(!groups.has(name))groups.set(name,[]);
+        groups.get(name).push(row);
+      }
+      if(!groups.size)return [{title:defaultTitle,headers:table.headers,rows:table.rows}];
+      return [...groups].map(([name,rows])=>({
+        title:table.headers[index]+': '+name,headers:table.headers,rows,keepTogether:true
+      }));
+    }
+    function hpPrintTable(head,body,selector){
+      const result=HallPilotReportPdf.fromTable(head,body,selector);
+      const settings=hpPrintSettings();
+      return {...result,rows:hpSortReportRows(result.rows,settings)};
+    }
+
+    window.hpPrintIsRoomPeriod=()=>false;
     async function downloadTeacherReportPdf(studentReport, drilldown, sourceButton) {
       const report = studentReport || currentReport;
       if (!report) { setActionMessage('Generate a report first.', 'error'); return; }
@@ -2423,7 +2627,14 @@
         const school = schoolNode && schoolNode.textContent.trim() || 'Current school';
         const room = (new URLSearchParams(window.location.search)).get('room') || '';
         const summary = [];
-        if (individual) {
+        if(report.type==='dailyMultiple'){
+          const cases=report.dailyRows||[];
+          summary.push(['Student-Day Cases',cases.length],['Unique Students',new Set(cases.map(x=>x.studentId)).size],
+            ['Passes in Cases',cases.reduce((n,x)=>n+x.totalPasses,0)],['Minimum Per Day',report.minDailyPasses||2]);
+        } else if (report.type === 'period' || report.type === 'destination') {
+          const groups = report.groupRows || [];
+          summary.push(['Groups', groups.length],['Total Passes',groups.reduce((s,g)=>s+g.totalPasses,0)],['Verified Returns',groups.reduce((s,g)=>s+g.completedPasses,0)]);
+        } else if (individual) {
           const s = report.summary || {};
           summary.push(['Total Passes', s.totalPasses || 0],
             ['Restroom Passes', s.restroomPasses || 0],
@@ -2449,33 +2660,32 @@
         }
         const head = drilldown ? drilldown.querySelector('thead') : document.getElementById('reportHead');
         const body = drilldown ? drilldown.querySelector('tbody') : document.getElementById('reportBody');
-        const table = HallPilotReportPdf.fromTable(head, body,
-          individual ? 'tr' : '.reportSummaryRow');
+        const table = hpPrintTable(head, body,
+          report.type === 'dailyMultiple' ? '.reportDailyRow' : individual || report.type === 'period' || report.type === 'destination' ? 'tr' : '.reportSummaryRow');
         const title = individual
           ? 'Student Pass Report — ' + (report.studentName || 'Student')
-          : 'All Students Pass Report';
-        const reportNotes = [];
-        if (report.includeTestData) reportNotes.push('Includes test data');
-        if (!individual) reportNotes.push('Student rows and order match the current sorted report');
+          : (report.type === 'period' ? 'Passes by Period' : report.type === 'destination' ? 'Passes by Destination' : report.type === 'dailyMultiple' ? 'Multiple Passes in a Day' : 'All Students Pass Report');
         const details = [
           'School: ' + school + (room ? '     Room: ' + room.toUpperCase() : ''),
           'Reporting period: ' + formatDateOnly(report.startDate) +
             ' through ' + formatDateOnly(report.endDate),
-          'Period: ' + (report.period || 'All periods'),
-          reportNotes.length ? 'Note: ' + reportNotes.join(' · ') : ''
+          'Period: ' + (report.period || 'All periods') +
+            (report.includeTestData ? '     Includes test data' : ''),
+          report.type === 'all' ? 'Student rows and order match the current sorted report.' : ''
         ];
         const fileName = 'hall-pass-teacher-' + (room || 'room') +
-          '-' + (individual ? (report.studentName || report.studentId || 'student') : 'all-students') +
+          '-' + (individual ? (report.studentName || report.studentId || 'student') : report.type === 'period' || report.type === 'destination' ? report.type : 'all-students') +
           '-' + report.startDate + '-to-' + report.endDate;
         await HallPilotReportPdf.exportPdf({
-          title: title,
+          title: hpPrintSettings().heading||title,
           scope: 'Teacher / classroom',
-          details: details, summary: summary,
-          tables: [{ title: individual ? 'Pass History' : 'Student Summary', headers: table.headers, rows: table.rows }],
+          details: [...details,...(hpPrintSettings().subtitle?[hpPrintSettings().subtitle]:[])], summary: summary,
+          tables: hpPrintGroupedTables(table,individual ? 'Pass History' : report.type === 'dailyMultiple' ? title : report.type === 'period' || report.type === 'destination' ? title : 'Student Summary'),
+          openInNewTab: true,
           fontDirectory: 'vendor/fonts/',
           fileName: fileName
         });
-        setActionMessage('PDF report prepared for download.', 'success');
+        setActionMessage('PDF report opened in a new tab. Use the browser viewer to print or save.', 'success');
       } catch (error) {
         setActionMessage('Could not create PDF: ' + (error && error.message || error), 'error');
       } finally {
@@ -2498,6 +2708,16 @@
         currentReport.detailRows.forEach(function(row) {
           rows.push([formatDateOnly(row.date), row.schedule, row.period, row.destination, timeOnly(row.requested), timeOnly(row.left), timeOnly(row.returned), timeOnly(row.closedAt), row.completed ? formatMinutesCsv(row.durationMinutes) : '', row.override || '']);
         });
+      } else if (currentReport.type === 'dailyMultiple') {
+        fileName='hall-pass-multiple-daily-'+currentReport.startDate+'-to-'+currentReport.endDate+'.csv';
+        rows.push(['Date','Student','Student ID','Passes','Restroom','Periods','Total Verified Time','Overrides']);
+        (currentReport.dailyRows||[]).forEach(g=>rows.push([g.date,g.studentName,g.studentId,g.totalPasses,g.restroomPasses,g.periods,formatMinutesCsv(g.totalMinutes),g.overrides]));
+      } else if (currentReport.type === 'period' || currentReport.type === 'destination') {
+        fileName = 'hall-pass-' + currentReport.type + '-' + currentReport.startDate + '-to-' + currentReport.endDate + '.csv';
+        rows.push([currentReport.type === 'period' ? 'Period' : 'Destination','Passes','Restroom','Verified Returns','Auto-Closed','Average','Longest','Total Verified Time','Overrides']);
+        (currentReport.groupRows || []).forEach(function(g) {
+          rows.push([g.label,g.totalPasses,g.restroomPasses,g.completedPasses,g.autoClosedPasses,formatMinutesCsv(g.averageMinutes),formatMinutesCsv(g.longestMinutes),formatMinutesCsv(g.totalMinutes),g.overrides]);
+        });
       } else {
         rows.push(['Student','Student ID','Total Passes','Restroom Passes','Verified Returns','Auto-Closed Passes','Average Verified Pass','Longest Verified Pass','Total Verified Time','Teacher Overrides']);
         (currentReport.summaryRows || []).filter(function(row) {
@@ -2505,6 +2725,29 @@
         }).forEach(function(row) {
           rows.push([row.studentName,row.studentId,row.totalPasses,row.restroomPasses,row.completedPasses,row.autoClosedPasses||0,formatMinutesCsv(row.averageMinutes),formatMinutesCsv(row.longestMinutes),formatMinutesCsv(row.totalMinutes),row.overrides]);
         });
+      }
+      const printSettings=hpPrintSettings();
+      if(rows.length>2 && (printSettings.primary!=='' || printSettings.secondary!=='')){
+        const visibleHeads=Array.from(document.getElementById('reportHead').querySelectorAll('th'))
+          .map(h=>h.textContent.replace(/[▲▼]/g,'').trim().toLowerCase());
+        const csvHeads=rows[0].map(h=>String(h).toLowerCase());
+        const pairs=[['average','average verified pass'],['longest','longest verified pass'],
+          ['total verified time','total verified time'],['auto-closed','auto-closed passes'],
+          ['restroom','restroom passes'],['passes','total passes'],
+          ['student id','student id'],['student','student']];
+        function colFor(ix){
+          if(ix==='')return '';
+          const label=visibleHeads[Number(ix)]||'';
+          let found=csvHeads.indexOf(label);
+          if(found<0){
+            const alias=pairs.find(p=>p[0]===label);
+            if(alias)found=csvHeads.indexOf(alias[1]);
+          }
+          if(found<0)found=csvHeads.findIndex(h=>h.startsWith(label)||label.startsWith(h));
+          return found>=0?String(found):'';
+        }
+        const adapted={...printSettings,primary:colFor(printSettings.primary),secondary:colFor(printSettings.secondary)};
+        rows.splice(1,rows.length-1,...hpSortReportRows(rows.slice(1),adapted));
       }
       const csv = rows.map(function(row) { return row.map(csvCell).join(','); }).join('\r\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
