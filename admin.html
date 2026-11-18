@@ -15,6 +15,26 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#103a70">
   <style>
+    /* Print options: ordinary form input sizing must not stretch checkboxes. */
+    #hpPrintOptions .hpPrintCheck{display:flex;align-items:center;gap:10px;margin:0;line-height:1.35;cursor:pointer;font-weight:600;text-align:left}
+    #hpPrintOptions .hpPrintCheck input[type="checkbox"]{display:inline-block;width:18px!important;min-width:18px;max-width:18px;height:18px!important;min-height:18px;margin:0;padding:0;flex:0 0 18px;vertical-align:middle}
+    #hpPrintOptions .hpPrintCheck span{flex:1;min-width:0}
+    #hpPrintGroupWrap,#hpPrintZeroWrap{margin-top:12px}
+
+    /* Keep Verified Returned compact rather than widening the report. */
+    #campusReportHead th[data-sort-key="completedPasses"],
+    #campusReportHead th:nth-child(4),
+    #reportHead th[data-sort-key="completedPasses"],
+    #reportHead th:nth-child(4),
+    #reportHead th:nth-child(5) { white-space: normal; min-width: 66px; max-width: 91px; line-height: 1.3; }
+
+    
+    #campusReportStats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+    #campusReportStats .stat{min-width:0;padding:12px 14px;min-height:88px}
+    #campusReportStats .value{font-size:clamp(20px,1.6vw,25px);line-height:1.12;overflow-wrap:normal;word-break:normal}
+    @media(max-width:1050px){#campusReportStats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:610px){#campusReportStats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
     *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#222}
     .header{background:#263238;color:#fff;padding:18px 20px}.header h1{margin:0 0 5px;font-size:27px}.header div{opacity:.9}
     .container{max-width:1350px;margin:auto;padding:18px}.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
@@ -1374,7 +1394,8 @@
         <div class="card">
           <div class="sectionHead"><div><h2 style="margin-bottom:4px">Pass Reports &amp; Backup</h2><div class="muted">Analyze hall-pass use across the school. Reports are generated on demand and stay behind the Admin login.</div></div><button id="refreshReportOptions" class="gray">Refresh Filters</button></div>
           <div class="formGrid" style="margin-top:12px">
-            <div><label for="reportType">Report</label><select id="reportType"><option value="overview">Campus Overview</option><option value="students">Student Summary</option><option value="detail">Student Detail</option><option value="long">Long Passes</option><option value="frequent">Frequent Passes</option><option value="overrides">Teacher Overrides</option></select></div>
+            <div><label for="reportType">Report</label><select id="reportType"><option value="overview">Campus Overview</option><option value="period">Passes by Period</option><option value="roomperiod">Classroom by Period</option><option value="destination">Passes by Destination</option><option value="students">Student Summary</option><option value="multipleRooms">Students Using Multiple Rooms</option><option value="detail">Student Detail</option><option value="long">Long Passes</option><option value="frequent">Frequent Passes</option><option value="dailyMultiple">Multiple Passes in a Day</option><option value="overrides">Teacher Overrides</option></select></div>
+            <div><label for="campusReportPeriod">Period</label><select id="campusReportPeriod"><option value="">All Periods</option><option value="1">Period 1</option><option value="2">Period 2</option><option value="3">Period 3</option><option value="4">Period 4</option><option value="5">Period 5</option><option value="6">Period 6</option><option value="7">Period 7</option><option value="8">Period 8</option><option value="Unassigned">Unassigned</option></select></div>
             <div><label for="campusReportRoom">Room</label><select id="campusReportRoom"><option value="">All Rooms</option></select></div>
             <div><label for="campusReportStudent">Student</label><select id="campusReportStudent"><option value="">All Students</option></select></div>
             <div><label for="campusReportDestination">Destination</label><select id="campusReportDestination"><option value="">All Destinations</option></select></div>
@@ -1383,12 +1404,26 @@
           </div>
           <details class="reportDisclosure"><summary>Advanced Report Filters</summary>
             <div class="formGrid" style="padding:12px 0">            <div><label for="longPassMinutes">Long Pass ≥ minutes</label><input id="longPassMinutes" type="number" min="1" max="240" value="10"></div>
-            <div><label for="frequentPassCount">Frequent ≥ passes</label><input id="frequentPassCount" type="number" min="1" max="1000" value="5"></div>
+            <div><label for="frequentPassCount">Frequent ≥ passes</label><input id="frequentPassCount" type="number" min="1" max="1000" value="5"></div><div><label for="dailyPassCount">Multiple passes per day ≥</label><input id="dailyPassCount" type="number" min="2" max="1000" value="2"></div>
             </div>
                       <div class="checkRow" style="margin-top:12px"><label><input id="campusIncludeTestData" type="checkbox">Include test data</label></div>
           </details>
-          <div class="actions" style="margin-top:12px"><button id="generateCampusReport" class="green">Generate Report</button><button id="downloadCampusPdf" disabled>Download PDF</button><button id="downloadCampusReport" class="gray" disabled>Download Report CSV</button><button id="printCampusStudentDetail" class="gray hidden" disabled>Print Student Detail</button></div>
-          <div id="reportsMessage" class="message"></div>
+          <div class="actions" style="margin-top:12px"><button id="generateCampusReport" class="green">Generate Report</button><button id="hpPrintOptionsButton" class="gray" type="button" onclick="hpPrintOpen('campusReportHead',document.getElementById('campusReportTitle').textContent)" disabled>Print Options</button><button id="downloadCampusPdf" disabled>Open PDF</button><button id="downloadCampusReport" class="gray" disabled>Download Report CSV</button><button id="printCampusStudentDetail" class="gray hidden" disabled>Print Student Detail</button></div>
+          <div id="reportsMessage" class="message"></div><div id="hpPrintOptions" role="dialog" aria-modal="true" aria-label="Report Print Options" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:16px">
+<div style="background:white;color:#17243b;border-radius:12px;padding:22px;width:min(530px,100%);max-height:90vh;overflow:auto;box-shadow:0 16px 50px #0004">
+<h2 style="margin:0 0 16px">Report Print Options</h2>
+<div class="formGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+<div><label for="hpPrintHeading">Report heading</label><input id="hpPrintHeading" maxlength="120"></div>
+<div><label for="hpPrintSubtitle">Subtitle (optional)</label><input id="hpPrintSubtitle" maxlength="180"></div>
+<div id="hpPrintSubheadingWrap" style="grid-column:1/-1"><label for="hpPrintSubheading">PDF subheadings / group by</label><select id="hpPrintSubheading"><option value="">No subheadings (flat report)</option></select></div>
+<div><label id="hpPrintPrimaryLabel" for="hpPrintPrimary">Sort by</label><select id="hpPrintPrimary"></select></div>
+<div><label id="hpPrintSecondaryLabel" for="hpPrintSecondary">Then by</label><select id="hpPrintSecondary"></select></div>
+<div><label for="hpPrintDirection">Primary order</label><select id="hpPrintDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div><div><label for="hpPrintSecondaryDirection">Secondary order</label><select id="hpPrintSecondaryDirection"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div>
+</div>
+<div id="hpPrintGroupWrap"><label class="hpPrintCheck" for="hpPrintGroup"><input type="checkbox" id="hpPrintGroup" checked><span>Group periods under each classroom</span></label></div>
+<div id="hpPrintZeroWrap"><label class="hpPrintCheck" for="hpPrintZero"><input type="checkbox" id="hpPrintZero" checked><span>Include zero-pass periods</span></label></div>
+<div class="buttonRow actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px"><button type="button" onclick="hpPrintClose()">Cancel</button><button type="button" class="primary" onclick="hpPrintSave()">Save Options</button></div>
+</div></div>
         </div>
         <div id="campusReportResults" class="hidden">
           <div id="campusReportDrillNav" class="reportDrillTrail hidden"><button id="campusReportBack" class="gray" type="button">← Back</button><span class="muted" id="campusReportTrail" aria-live="polite"></span></div>
@@ -1632,7 +1667,7 @@
   <script src="config.js"></script><script src="api-shim.js"></script><script src="vendor/qrcode.min.js?v=20261114-install-qr"></script><script src="branding.js?v=20261115-test-mode-notice" defer></script>
   <script src="vendor/jspdf.umd.min.js"></script>
   <script src="vendor/jspdf.plugin.autotable.min.js"></script>
-  <script src="report-pdf.js?v=20261114-pdf-labels-v3"></script>
+  <script src="report-pdf.js?v=20261117-preview"></script>
   <script src="duration-display.js?v=20261114-live-mss"></script>
 
 
@@ -3330,9 +3365,9 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     async function refreshReportOptions(button){if(!unlocked)return;if(button)button.disabled=true;setMsg('reportsMessage','Loading report filters...');try{const r=await hallpassApi.call('adminReportOptions',[]);if(!r.success){setMsg('reportsMessage',r.message,true);return;}reportOptions=r;const roomCur=$('campusReportRoom').value,studentCur=$('campusReportStudent').value,destCur=$('campusReportDestination').value;$('campusReportRoom').innerHTML='<option value="">All Rooms</option>'+r.rooms.map(x=>`<option value="${esc(x.key)}">${esc(x.room)}${x.active?'':' (disabled)'}</option>`).join('');$('campusReportStudent').innerHTML='<option value="">All Students</option>'+r.students.map(x=>`<option value="${esc(x.id)}">${esc(x.name)} (${esc(x.id)})${x.active?'':' — disabled'}</option>`).join('');$('campusReportDestination').innerHTML='<option value="">All Destinations</option>'+r.destinations.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');$('campusReportRoom').value=roomCur;$('campusReportStudent').value=studentCur;HallPassStudentAutocomplete.refresh('campusReportStudent');$('campusReportDestination').value=destCur;setDefaultReportDates();setMsg('reportsMessage','Filters ready.')}catch(e){setMsg('reportsMessage',e.message,true)}finally{if(button)button.disabled=false}}
     function reportMinutes(v){return HallPilotDuration.fromMinutes(v)}
     function reportDateTime(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString()}
-    function campusReportOptionsFromForm(){return {studentDetail:$('reportType').value==='detail',startDate:$('campusReportStart').value,endDate:$('campusReportEnd').value,roomKey:$('campusReportRoom').value,studentId:$('campusReportStudent').value,destination:$('campusReportDestination').value,includeTestData:$('campusIncludeTestData').checked,longMinutes:Number($('longPassMinutes').value||10),frequentCount:Number($('frequentPassCount').value||5)}}
+    function campusReportOptionsFromForm(){return {studentDetail:$('reportType').value==='detail',startDate:$('campusReportStart').value,endDate:$('campusReportEnd').value,roomKey:$('campusReportRoom').value,period:$('campusReportPeriod').value,studentId:$('campusReportStudent').value,destination:$('campusReportDestination').value,includeTestData:$('campusIncludeTestData').checked,longMinutes:Number($('longPassMinutes').value||10),frequentCount:Number($('frequentPassCount').value||5),minDailyPasses:Number($('dailyPassCount').value||2)}}
 
-    const CAMPUS_REPORT_FORM = ['reportType','campusReportRoom','campusReportStudent','campusReportDestination','campusReportStart','campusReportEnd','longPassMinutes','frequentPassCount','campusIncludeTestData'];
+    const CAMPUS_REPORT_FORM = ['reportType','campusReportRoom','campusReportPeriod','campusReportStudent','campusReportDestination','campusReportStart','campusReportEnd','longPassMinutes','frequentPassCount','dailyPassCount','campusIncludeTestData'];
     function captureCampusReportForm(){
       return Object.fromEntries(CAMPUS_REPORT_FORM.map(id=>[id,id==='campusIncludeTestData'?$(id).checked:$(id).value]));
     }
@@ -3353,11 +3388,12 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     }
     async function generateCampusReport(preserveDrill=false){
       if(preserveDrill!==true)campusDrillStack=[];
+      if($('reportType').value==='multipleRooms')$('campusReportRoom').value='';
       const options=campusReportOptionsFromForm(),type=$('reportType').value,schoolKey=currentSchoolKey(),requestId=++campusReportRequestId;
       if(options.studentDetail&&!options.studentId){setMsg('reportsMessage','Choose a student to generate a Student Detail report.',true);renderCampusDrillNavigation();return false;}
       const b=$('generateCampusReport');
       b.disabled=true;setMsg('reportsMessage','Generating report...');
-      currentCampusReport=null;$('campusReportResults').classList.add('hidden');$('downloadCampusReport').disabled=true;$('downloadCampusPdf').disabled=true;$('printCampusStudentDetail').classList.add('hidden');$('printCampusStudentDetail').disabled=true;
+      currentCampusReport=null;$('campusReportResults').classList.add('hidden');$('hpPrintOptionsButton').disabled=true;$('downloadCampusReport').disabled=true;$('downloadCampusPdf').disabled=true;$('printCampusStudentDetail').classList.add('hidden');$('printCampusStudentDetail').disabled=true;
       try{
         const r=await hallpassApi.call('adminCampusReport',[options]);
         if(requestId!==campusReportRequestId||schoolKey!==currentSchoolKey())return false;
@@ -3365,7 +3401,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         if(type!==$('reportType').value||JSON.stringify(options)!==JSON.stringify(campusReportOptionsFromForm())){setMsg('reportsMessage','Report filters changed. Generate again to see the latest selection.');return false;}
         if(type==='detail'&&!r.studentDetail){setMsg('reportsMessage','Student Detail is unavailable from the server.',true);return false;}
         currentCampusReport=r;reportSortState={main:null,secondary:null};renderCampusReport();
-        $('downloadCampusReport').disabled=false;$('downloadCampusPdf').disabled=false;
+        $('downloadCampusReport').disabled=false;$('downloadCampusPdf').disabled=false;$('hpPrintOptionsButton').disabled=false;
         $('printCampusStudentDetail').classList.toggle('hidden',type!=='detail');$('printCampusStudentDetail').disabled=type!=='detail';
         setMsg('reportsMessage','Report generated from '+r.filters.startDate+' through '+r.filters.endDate+'.');
         return true;
@@ -3375,14 +3411,29 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
     async function drillDownCampusReport(kind,value){
       if(!currentCampusReport||$('generateCampusReport').disabled)return false;
       value=String(value||'');
-      if(!value||!['room','destination','student'].includes(kind))return false;
+      if(!value||!['room','roomperiod','period','destination','student','studentday'].includes(kind))return false;
       const fromType=$('reportType').value;
       const previous={
         form:captureCampusReportForm(),report:currentCampusReport,
         sort:{main:reportSortState.main?{...reportSortState.main}:null,secondary:reportSortState.secondary?{...reportSortState.secondary}:null},
         label:$('campusReportTitle').textContent
       };
-      if(kind==='room'){
+      if(kind==='period'||kind==='roomperiod'){
+        let roomKey='',period=value;
+        if(kind==='roomperiod'){
+          const splitAt=value.indexOf('|');
+          if(splitAt<0)return false;
+          roomKey=value.slice(0,splitAt);period=value.slice(splitAt+1);
+          if(!Array.from($('campusReportRoom').options).some(o=>o.value===roomKey))return false;
+          $('campusReportRoom').value=roomKey;
+        }
+        if(!Array.from($('campusReportPeriod').options).some(o=>o.value===period)){
+          $('campusReportPeriod').add(new Option('Period '+period+' (historical)',period));
+        }
+        $('campusReportPeriod').value=period;
+        $('campusReportStudent').value='';
+        $('reportType').value='students';
+      }else if(kind==='room'){
         if(!Array.from($('campusReportRoom').options).some(o=>o.value===value)){setMsg('reportsMessage','Room not found in this school.',true);return false;}
         $('campusReportRoom').value=value;
         $('campusReportStudent').value='';
@@ -3397,6 +3448,15 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         $('campusReportStudent').value='';
         $('reportType').value='students';
       }else{
+        if(kind==='studentday'){
+          const sep=value.lastIndexOf('|');
+          if(sep<=0)return false;
+          const date=value.slice(sep+1);
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;
+          $('campusReportStart').value=date;
+          $('campusReportEnd').value=date;
+          value=value.slice(0,sep);
+        }
         if(!Array.from($('campusReportStudent').options).some(o=>o.value===value)){setMsg('reportsMessage','Student not in this school roster.',true);return false;}
         $('campusReportStudent').value=value;
         $('reportType').value='detail';
@@ -3435,13 +3495,53 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       $('printCampusStudentDetail').disabled=true;$('printCampusStudentDetail').classList.add('hidden');
       renderCampusDrillNavigation();
     }
-    function reportStatsHtml(s){return [['Passes',s.totalPasses],['Verified Returns',s.completedPasses],['Auto-Closed',s.autoClosedPasses??0],['Average Time',reportMinutes(s.averageMinutes)],['Longest',reportMinutes(s.longestMinutes)],['Total Time Out',reportMinutes(s.totalMinutes)],['Overrides',s.overrides]].map(x=>`<div class="stat"><div class="label">${esc(x[0])}</div><div class="value">${esc(x[1])}</div></div>`).join('')}
+    function reportStatsHtml(s){return [['Passes',s.totalPasses],['Verified Returns',s.completedPasses],['Auto-Closed',s.autoClosedPasses??0],['Average Elapsed',reportMinutes(s.averageMinutes)],['Median Elapsed',reportMinutes(s.medianMinutes)],['Over 8 Hours',s.longDurationCount??0],['Longest',reportMinutes(s.longestMinutes)],['Total Elapsed Time',reportMinutes(s.totalMinutes)],['Overrides',s.overrides]].map(x=>`<div class="stat"><div class="label">${esc(x[0])}</div><div class="value">${esc(x[1])}</div></div>`).join('')}
     function reportSortValue(row,column){const value=row[column.key];if(column.type==='number'){const n=Number(value);return Number.isFinite(n)?n:-Infinity}if(column.type==='date'){const t=new Date(value||0).getTime();return Number.isFinite(t)?t:0}if(column.type==='boolean')return value?1:0;return String(value==null?'':value).toLowerCase()}
     function sortedReportData(rows,columns,target){const state=reportSortState[target];if(!state||!state.key)return rows.slice();const column=columns.find(c=>c.key===state.key);if(!column)return rows.slice();const dir=state.direction==='desc'?-1:1;return rows.slice().sort((a,b)=>{const av=reportSortValue(a,column),bv=reportSortValue(b,column);let cmp=0;if(column.type==='text')cmp=String(av).localeCompare(String(bv),undefined,{numeric:true,sensitivity:'base'});else cmp=av<bv?-1:av>bv?1:0;if(cmp===0&&column.key!=='studentName'){const an=String(a.studentName||a.room||a.destination||'');const bn=String(b.studentName||b.room||b.destination||'');cmp=an.localeCompare(bn,undefined,{numeric:true,sensitivity:'base'})}return cmp*dir})}
     function setReportSort(target,key,columns){const column=columns.find(c=>c.key===key);if(!column)return;const current=reportSortState[target];if(current&&current.key===key)reportSortState[target]={key:key,direction:current.direction==='asc'?'desc':'asc'};else reportSortState[target]={key:key,direction:column.defaultDir||(column.type==='number'?'desc':'asc')};renderCampusReport()}
-    function renderSortableReportTable(headId,bodyId,columns,data,rowRenderer,target){const state=reportSortState[target];const head=$(headId);head.innerHTML='<tr>'+columns.map(c=>{const active=state&&state.key===c.key;const arrow=active?(state.direction==='asc'?'▲':'▼'):'';const aria=active?(state.direction==='asc'?'ascending':'descending'):'none';return `<th class="sortableReportHeader" data-sort-key="${esc(c.key)}" tabindex="0" role="button" aria-sort="${aria}" title="Click to sort">${esc(c.label)}<span class="sortArrow">${arrow}</span></th>`}).join('')+'</tr>';const sorted=sortedReportData(data,columns,target);$(bodyId).innerHTML=sorted.length?sorted.map(rowRenderer).join(''):`<tr><td colspan="${columns.length}">No matching records.</td></tr>`;head.querySelectorAll('[data-sort-key]').forEach(th=>{const activate=()=>setReportSort(target,th.dataset.sortKey,columns);th.addEventListener('click',activate);th.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();activate()}})})}
-    function renderCampusReport(){if(!currentCampusReport)return;const r=currentCampusReport,type=$('reportType').value;$('campusReportResults').classList.remove('hidden');$('campusReportStats').innerHTML=reportStatsHtml(r.summary);$('campusReportMeta').textContent=[
+    function renderSortableReportTable(headId,bodyId,columns,data,rowRenderer,target){const state=reportSortState[target];const head=$(headId);head.innerHTML='<tr>'+columns.map(c=>{const active=state&&state.key===c.key;const arrow=active?(state.direction==='asc'?'▲':'▼'):'';const aria=active?(state.direction==='asc'?'ascending':'descending'):'none';return `<th class="sortableReportHeader" data-sort-key="${esc(c.key)}" tabindex="0" role="button" aria-sort="${aria}" title="Click to sort">${c.key==='completedPasses'?'Verified <br>Returned':esc(c.label)}<span class="sortArrow">${arrow}</span></th>`}).join('')+'</tr>';const sorted=sortedReportData(data,columns,target);$(bodyId).innerHTML=sorted.length?sorted.map(rowRenderer).join(''):`<tr><td colspan="${columns.length}">No matching records.</td></tr>`;head.querySelectorAll('[data-sort-key]').forEach(th=>{const activate=()=>setReportSort(target,th.dataset.sortKey,columns);th.addEventListener('click',activate);th.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();activate()}})})}
+    function renderClassroomPeriodReport(report){
+      const head=$('campusReportHead'),body=$('campusReportBody');
+      head.innerHTML='<tr><th>Classroom / Period</th><th>Passes</th><th>Restroom</th><th>Verified <br>Returned</th><th>Auto-Closed</th><th>Average</th><th>Longest</th><th>Total Verified Time</th><th>Overrides</th></tr>';
+      const rows=report.byRoomPeriod||[],byRoom=new Map();
+      for(const p of rows){
+        const key=String(p.roomKey);
+        if(!byRoom.has(key))byRoom.set(key,{name:p.room,key,periods:new Map()});
+        byRoom.get(key).periods.set(String(p.period),p);
+      }
+      const selectedRoom=String(report.filters?.roomKey||'');
+      // Include classrooms with no passes so a missing period is clearly shown as zero.
+      for(const opt of (reportOptions?.rooms||[])){
+        if(selectedRoom&&opt.key!==selectedRoom)continue;
+        if(!byRoom.has(String(opt.key)))byRoom.set(String(opt.key),{name:opt.room,key:String(opt.key),periods:new Map()});
+      }
+      const groups=[...byRoom.values()].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+      if(!groups.length){body.innerHTML='<tr><td colspan="9">No classrooms available.</td></tr>';return;}
+      const selectedPeriod=String(report.filters?.period||'');
+      const periods=selectedPeriod?[selectedPeriod]:['1','2','3','4','5','6'];
+      let html='';
+      for(const group of groups){
+        const aggregate=[...group.periods.values()];
+        const passCount=aggregate.reduce((n,p)=>n+Number(p.totalPasses||0),0);
+        html+='<tr class="classroomPeriodHeading"><td><strong>'+esc(group.name)+'</strong></td><td><strong>'+passCount+'</strong></td>'+Array(7).fill('<td></td>').join('')+'</tr>';
+        const visiblePeriods=[...periods,...[...group.periods.keys()].filter(p=>!periods.includes(p)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}))];
+        for(const period of visiblePeriods){
+          const p=group.periods.get(period);
+          const num=k=>p?Number(p[k]||0):0;
+          html+='<tr class="classroomPeriodRow"><td style="padding-left:24px">'+
+            reportDrillLink('roomperiod',group.key+'|'+period,period)+
+            '</td><td>'+num('totalPasses')+'</td><td>'+num('restroomPasses')+
+            '</td><td>'+num('completedPasses')+'</td><td>'+num('autoClosedPasses')+
+            '</td><td>'+(p?reportMinutes(p.averageMinutes):'—')+'</td><td>'+
+            (p?reportMinutes(p.longestMinutes):'—')+'</td><td>'+
+            (p?reportMinutes(p.totalMinutes):'—')+'</td><td>'+num('overrides')+'</td></tr>';
+        }
+      }
+      body.innerHTML=html;
+    }
+    function renderCampusReport(){if(!currentCampusReport)return;const r=currentCampusReport,type=$('reportType').value;$('campusReportRoom').disabled=type==='multipleRooms';$('campusReportResults').classList.remove('hidden');$('campusReportStats').innerHTML=type==='multipleRooms'?[[ 'Students Using Multiple Rooms',(r.multipleRoomStudents||[]).length ],['Passes by These Students',(r.multipleRoomStudents||[]).reduce((n,x)=>n+x.totalPasses,0)],['Classrooms Involved',new Set((r.multipleRoomStudents||[]).flatMap(x=>(x.roomBreakdown||[]).map(y=>y.roomKey))).size],['Minimum Classrooms',2]].map(x=>`<div class="stat"><div class="label">${esc(x[0])}</div><div class="value">${esc(x[1])}</div></div>`).join(''):type==='dailyMultiple'?[[ 'Student-Day Cases',(r.multiplePassDays||[]).length ],['Unique Students',new Set((r.multiplePassDays||[]).map(x=>x.studentId)).size],['Passes in Cases',(r.multiplePassDays||[]).reduce((n,x)=>n+x.totalPasses,0)],['Minimum Per Day',r.filters.minDailyPasses||2]].map(x=>`<div class="stat"><div class="label">${esc(x[0])}</div><div class="value">${esc(x[1])}</div></div>`).join(''):reportStatsHtml(r.summary);$('campusReportMeta').textContent=[
       r.filters.startDate+' to '+r.filters.endDate,
+      r.filters.period?'Period: '+r.filters.period:'',
       r.filters.roomKey?'Room: '+($('campusReportRoom').selectedOptions[0]?.textContent||r.filters.roomKey):'',
       r.filters.destination?'Destination: '+r.filters.destination:'',
       r.filters.studentId?'Student: '+($('campusReportStudent').selectedOptions[0]?.textContent||r.filters.studentId):''
@@ -3462,12 +3562,353 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         {label:'Override / Status',key:'teacherOverride',type:'boolean'}];
       data=student.rows||[];
       renderer=x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.room)}<div class="muted">${esc(x.roomKey)}</div></td><td>${esc(x.schedule)}<div class="muted">${esc(x.period||'—')}</div></td><td>${esc(x.destination)}</td><td>${reportDateTime(x.requested)}</td><td>${reportDateTime(x.left)}</td><td>${reportDateTime(x.returned)}</td><td>${reportDateTime(x.closedAt)}</td><td>${x.autoClosed?'Auto-closed':(x.returned?reportMinutes(x.durationMinutes):'Still out')}</td><td>${HallPilotDuration.fromSeconds(x.waitSeconds)}</td><td>${x.teacherOverride?'Yes':'No'}${x.teacher?' · '+esc(x.teacher):''}${x.overrideNote?'<div class="muted">'+esc(x.overrideNote)+'</div>':''}${x.statusNote?'<div class="muted">'+esc(x.statusNote)+'</div>':''}${x.testData?'<div class="muted">Test data</div>':''}</td></tr>`;
-    }else if(type==='students'){title='Student Summary';columns=[{label:'Student',key:'studentName',type:'text'},{label:'ID',key:'studentId',type:'text'},{label:'Rooms',key:'rooms',type:'text'},{label:'Passes',key:'totalPasses',type:'number'},{label:'Restroom',key:'restroomPasses',type:'number'},{label:'Auto-Closed',key:'autoClosedPasses',type:'number'},{label:'Average',key:'averageMinutes',type:'number'},{label:'Longest',key:'longestMinutes',type:'number'},{label:'Total Time',key:'totalMinutes',type:'number'},{label:'Overrides',key:'overrides',type:'number'}];data=r.byStudent;renderer=x=>`<tr><td>${reportDrillLink('student',x.studentId,x.studentName)}</td><td>${esc(x.studentId)}</td><td>${esc(x.rooms||'—')}</td><td>${x.totalPasses}</td><td>${x.restroomPasses}</td><td>${x.autoClosedPasses??0}</td><td>${reportMinutes(x.averageMinutes)}</td><td>${reportMinutes(x.longestMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td><td>${x.overrides}</td></tr>`}else if(type==='long'){title=`Long Passes (≥ ${r.filters.longMinutes} min)`;columns=[{label:'Date',key:'left',type:'date',defaultDir:'desc'},{label:'Room',key:'room',type:'text'},{label:'Student',key:'studentName',type:'text'},{label:'Destination',key:'destination',type:'text'},{label:'Left',key:'left',type:'date',defaultDir:'desc'},{label:'Returned',key:'returned',type:'date',defaultDir:'desc'},{label:'Duration',key:'durationMinutes',type:'number',defaultDir:'desc'},{label:'Override',key:'teacherOverride',type:'boolean',defaultDir:'desc'}];data=r.longPasses;renderer=x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.room)}</td><td>${reportDrillLink('student',x.studentId,x.studentName)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${reportDateTime(x.left)}</td><td>${reportDateTime(x.returned)}</td><td><strong>${reportMinutes(x.durationMinutes)}</strong></td><td>${x.teacherOverride?'Yes':'No'}</td></tr>`}else if(type==='frequent'){title=`Frequent Passes (≥ ${r.filters.frequentCount})`;columns=[{label:'Student',key:'studentName',type:'text'},{label:'ID',key:'studentId',type:'text'},{label:'Rooms',key:'rooms',type:'text'},{label:'Passes',key:'totalPasses',type:'number'},{label:'Restroom',key:'restroomPasses',type:'number'},{label:'Auto-Closed',key:'autoClosedPasses',type:'number'},{label:'Average',key:'averageMinutes',type:'number'},{label:'Total Time',key:'totalMinutes',type:'number'},{label:'Overrides',key:'overrides',type:'number'}];data=r.frequentStudents;renderer=x=>`<tr><td>${reportDrillLink('student',x.studentId,x.studentName)}</td><td>${esc(x.studentId)}</td><td>${esc(x.rooms||'—')}</td><td>${x.totalPasses}</td><td>${x.restroomPasses}</td><td>${x.autoClosedPasses??0}</td><td>${reportMinutes(x.averageMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td><td>${x.overrides}</td></tr>`}else if(type==='overrides'){title='Teacher Override Report';columns=[{label:'Date',key:'left',type:'date',defaultDir:'desc'},{label:'Room',key:'room',type:'text'},{label:'Student',key:'studentName',type:'text'},{label:'Destination',key:'destination',type:'text'},{label:'Teacher',key:'teacher',type:'text'},{label:'Left',key:'left',type:'date',defaultDir:'desc'},{label:'Duration',key:'durationMinutes',type:'number',defaultDir:'desc'},{label:'Reason / Status',key:'overrideNote',type:'text'}];data=r.overrides;renderer=x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.room)}</td><td>${reportDrillLink('student',x.studentId,x.studentName)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${esc(x.teacher||'—')}</td><td>${reportDateTime(x.left)}</td><td>${x.durationMinutes==null?'—':reportMinutes(x.durationMinutes)}</td><td>${esc([x.overrideNote,x.statusNote].filter(Boolean).join(' · ')||'—')}</td></tr>`}else{title='Campus Overview by Room';columns=[{label:'Room',key:'room',type:'text'},{label:'Passes',key:'totalPasses',type:'number'},{label:'Verified Returns',key:'completedPasses',type:'number'},{label:'Auto-Closed',key:'autoClosedPasses',type:'number'},{label:'Average',key:'averageMinutes',type:'number'},{label:'Longest',key:'longestMinutes',type:'number'},{label:'Total Time',key:'totalMinutes',type:'number'},{label:'Overrides',key:'overrides',type:'number'}];data=r.byRoom;renderer=x=>`<tr><td>${reportDrillLink('room',x.roomKey,x.room)}<div class="muted">${esc(x.roomKey)}</div></td><td>${x.totalPasses}</td><td>${x.completedPasses}</td><td>${x.autoClosedPasses??0}</td><td>${reportMinutes(x.averageMinutes)}</td><td>${reportMinutes(x.longestMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td><td>${x.overrides}</td></tr>`;$('reportSecondaryWrap').classList.remove('hidden');$('reportSecondaryTitle').textContent='By Destination';const destinationColumns=[{label:'Destination',key:'destination',type:'text'},{label:'Passes',key:'totalPasses',type:'number'},{label:'Verified Returns',key:'completedPasses',type:'number'},{label:'Auto-Closed',key:'autoClosedPasses',type:'number'},{label:'Average',key:'averageMinutes',type:'number'},{label:'Longest',key:'longestMinutes',type:'number'},{label:'Total Time',key:'totalMinutes',type:'number'}];renderSortableReportTable('reportSecondaryHead','reportSecondaryBody',destinationColumns,r.byDestination,x=>`<tr><td>${reportDrillLink('destination',x.destination,x.destination)}</td><td>${x.totalPasses}</td><td>${x.completedPasses}</td><td>${x.autoClosedPasses??0}</td><td>${reportMinutes(x.averageMinutes)}</td><td>${reportMinutes(x.longestMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td></tr>`,'secondary')} $('campusReportTitle').textContent=title;renderSortableReportTable('campusReportHead','campusReportBody',columns,data,renderer,'main');renderCampusDrillNavigation()}
+    }else if(type==='period'||type==='roomperiod'||type==='destination'){
+      const isRoomPeriod=type==='roomperiod', isDest=type==='destination';
+      title=isRoomPeriod?'Classroom by Period':isDest?'Passes by Destination':'Passes by Period';
+      columns=(isRoomPeriod?[{label:'Room',key:'room',type:'text'},{label:'Period',key:'period',type:'text'}]:
+        isDest?[{label:'Destination',key:'destination',type:'text'}]:[{label:'Period',key:'period',type:'text'}])
+        .concat([{label:'Passes',key:'totalPasses',type:'number'},{label:'Restroom',key:'restroomPasses',type:'number'},
+          {label:'Verified Returns',key:'completedPasses',type:'number'},{label:'Auto-Closed',key:'autoClosedPasses',type:'number'},
+          {label:'Average',key:'averageMinutes',type:'number'},{label:'Longest',key:'longestMinutes',type:'number'},
+          {label:'Total Verified Time',key:'totalMinutes',type:'number'},{label:'Overrides',key:'overrides',type:'number'}]);
+      data=isRoomPeriod?r.byRoomPeriod:isDest?r.byDestination:r.byPeriod;
+      renderer=x=>`<tr>${isRoomPeriod?'<td>'+esc(x.room)+'</td><td>'+reportDrillLink('roomperiod',x.roomKey+'|'+x.period,x.period)+'</td>':
+        isDest?'<td>'+reportDrillLink('destination',x.destination,x.destination)+'</td>':'<td>'+reportDrillLink('period',x.period,x.period)+'</td>'}
+        <td>${x.totalPasses}</td><td>${x.restroomPasses==null?'—':x.restroomPasses}</td>
+        <td>${x.completedPasses}</td><td>${x.autoClosedPasses}</td><td>${reportMinutes(x.averageMinutes)}</td>
+        <td>${reportMinutes(x.longestMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td><td>${x.overrides==null?'—':x.overrides}</td></tr>`;
+    }else if(type==='dailyMultiple'){
+      title='Multiple Passes in a Day (≥ '+(r.filters.minDailyPasses||2)+')';
+      columns=[
+        {label:'Date',key:'date',type:'text',defaultDir:'desc'},
+        {label:'Student',key:'studentName',type:'text'},
+        {label:'ID',key:'studentId',type:'text'},
+        {label:'Passes',key:'totalPasses',type:'number',defaultDir:'desc'},
+        {label:'Restroom',key:'restroomPasses',type:'number'},
+        {label:'Rooms',key:'rooms',type:'text'},
+        {label:'Periods',key:'periods',type:'text'},
+        {label:'Verified Time',key:'totalMinutes',type:'number'},
+        {label:'Overrides',key:'overrides',type:'number'}
+      ];
+      data=r.multiplePassDays||[];
+      renderer=x=>`<tr><td>${esc(x.date)}</td>
+        <td>${reportDrillLink('studentday',x.studentId+'|'+x.date,x.studentName)}</td>
+        <td>${esc(x.studentId)}</td><td>${x.totalPasses}</td>
+        <td>${x.restroomPasses}</td><td>${esc(x.rooms||'—')}</td>
+        <td>${esc(x.periods||'—')}</td><td>${reportMinutes(x.totalMinutes)}</td>
+        <td>${x.overrides}</td></tr>`;
+    }else if(type==='multipleRooms'){
+      title='Students Using Multiple Rooms';
+      columns=[
+        {label:'Student',key:'studentName',type:'text'},
+        {label:'ID',key:'studentId',type:'text'},
+        {label:'Rooms Used',key:'roomCount',type:'number',defaultDir:'desc'},
+        {label:'Passes by Classroom',key:'passesByRoom',type:'text'},
+        {label:'Passes',key:'totalPasses',type:'number',defaultDir:'desc'},
+        {label:'Restroom',key:'restroomPasses',type:'number'},
+        {label:'Total Time',key:'totalMinutes',type:'number'},
+        {label:'Overrides',key:'overrides',type:'number'}
+      ];
+      data=r.multipleRoomStudents||[];
+      renderer=x=>`<tr>
+        <td>${reportDrillLink('student',x.studentId,x.studentName)}</td>
+        <td>${esc(x.studentId)}</td><td>${x.roomCount}</td>
+        <td>${esc(x.passesByRoom)}</td>
+        <td>${x.totalPasses}</td><td>${x.restroomPasses}</td>
+        <td>${reportMinutes(x.totalMinutes)}</td><td>${x.overrides}</td>
+      </tr>`;
+    }else if(type==='students'){title='Student Summary';columns=[{label:'Student',key:'studentName',type:'text'},{label:'ID',key:'studentId',type:'text'},{label:'Rooms',key:'rooms',type:'text'},{label:'Passes',key:'totalPasses',type:'number'},{label:'Restroom',key:'restroomPasses',type:'number'},{label:'Auto-Closed',key:'autoClosedPasses',type:'number'},{label:'Average',key:'averageMinutes',type:'number'},{label:'Longest',key:'longestMinutes',type:'number'},{label:'Total Time',key:'totalMinutes',type:'number'},{label:'Overrides',key:'overrides',type:'number'}];data=r.byStudent;renderer=x=>`<tr><td>${reportDrillLink('student',x.studentId,x.studentName)}</td><td>${esc(x.studentId)}</td><td>${esc(x.rooms||'—')}</td><td>${x.totalPasses}</td><td>${x.restroomPasses}</td><td>${x.autoClosedPasses??0}</td><td>${reportMinutes(x.averageMinutes)}</td><td>${reportMinutes(x.longestMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td><td>${x.overrides}</td></tr>`}else if(type==='long'){title=`Long Passes (≥ ${r.filters.longMinutes} min)`;columns=[{label:'Date',key:'left',type:'date',defaultDir:'desc'},{label:'Room',key:'room',type:'text'},{label:'Student',key:'studentName',type:'text'},{label:'Destination',key:'destination',type:'text'},{label:'Left',key:'left',type:'date',defaultDir:'desc'},{label:'Returned',key:'returned',type:'date',defaultDir:'desc'},{label:'Duration',key:'durationMinutes',type:'number',defaultDir:'desc'},{label:'Override',key:'teacherOverride',type:'boolean',defaultDir:'desc'}];data=r.longPasses;renderer=x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.room)}</td><td>${reportDrillLink('student',x.studentId,x.studentName)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${reportDateTime(x.left)}</td><td>${reportDateTime(x.returned)}</td><td><strong>${reportMinutes(x.durationMinutes)}</strong></td><td>${x.teacherOverride?'Yes':'No'}</td></tr>`}else if(type==='frequent'){title=`Frequent Passes (≥ ${r.filters.frequentCount})`;columns=[{label:'Student',key:'studentName',type:'text'},{label:'ID',key:'studentId',type:'text'},{label:'Rooms',key:'rooms',type:'text'},{label:'Passes',key:'totalPasses',type:'number'},{label:'Restroom',key:'restroomPasses',type:'number'},{label:'Auto-Closed',key:'autoClosedPasses',type:'number'},{label:'Average',key:'averageMinutes',type:'number'},{label:'Total Time',key:'totalMinutes',type:'number'},{label:'Overrides',key:'overrides',type:'number'}];data=r.frequentStudents;renderer=x=>`<tr><td>${reportDrillLink('student',x.studentId,x.studentName)}</td><td>${esc(x.studentId)}</td><td>${esc(x.rooms||'—')}</td><td>${x.totalPasses}</td><td>${x.restroomPasses}</td><td>${x.autoClosedPasses??0}</td><td>${reportMinutes(x.averageMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td><td>${x.overrides}</td></tr>`}else if(type==='overrides'){title='Teacher Override Report';columns=[{label:'Date',key:'left',type:'date',defaultDir:'desc'},{label:'Room',key:'room',type:'text'},{label:'Student',key:'studentName',type:'text'},{label:'Destination',key:'destination',type:'text'},{label:'Teacher',key:'teacher',type:'text'},{label:'Left',key:'left',type:'date',defaultDir:'desc'},{label:'Duration',key:'durationMinutes',type:'number',defaultDir:'desc'},{label:'Reason / Status',key:'overrideNote',type:'text'}];data=r.overrides;renderer=x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.room)}</td><td>${reportDrillLink('student',x.studentId,x.studentName)}<div class="muted">${esc(x.studentId)}</div></td><td>${esc(x.destination)}</td><td>${esc(x.teacher||'—')}</td><td>${reportDateTime(x.left)}</td><td>${x.durationMinutes==null?'—':reportMinutes(x.durationMinutes)}</td><td>${esc([x.overrideNote,x.statusNote].filter(Boolean).join(' · ')||'—')}</td></tr>`}else{title='Campus Overview by Room';columns=[{label:'Room',key:'room',type:'text'},{label:'Passes',key:'totalPasses',type:'number'},{label:'Verified Returns',key:'completedPasses',type:'number'},{label:'Auto-Closed',key:'autoClosedPasses',type:'number'},{label:'Average',key:'averageMinutes',type:'number'},{label:'Longest',key:'longestMinutes',type:'number'},{label:'Total Time',key:'totalMinutes',type:'number'},{label:'Overrides',key:'overrides',type:'number'}];data=r.byRoom;renderer=x=>`<tr><td>${reportDrillLink('room',x.roomKey,x.room)}<div class="muted">${esc(x.roomKey)}</div></td><td>${x.totalPasses}</td><td>${x.completedPasses}</td><td>${x.autoClosedPasses??0}</td><td>${reportMinutes(x.averageMinutes)}</td><td>${reportMinutes(x.longestMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td><td>${x.overrides}</td></tr>`;$('reportSecondaryWrap').classList.remove('hidden');$('reportSecondaryTitle').textContent='By Destination';const destinationColumns=[{label:'Destination',key:'destination',type:'text'},{label:'Passes',key:'totalPasses',type:'number'},{label:'Verified Returns',key:'completedPasses',type:'number'},{label:'Auto-Closed',key:'autoClosedPasses',type:'number'},{label:'Average',key:'averageMinutes',type:'number'},{label:'Longest',key:'longestMinutes',type:'number'},{label:'Total Time',key:'totalMinutes',type:'number'}];renderSortableReportTable('reportSecondaryHead','reportSecondaryBody',destinationColumns,r.byDestination,x=>`<tr><td>${reportDrillLink('destination',x.destination,x.destination)}</td><td>${x.totalPasses}</td><td>${x.completedPasses}</td><td>${x.autoClosedPasses??0}</td><td>${reportMinutes(x.averageMinutes)}</td><td>${reportMinutes(x.longestMinutes)}</td><td>${reportMinutes(x.totalMinutes)}</td></tr>`,'secondary')} $('campusReportTitle').textContent=title;if(type==='roomperiod')renderClassroomPeriodReport(r);else renderSortableReportTable('campusReportHead','campusReportBody',columns,data,renderer,'main');renderCampusDrillNavigation()}
     function csvValue(v){if(v==null)return '';if(typeof v==='object')v=JSON.stringify(v);const s=String(v);return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
     function downloadTextFile(name,text,type='text/plain;charset=utf-8'){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
     function downloadCsvRows(name,rows){if(!rows.length){setMsg('backupMessage','There are no rows to export.',true);return;}const headers=[...new Set(rows.flatMap(x=>Object.keys(x)))],text=[headers.map(csvValue).join(','),...rows.map(r=>headers.map(h=>csvValue(r[h])).join(','))].join('\r\n');downloadTextFile(name,text,'text/csv;charset=utf-8')}
-    function campusReportRows(){if(!currentCampusReport)return [];const r=currentCampusReport,type=$('reportType').value;if(type==='detail')return (r.studentDetail?.rows||[]).map(x=>({date:x.date,room:x.room,room_key:x.roomKey,schedule:x.schedule,period:x.period,destination:x.destination,requested:x.requested,left:x.left,returned:x.returned,administratively_closed_at:x.closedAt,auto_closed:x.autoClosed,duration_minutes:x.durationMinutes,wait_seconds:x.waitSeconds,teacher_override:x.teacherOverride,teacher:x.teacher,override_note:x.overrideNote,status_note:x.statusNote,test_data:x.testData}));if(type==='students'||type==='frequent')return (type==='students'?r.byStudent:r.frequentStudents).map(x=>({student_name:x.studentName,student_id:x.studentId,rooms:x.rooms,total_passes:x.totalPasses,restroom_passes:x.restroomPasses,completed_passes:x.completedPasses,auto_closed_passes:x.autoClosedPasses,average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes,total_minutes:x.totalMinutes,teacher_overrides:x.overrides}));if(type==='long')return r.longPasses.map(x=>({date:x.date,room:x.room,room_key:x.roomKey,student_name:x.studentName,student_id:x.studentId,destination:x.destination,left:x.left,returned:x.returned,administratively_closed_at:x.closedAt,auto_closed:x.autoClosed,duration_minutes:x.durationMinutes,teacher_override:x.teacherOverride}));if(type==='overrides')return r.overrides.map(x=>({date:x.date,room:x.room,room_key:x.roomKey,student_name:x.studentName,student_id:x.studentId,destination:x.destination,teacher:x.teacher,left:x.left,returned:x.returned,administratively_closed_at:x.closedAt,auto_closed:x.autoClosed,duration_minutes:x.durationMinutes,override_note:x.overrideNote,status_note:x.statusNote}));return r.byRoom.map(x=>({room:x.room,room_key:x.roomKey,total_passes:x.totalPasses,completed_passes:x.completedPasses,auto_closed_passes:x.autoClosedPasses,average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes,total_minutes:x.totalMinutes,teacher_overrides:x.overrides}))}
+    function campusReportRows(){if(!currentCampusReport)return [];const r=currentCampusReport,type=$('reportType').value;if(type==='period'||type==='roomperiod'||type==='destination')return (type==='period'?r.byPeriod:type==='roomperiod'?r.byRoomPeriod:r.byDestination).map(x=>({room:type==='roomperiod'?x.room:undefined,room_key:type==='roomperiod'?x.roomKey:undefined,period:type==='destination'?undefined:x.period,destination:type==='destination'?x.destination:undefined,total_passes:x.totalPasses,restroom_passes:x.restroomPasses,completed_passes:x.completedPasses,auto_closed_passes:x.autoClosedPasses,average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes,total_minutes:x.totalMinutes,teacher_overrides:x.overrides}));if(type==='multipleRooms')return (r.multipleRoomStudents||[]).map(x=>({student_name:x.studentName,student_id:x.studentId,classrooms_used:x.roomCount,passes_by_classroom:x.passesByRoom,total_passes:x.totalPasses,restroom_passes:x.restroomPasses,verified_returns:x.completedPasses,auto_closed:x.autoClosedPasses,average_minutes:x.averageMinutes,total_minutes:x.totalMinutes,teacher_overrides:x.overrides}));if(type==='dailyMultiple')return (r.multiplePassDays||[]).map(x=>({date:x.date,student_name:x.studentName,student_id:x.studentId,passes:x.totalPasses,restroom_passes:x.restroomPasses,rooms:x.rooms,periods:x.periods,verified_returns:x.completedPasses,auto_closed:x.autoClosedPasses,total_verified_minutes:x.totalMinutes,teacher_overrides:x.overrides}));if(type==='detail')return (r.studentDetail?.rows||[]).map(x=>({date:x.date,room:x.room,room_key:x.roomKey,schedule:x.schedule,period:x.period,destination:x.destination,requested:x.requested,left:x.left,returned:x.returned,administratively_closed_at:x.closedAt,auto_closed:x.autoClosed,duration_minutes:x.durationMinutes,wait_seconds:x.waitSeconds,teacher_override:x.teacherOverride,teacher:x.teacher,override_note:x.overrideNote,status_note:x.statusNote,test_data:x.testData}));if(type==='students'||type==='frequent')return (type==='students'?r.byStudent:r.frequentStudents).map(x=>({student_name:x.studentName,student_id:x.studentId,rooms:x.rooms,total_passes:x.totalPasses,restroom_passes:x.restroomPasses,completed_passes:x.completedPasses,auto_closed_passes:x.autoClosedPasses,average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes,total_minutes:x.totalMinutes,teacher_overrides:x.overrides}));if(type==='long')return r.longPasses.map(x=>({date:x.date,room:x.room,room_key:x.roomKey,student_name:x.studentName,student_id:x.studentId,destination:x.destination,left:x.left,returned:x.returned,administratively_closed_at:x.closedAt,auto_closed:x.autoClosed,duration_minutes:x.durationMinutes,teacher_override:x.teacherOverride}));if(type==='overrides')return r.overrides.map(x=>({date:x.date,room:x.room,room_key:x.roomKey,student_name:x.studentName,student_id:x.studentId,destination:x.destination,teacher:x.teacher,left:x.left,returned:x.returned,administratively_closed_at:x.closedAt,auto_closed:x.autoClosed,duration_minutes:x.durationMinutes,override_note:x.overrideNote,status_note:x.statusNote}));return r.byRoom.map(x=>({room:x.room,room_key:x.roomKey,total_passes:x.totalPasses,completed_passes:x.completedPasses,auto_closed_passes:x.autoClosedPasses,average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes,total_minutes:x.totalMinutes,teacher_overrides:x.overrides}))}
 
+
+    // Print-only options: no mutation of on-screen report order or underlying data.
+    const HP_PRINT_KEY = 'hallpilot.reportPrintOptions.v2.' + (document.getElementById('campusReportHead') ? 'admin.' : 'teacher.');
+    const hpPrintReportType=()=>document.getElementById('reportType').value;
+    const hpPrintStorageKey=()=>HP_PRINT_KEY+hpPrintReportType();
+    function hpPrintPrefs(){
+      try { return JSON.parse(localStorage.getItem(hpPrintStorageKey())||'{}') || {}; } catch(_) { return {}; }
+    }
+    function hpPrintOpen(headId,title){
+      const head=document.getElementById(headId);
+      const headers=Array.from(head.querySelectorAll('th')).map(h=>h.textContent.replace(/[▲▼]/g,'').trim());
+      const opts=document.getElementById('hpPrintOptions');
+      const previous=hpPrintPrefs();
+      const grouped=hpPrintReportType()==='roomperiod';
+      document.getElementById('hpPrintPrimaryLabel').textContent=grouped?'Sort classrooms by':'Sort by';
+      document.getElementById('hpPrintSecondaryLabel').textContent=grouped?'Sort periods by':'Then by';
+      document.getElementById('hpPrintHeading').value=previous.heading||title||'Report';
+      opts.dataset.reportType=hpPrintReportType();
+      document.getElementById('hpPrintSubtitle').value=previous.subtitle||'';
+      const choices=[['','On-screen order'],...headers.map((h,i)=>[String(i),h])];
+      const subhead=document.getElementById('hpPrintSubheading');
+      subhead.innerHTML='<option value="">No subheadings (flat report)</option>';
+      headers.forEach((header,index)=>{
+        const normalized=header.toLowerCase().replace(/\s+/g,' ').trim();
+        if(/^(date|student|student name|room|period|periods|destination|schedule \/ period|schedule \/period)$/.test(normalized)){
+          subhead.add(new Option('Group by '+header,String(index)));
+        }
+      });
+      if(grouped){
+        // Classroom-by-Period already has its own group renderer. Expose that
+        // layout and a genuine Period-first layout in the same print selector.
+        subhead.innerHTML='<option value="classroom">Classroom (periods beneath each classroom)</option>'+
+          '<option value="period">Period (classrooms beneath each period)</option>'+
+          '<option value="">No subheadings (flat report)</option>';
+        // Older saved options stored an empty (hidden) subheading even when
+        // "group under classroom" was enabled; preserve that existing choice.
+        subhead.value=previous.subheading==='period'?'period':
+          previous.subheading==='classroom'?'classroom':
+          previous.group===false?'':'classroom';
+      }else if(['students','frequent','dailyMultiple','multipleRooms'].includes(hpPrintReportType())){
+        // Room lists represent schoolwide pass history, not a physical classroom.
+        // The classroom choice uses actual room-specific passes. Keep other
+        // useful grouping options for student-day reports.
+        const type=hpPrintReportType();
+        if(type==='dailyMultiple'){
+          subhead.innerHTML='<option value="">No subheadings (student-day totals)</option>'+
+            '<option value="0">Date (students beneath each date)</option>'+
+            '<option value="1">Student (dates beneath each student)</option>'+
+            '<option value="classroom">Classroom (passes originating in each room)</option>';
+          subhead.value=['','0','1','classroom'].includes(previous.subheading)
+            ? previous.subheading:'';
+        }else{
+          subhead.innerHTML='<option value="">No subheadings (schoolwide student totals)</option>'+
+            (type==='frequent'?'<option value="0">Student</option>':'')+
+            '<option value="classroom">Classroom (passes originating in each room)</option>';
+          subhead.value=previous.subheading==='classroom'||
+            (['students','frequent'].includes(type)&&previous.subheading==='2')
+            ? 'classroom' : type==='frequent'&&previous.subheading==='0'?'0':'';
+        }
+      }else{
+        subhead.value=previous.subheading??'';
+      }
+      if(!Array.from(subhead.options).some(x=>x.value===subhead.value))
+        subhead.value=grouped?'classroom':'';
+      document.getElementById('hpPrintSubheadingWrap').hidden=false;
+      for(const id of ['hpPrintPrimary','hpPrintSecondary']){
+        const select=document.getElementById(id);
+        select.innerHTML='';
+        for(const [v,label] of choices){const option=document.createElement('option');option.value=v;option.textContent=label;select.append(option);}
+        select.value=previous[id==='hpPrintPrimary'?'primary':'secondary']??'';
+        if(!select.value && select.value!=='')select.value='';
+      }
+      document.getElementById('hpPrintDirection').value=previous.direction||'asc';
+      document.getElementById('hpPrintSecondaryDirection').value=previous.secondaryDirection||'asc';
+      document.getElementById('hpPrintGroup').checked=previous.group!==false;
+      document.getElementById('hpPrintZero').checked=previous.zero===true;
+      document.getElementById('hpPrintGroupWrap').hidden=grouped || !(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
+      document.getElementById('hpPrintZeroWrap').hidden=!(window.hpPrintIsRoomPeriod && window.hpPrintIsRoomPeriod());
+      opts.style.display='flex';
+      document.getElementById('hpPrintHeading').focus();
+    }
+    function hpPrintClose(){document.getElementById('hpPrintOptions').style.display='none';}
+    function hpPrintSettings(){
+      // An export may occur without opening Print Options. Never inherit another
+      // report type's heading, sort keys, or grouping preferences.
+      const modal=document.getElementById('hpPrintOptions');
+      if(modal.dataset.reportType!==hpPrintReportType()){
+        const isAdmin=!!document.getElementById('campusReportHead');
+        const headId=isAdmin?'campusReportHead':'reportHead';
+        const titleId=isAdmin?'campusReportTitle':'reportTitle';
+        hpPrintOpen(headId,document.getElementById(titleId).textContent);
+        hpPrintClose();
+      }
+      const get=id=>document.getElementById(id);
+      return {heading:get('hpPrintHeading').value.trim().slice(0,120),subtitle:get('hpPrintSubtitle').value.trim().slice(0,180),
+        primary:get('hpPrintPrimary').value,secondary:get('hpPrintSecondary').value,
+        direction:get('hpPrintDirection').value,secondaryDirection:get('hpPrintSecondaryDirection').value,subheading:get('hpPrintSubheading').value,group:hpPrintReportType()==='roomperiod'?get('hpPrintSubheading').value==='classroom':get('hpPrintGroup').checked,zero:get('hpPrintZero').checked};
+    }
+    function hpPrintSave(){try{localStorage.setItem(hpPrintStorageKey(),JSON.stringify(hpPrintSettings()));}catch(_){}hpPrintClose();}
+    function hpSortReportRows(rows,settings){
+      const keys=[settings.primary,settings.secondary].filter(v=>v!==''&&v!=null).map(Number);
+      if(!keys.length)return rows.slice();
+      const parseDuration=s=>{
+        if(!/^(?:(?:\d+)d\s*)?(?:(?:\d+)h\s*)?(?:(?:\d+)m\s*)?(?:(?:\d+)s\s*)?$/.test(s)||!/[dhms]/.test(s))return null;
+        return [...s.matchAll(/(\d+)\s*([dhms])/g)].reduce((n,m)=>n+Number(m[1])*({d:86400,h:3600,m:60,s:1}[m[2]]),0);
+      };
+      return rows.slice().sort((a,b)=>{
+        for(let i=0;i<keys.length;i++){
+          const key=keys[i],av=String(a[key]??'').trim(),bv=String(b[key]??'').trim();
+          const ad=parseDuration(av),bd=parseDuration(bv),an=Number(av.replace(/,/g,'')),bn=Number(bv.replace(/,/g,''));
+          let cmp=ad!==null&&bd!==null?ad-bd:
+            av!==''&&bv!==''&&Number.isFinite(an)&&Number.isFinite(bn)?an-bn:
+            av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'});
+          if(cmp!==0)return Math.sign(cmp)*((i===0?settings.direction:settings.secondaryDirection)==='desc'?-1:1);
+        }
+        return 0;
+      });
+    }
+    // PDF-only: create a titled section for each selected subheading value.
+    // Preserve table data and existing primary/secondary sort order within groups.
+    // Student Summary grouped by classroom is a separate aggregation.
+    // It MUST use byStudentRoom (one student+room pair), not byStudent.rooms,
+    // which is a comma-separated list of every room that student visited.
+    // Build true room-specific rows for every student report that supports
+    // classroom subheadings. Never group a comma-separated rooms list.
+    function hpPrintClassroomTables(report,settings,type,visibleHeaders){
+      const tracked=['students','frequent','multipleRooms','dailyMultiple'];
+      if(!tracked.includes(type))return [];
+      const allowed=new Set((type==='frequent'?report.frequentStudents||[]:
+        type==='multipleRooms'?report.multipleRoomStudents||[]:[]).map(x=>String(x.studentId)));
+      let records=[];
+      if(type==='dailyMultiple'){
+        const daily=new Map();
+        for(const item of (report.multiplePassDays||[])){
+          for(const pass of (item.details||[])){
+            const roomKey=String(pass.roomKey||pass.room||'Unassigned');
+            const key=JSON.stringify([item.studentId,item.date,roomKey]);
+            let g=daily.get(key);
+            if(!g){
+              g={date:item.date,studentId:item.studentId,studentName:item.studentName,
+                roomKey,room:pass.room||roomKey,totalPasses:0,restroomPasses:0,
+                completedPasses:0,autoClosedPasses:0,totalMinutes:0,overrides:0,periodSet:new Set()};
+              daily.set(key,g);
+            }
+            g.totalPasses++;
+            if(String(pass.destination||'').toLowerCase()==='restroom')g.restroomPasses++;
+            if(pass.autoClosed)g.autoClosedPasses++;
+            if(pass.teacherOverride)g.overrides++;
+            if(pass.period)g.periodSet.add(String(pass.period));
+            if(Number.isFinite(pass.durationMinutes)){
+              g.completedPasses++;g.totalMinutes+=pass.durationMinutes;
+            }
+          }
+        }
+        records=[...daily.values()].map(x=>({...x,periods:[...x.periodSet].sort((a,b)=>
+          a.localeCompare(b,undefined,{numeric:true})).join(', ')}));
+      }else{
+        records=(report.byStudentRoom||[]).filter(x=>type==='students'||allowed.has(String(x.studentId)));
+      }
+      const headers=type==='students'?
+        ['Student','ID','Room','Passes','Restroom','Auto-Closed','Average','Longest','Total Time','Overrides']:
+        type==='frequent'?
+        ['Student','ID','Room','Passes','Restroom','Auto-Closed','Average','Total Time','Overrides']:
+        type==='multipleRooms'?
+        ['Student','ID','Room','Rooms Used','Passes','Restroom','Total Time','Overrides']:
+        ['Date','Student','ID','Room','Passes','Restroom','Periods','Verified Time','Overrides'];
+      const multiRoomCount=new Map((report.multipleRoomStudents||[]).map(x=>[String(x.studentId),x.roomCount]));
+      const cells=x=>{
+        if(type==='students')return [x.studentName,x.studentId,x.room,
+          x.totalPasses,x.restroomPasses,x.autoClosedPasses,reportMinutes(x.averageMinutes),
+          reportMinutes(x.longestMinutes),reportMinutes(x.totalMinutes),x.overrides].map(String);
+        if(type==='frequent')return [x.studentName,x.studentId,x.room,
+          x.totalPasses,x.restroomPasses,x.autoClosedPasses,reportMinutes(x.averageMinutes),
+          reportMinutes(x.totalMinutes),x.overrides].map(String);
+        if(type==='multipleRooms')return [x.studentName,x.studentId,x.room,
+          multiRoomCount.get(String(x.studentId))||0,x.totalPasses,x.restroomPasses,
+          reportMinutes(x.totalMinutes),x.overrides].map(String);
+        return [x.date,x.studentName,x.studentId,x.room,x.totalPasses,x.restroomPasses,
+          x.periods||'',reportMinutes(x.totalMinutes),x.overrides].map(String);
+      };
+      const raw=x=>({
+        classroom:x.room,room_key:x.roomKey,
+        ...(type==='dailyMultiple'?{date:x.date}:{}),
+        student_name:x.studentName,student_id:x.studentId,
+        ...(type==='multipleRooms'?{classrooms_used:multiRoomCount.get(String(x.studentId))||0}:{}),
+        passes:x.totalPasses,restroom_passes:x.restroomPasses,verified_returns:x.completedPasses,
+        auto_closed:x.autoClosedPasses,total_minutes:x.totalMinutes,teacher_overrides:x.overrides,
+        ...(type==='dailyMultiple'?{periods:x.periods}:{
+          average_minutes:x.averageMinutes,longest_minutes:x.longestMinutes})
+      });
+      const remap=key=>{
+        if(key===''||key==null)return '';
+        const label=String(visibleHeaders[Number(key)]||'');
+        const target={'Rooms':'Room','Rooms Used':'Rooms Used','Passes by Classroom':'Passes'}[label]||label;
+        const index=headers.indexOf(target);
+        return index<0?'':String(index);
+      };
+      const scopedSettings={...settings,primary:remap(settings.primary),secondary:remap(settings.secondary)};
+      const groups=new Map();
+      for(const rec of records){
+        const key=String(rec.roomKey||rec.room||'Unassigned');
+        if(!groups.has(key))groups.set(key,{name:String(rec.room||key),records:[]});
+        groups.get(key).records.push(rec);
+      }
+      return [...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}))
+        .map(group=>{
+          const pairs=group.records.map(x=>({cells:cells(x),source:raw(x)}));
+          const sorted=hpSortReportRows(pairs.map(x=>x.cells),scopedSettings);
+          const lookup=new Map(pairs.map(x=>[x.cells,x.source]));
+          return {title:'Classroom: '+group.name,headers,rows:sorted,keepTogether:true,
+            csvRows:sorted.map(row=>lookup.get(row))};
+        });
+    }
+    function hpPrintGroupedTables(table,defaultTitle){
+      const settings=hpPrintSettings();
+      if(settings.subheading===''||settings.subheading==null)return [{title:defaultTitle,headers:table.headers,rows:table.rows}];
+      const index=Number(settings.subheading);
+      if(!Number.isInteger(index)||index<0||index>=table.headers.length)return [{title:defaultTitle,headers:table.headers,rows:table.rows}];
+      const groups=new Map();
+      for(const row of table.rows){
+        const name=String(row[index]??'').trim()||'Unassigned';
+        if(!groups.has(name))groups.set(name,[]);
+        groups.get(name).push(row);
+      }
+      if(!groups.size)return [{title:defaultTitle,headers:table.headers,rows:table.rows}];
+      return [...groups].map(([name,rows])=>({
+        title:table.headers[index]+': '+name,headers:table.headers,rows,keepTogether:true
+      }));
+    }
+    function hpPrintTable(head,body,selector){
+      const result=HallPilotReportPdf.fromTable(head,body,selector);
+      const settings=hpPrintSettings();
+      if(document.getElementById('reportType').value==='roomperiod' && head.id==='campusReportHead'){
+        const groups=new Map();
+        let current=null;
+        for(const tr of body.querySelectorAll('tr')){
+          if(tr.classList.contains('classroomPeriodHeading')){
+            current={name:tr.cells[0]?.textContent.trim()||'',total:Number(tr.cells[1]?.textContent||0),rows:[]};
+            groups.set(current.name,current);
+          }else if(current && tr.classList.contains('classroomPeriodRow')){
+            const cells=Array.from(tr.cells).map(td=>td.textContent.trim());
+            if(settings.zero || Number(cells[1]||0)>0)current.rows.push(cells);
+          }
+        }
+        const grouped=[...groups.values()].filter(g=>settings.zero || g.total>0)
+          .sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+        // Primary sorts classrooms, secondary sorts periods within each classroom.
+        const seconds=s=>[...String(s||'').matchAll(/(\d+)\s*([dhms])/g)]
+          .reduce((n,m)=>n+Number(m[1])*({d:86400,h:3600,m:60,s:1}[m[2]]),0);
+        const metric=(g,key)=>{
+          if(key===0)return g.name;
+          if(key===1)return g.total;
+          if(key===6)return Math.max(0,...g.rows.map(row=>seconds(row[6])));
+          if(key===7)return g.rows.reduce((n,row)=>n+seconds(row[7]),0);
+          if(key===5){
+            const count=g.rows.reduce((n,row)=>n+(Number(row[3])||0),0);
+            return count?g.rows.reduce((n,row)=>n+seconds(row[7]),0)/count:0;
+          }
+          return g.rows.reduce((n,row)=>n+(Number(row[key]?.replace(/,/g,'')||0)||0),0);
+        };
+        if(settings.primary!==''){
+          const key=Number(settings.primary);
+          grouped.sort((a,b)=>{
+            const x=metric(a,key),y=metric(b,key);
+            const cmp=typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),undefined,{numeric:true});
+            return cmp?Math.sign(cmp)*(settings.direction==='desc'?-1:1):a.name.localeCompare(b.name,undefined,{numeric:true});
+          });
+        }
+        const visible=[];
+        for(const g of grouped){
+          const periods=settings.secondary!=='' ?
+            hpSortReportRows(g.rows,{primary:settings.secondary,secondary:'',direction:settings.secondaryDirection}) :
+            g.rows.slice().sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true}));
+          if(settings.group){
+            visible.push([g.name,String(g.total),'','','','','','','']);
+            visible.push(...periods);
+          }else{
+            for(const p of periods)visible.push([g.name+' / '+p[0],...p.slice(1)]);
+          }
+        }
+        return {...result,rows:settings.group?visible:hpSortReportRows(visible,settings)};
+      }
+      return {...result,rows:hpSortReportRows(result.rows,settings)};
+    }
+
+    window.hpPrintIsRoomPeriod=()=>document.getElementById('reportType').value==='roomperiod';
     async function downloadCampusReportPdf(){
       if(!currentCampusReport){setMsg('reportsMessage','Generate a report first.',true);return;}
       const button=$('downloadCampusPdf');
@@ -3481,40 +3922,108 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
         const details=[
           'School: '+school,
           'Reporting period: '+(f.startDate||'')+' through '+(f.endDate||''),
-          f.roomKey?'Room: '+($('campusReportRoom').selectedOptions[0]?.textContent||f.roomKey):'Rooms: All rooms',
-          f.destination?'Destination: '+f.destination:'Destinations: All destinations',
+          f.period?'Period: '+f.period:'All periods',
+          f.roomKey?'Room: '+($('campusReportRoom').selectedOptions[0]?.textContent||f.roomKey):'All rooms',
+          f.destination?'Destination: '+f.destination:'All destinations',
           f.studentId?'Student: '+($('campusReportStudent').selectedOptions[0]?.textContent||f.studentId):'',
-          f.includeTestData?'Note: Includes test data':''
+          f.includeTestData?'Includes test data':'',
+          type==='multipleRooms'?'Rooms reflect pass origins, not current classroom assignments.':'',
+          ['students','frequent','dailyMultiple'].includes(type)&&hpPrintSettings().subheading==='classroom'?
+            (type==='frequent'?'The frequent-pass threshold is schoolwide; classroom counts show only passes originating there.':
+              type==='dailyMultiple'?'Daily threshold is schoolwide; classroom sections show only passes originating there.':
+              'Classroom sections use only the passes that originated in each room.'):'',
+          (s.longDurationCount||0)>0?'Duration caution: '+s.longDurationCount+' verified pass(es) exceeded 8 hours; elapsed time includes overnight hours.':''
         ];
-        const summary=[
+        const summary=type==='multipleRooms'?[[ 'Students Using Multiple Rooms',(r.multipleRoomStudents||[]).length ],['Passes by These Students',(r.multipleRoomStudents||[]).reduce((n,x)=>n+x.totalPasses,0)],['Classrooms Involved',new Set((r.multipleRoomStudents||[]).flatMap(x=>(x.roomBreakdown||[]).map(y=>y.roomKey))).size]]:type==='dailyMultiple'?[[ 'Student-Day Cases',(r.multiplePassDays||[]).length ],['Unique Students',new Set((r.multiplePassDays||[]).map(x=>x.studentId)).size],['Passes in Cases',(r.multiplePassDays||[]).reduce((n,x)=>n+x.totalPasses,0)],['Minimum Per Day',r.filters.minDailyPasses||2]]:[
           ['Total Passes',s.totalPasses||0],
           ['Verified Returns',s.completedPasses||0],
           ['Auto-Closed',s.autoClosedPasses||0],
           ['Average Verified Time',reportMinutes(s.averageMinutes)],
+          ['Median Verified Time',reportMinutes(s.medianMinutes)],
+          ['Passes Over 8 Hours',s.longDurationCount??0],
           ['Longest Verified Pass',reportMinutes(s.longestMinutes)],
           ['Total Verified Time',reportMinutes(s.totalMinutes)],
           ['Teacher Overrides',s.overrides||0]
         ];
-        const main=HallPilotReportPdf.fromTable($('campusReportHead'),$('campusReportBody'));
-        const tables=[{title:$('campusReportTitle').textContent,headers:main.headers,rows:main.rows}];
+        const main=hpPrintTable($('campusReportHead'),$('campusReportBody'));
+        const printPrefs=hpPrintSettings();
+        let tables=type==='roomperiod'?[{title:$('campusReportTitle').textContent,headers:main.headers,rows:main.rows}]:hpPrintGroupedTables(main,$('campusReportTitle').textContent);
+        if(['students','frequent','dailyMultiple','multipleRooms'].includes(type)&&printPrefs.subheading==='classroom'){
+          tables=hpPrintClassroomTables(r,printPrefs,type,main.headers);
+          if(!tables.length)tables=[{title:'No classrooms with passes',headers:main.headers,rows:[]}];
+        }
+        // A separate table per classroom prevents splitting its six periods
+        // unless a group is genuinely too large to fit on one page.
+        if(type==='roomperiod'&&hpPrintSettings().group){
+          const grouped=[];
+          let current=null;
+          for(const row of main.rows){
+            const isHeading=row.slice(2).every(v=>v===''||v==='—');
+            if(isHeading){
+              current={title:row[0],headers:main.headers,rows:[],keepTogether:true};
+              grouped.push(current);
+            }else if(current)current.rows.push(row);
+          }
+          if(grouped.length)tables=grouped;
+        }
+        if(type==='roomperiod'&&printPrefs.subheading==='period'){
+          // Work from the same filtered/sorted rows used by the visible report.
+          // In flat mode the first cell is "Room / Period".
+          const byPeriod=new Map();
+          for(const row of main.rows){
+            const name=String(row[0]||'');
+            const split=name.lastIndexOf(' / ');
+            if(split<0)continue;
+            const room=name.slice(0,split).trim();
+            const period=name.slice(split+3).trim()||'Unassigned';
+            if(!byPeriod.has(period))byPeriod.set(period,[]);
+            byPeriod.get(period).push([room,...row.slice(1)]);
+          }
+          if(byPeriod.size){
+            tables=[...byPeriod.entries()]
+              .sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true}))
+              .map(([period,rows])=>({
+                title:'Period '+period,
+                headers:['Classroom',...main.headers.slice(1)],
+                rows,keepTogether:true
+              }));
+          }
+        }
         if(!$('reportSecondaryWrap').classList.contains('hidden')){
-          const second=HallPilotReportPdf.fromTable($('reportSecondaryHead'),$('reportSecondaryBody'));
+          const second=hpPrintTable($('reportSecondaryHead'),$('reportSecondaryBody'));
           tables.push({title:$('reportSecondaryTitle').textContent,headers:second.headers,rows:second.rows});
         }
         await HallPilotReportPdf.exportPdf({
-          title:$('campusReportTitle').textContent,
+          title:hpPrintSettings().heading||$('campusReportTitle').textContent,
           scope:'School administration',
-          details:details,summary:summary,tables:tables,
+          details:[...details,...(hpPrintSettings().subtitle?[hpPrintSettings().subtitle]:[])],summary:summary,tables:tables,
+          openInNewTab: true,
           fontDirectory:'vendor/fonts/',
           fileName:'hall-pass-admin-'+type+'-'+(f.startDate||'start')+'-to-'+(f.endDate||'end')
         });
-        setMsg('reportsMessage','PDF report prepared for download.');
+        setMsg('reportsMessage','PDF report opened in a new tab. Use the browser viewer to print or save.');
       }catch(error){
         setMsg('reportsMessage','Could not create PDF: '+(error&&error.message||error),true);
       }finally{button.disabled=false;}
     }
 
-    function downloadCampusReport(){if(!currentCampusReport)return;const type=$('reportType').value;const id=type==='detail'?'-'+String(currentCampusReport.studentDetail?.studentId||'student').replace(/[^a-z0-9_-]/gi,'-'):'';downloadCsvRows(`hall-pass-${type}${id}-${currentCampusReport.filters.startDate}-to-${currentCampusReport.filters.endDate}.csv`,campusReportRows())}
+    function downloadCampusReport(){
+      if(!currentCampusReport)return;
+      const type=$('reportType').value;
+      const id=type==='detail'?'-'+String(currentCampusReport.studentDetail?.studentId||'student').replace(/[^a-z0-9_-]/gi,'-'):'';
+      const settings=hpPrintSettings();
+      let records=campusReportRows();
+      if(['students','frequent','dailyMultiple','multipleRooms'].includes(type)&&settings.subheading==='classroom'){
+        const columns=Array.from($('campusReportHead').querySelectorAll('th'))
+          .map(th=>th.textContent.replace(/[▲▼]/g,'').trim());
+        const grouped=hpPrintClassroomTables(currentCampusReport,settings,type,columns);
+        records=grouped.flatMap(t=>t.csvRows);
+      }else if(settings.primary!==''||settings.secondary!==''||type==='roomperiod'){
+        const table=hpPrintTable($('campusReportHead'),$('campusReportBody'));
+        records=table.rows.map(row=>Object.fromEntries(table.headers.map((h,i)=>[h,row[i]])));
+      }
+      downloadCsvRows(`hall-pass-${type}${id}-${currentCampusReport.filters.startDate}-to-${currentCampusReport.filters.endDate}.csv`,records);
+    }
     async function exportBackupDataset(dataset,button){if(button)button.disabled=true;setMsg('backupMessage',`Preparing ${dataset} export...`);try{const r=await hallpassApi.call('adminBackupDataset',[dataset]);if(!r.success){setMsg('backupMessage',r.message,true);return;}const stamp=new Date().toISOString().slice(0,10);if(dataset==='students')downloadCsvRows(`hall-pass-students-${stamp}.csv`,r.rows||[]);else if(dataset==='passes')downloadCsvRows(`hall-pass-history-${stamp}.csv`,r.rows||[]);else if(dataset==='audit')downloadCsvRows(`hall-pass-audit-${stamp}.csv`,(r.rows||[]).map(x=>({...x,details:JSON.stringify(x.details||{})})));else if(dataset==='configuration')downloadTextFile(`hall-pass-configuration-${stamp}.json`,JSON.stringify(r.data,null,2),'application/json;charset=utf-8');else if(dataset==='full')downloadTextFile(`${(adminAccess.selectedSchool?.key||'school').replace(/[^a-z0-9_-]+/gi,'-')}-hall-pass-full-backup-${stamp}.json`,JSON.stringify(r.backup,null,2),'application/json;charset=utf-8');setMsg('backupMessage','Download created.')}catch(e){setMsg('backupMessage',e.message,true)}finally{if(button)button.disabled=false}}
 
     function onboardingTeacherMode(){return (document.querySelector('input[name="onboardTeacherMode"]:checked')||{}).value||'new'}
@@ -3702,7 +4211,7 @@ Please bookmark the Teacher Control Panel on your classroom computer. The Studen
       else if(del)rsDeleteRoomGroup(del.dataset.rsDeleteGroup);
     });
     $('refreshCalendar').addEventListener('click',e=>refreshCalendar(e.currentTarget));$('saveCalendarEntry').addEventListener('click',saveCalendarEntry);$('previewWeeklyCalendar').addEventListener('click',()=>previewBulkCalendar(buildWeeklyCalendarDates(),'weekly'));$('previewListedCalendar').addEventListener('click',()=>previewBulkCalendar(buildListedCalendarDates(),'listed'));$('applyBulkCalendar').addEventListener('click',applyBulkCalendar);$('clearBulkCalendar').addEventListener('click',clearBulkCalendarPreview);$('bulkConflictMode').addEventListener('change',()=>{if(bulkCalendarPreview)previewBulkCalendar(bulkCalendarPreview.dates,bulkCalendarPreview.source)});
-    $('refreshReportOptions').addEventListener('click',e=>refreshReportOptions(e.currentTarget));$('generateCampusReport').addEventListener('click',generateCampusReport);$('downloadCampusReport').addEventListener('click',downloadCampusReport);$('downloadCampusPdf').addEventListener('click',downloadCampusReportPdf);$('campusReportBack').addEventListener('click',backCampusReportDrill);$('printCampusStudentDetail').addEventListener('click',printCampusStudentDetail);['campusReportBody','reportSecondaryBody'].forEach(id=>$(id).addEventListener('click',e=>{const btn=e.target.closest('[data-report-drill]');if(btn)drillDownCampusReport(btn.dataset.reportDrill,btn.dataset.reportValue)}));$('reportType').addEventListener('change',clearCampusReportOnChange);['campusReportRoom','campusReportStudent','campusReportDestination','campusReportStart','campusReportEnd','longPassMinutes','frequentPassCount','campusIncludeTestData'].forEach(id=>$(id).addEventListener('change',clearCampusReportOnChange));$('exportStudents').addEventListener('click',e=>exportBackupDataset('students',e.currentTarget));$('exportPasses').addEventListener('click',e=>exportBackupDataset('passes',e.currentTarget));$('exportConfiguration').addEventListener('click',e=>exportBackupDataset('configuration',e.currentTarget));$('exportAudit').addEventListener('click',e=>exportBackupDataset('audit',e.currentTarget));$('downloadFullBackup').addEventListener('click',e=>exportBackupDataset('full',e.currentTarget));
+    $('refreshReportOptions').addEventListener('click',e=>refreshReportOptions(e.currentTarget));$('generateCampusReport').addEventListener('click',generateCampusReport);$('downloadCampusReport').addEventListener('click',downloadCampusReport);$('downloadCampusPdf').addEventListener('click',downloadCampusReportPdf);$('campusReportBack').addEventListener('click',backCampusReportDrill);$('printCampusStudentDetail').addEventListener('click',printCampusStudentDetail);['campusReportBody','reportSecondaryBody'].forEach(id=>$(id).addEventListener('click',e=>{const btn=e.target.closest('[data-report-drill]');if(btn)drillDownCampusReport(btn.dataset.reportDrill,btn.dataset.reportValue)}));$('reportType').addEventListener('change',()=>{const type=$('reportType').value;if(type==='period'||type==='roomperiod'||type==='dailyMultiple')$('campusReportDestination').value='Restroom';else if(type==='destination')$('campusReportDestination').value='';if(type==='multipleRooms'){$('campusReportRoom').value='';$('campusReportDestination').value='';} $('campusReportRoom').disabled=type==='multipleRooms';clearCampusReportOnChange();});['campusReportRoom','campusReportPeriod','campusReportStudent','campusReportDestination','campusReportStart','campusReportEnd','longPassMinutes','frequentPassCount','dailyPassCount','campusIncludeTestData'].forEach(id=>$(id).addEventListener('change',clearCampusReportOnChange));$('exportStudents').addEventListener('click',e=>exportBackupDataset('students',e.currentTarget));$('exportPasses').addEventListener('click',e=>exportBackupDataset('passes',e.currentTarget));$('exportConfiguration').addEventListener('click',e=>exportBackupDataset('configuration',e.currentTarget));$('exportAudit').addEventListener('click',e=>exportBackupDataset('audit',e.currentTarget));$('downloadFullBackup').addEventListener('click',e=>exportBackupDataset('full',e.currentTarget));
     $('refreshAudit').addEventListener('click',e=>refreshAudit(e.currentTarget));$('auditRoomFilter').addEventListener('change',()=>refreshAudit());$('auditSearch').addEventListener('keydown',e=>{if(e.key==='Enter')refreshAudit()});$('loginButton').addEventListener('click',login);$('adminPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('refreshLive').addEventListener('click',async e=>{await refreshLive(e.currentTarget);refreshRoomPassStatus()});$('roomFilter').addEventListener('change',()=>{refreshLive();refreshRoomPassStatus()});$('search').addEventListener('keydown',e=>{if(e.key==='Enter')refreshLive()});$('historyIncludeTestData').addEventListener('change',()=>refreshLive());$('refreshManage').addEventListener('click',e=>refreshManagement(e.currentTarget));$('refreshSchedules').addEventListener('click',e=>refreshManagement(e.currentTarget));$('addScheduleButton').addEventListener('click',()=>openSchedule());$('saveScheduleButton').addEventListener('click',saveSchedule);$('confirmScheduleReplace').addEventListener('click',confirmScheduleReplacement);$('addSchedulePeriodButton').addEventListener('click',()=>addSchedulePeriod());$('schedulePeriodBody').addEventListener('click',e=>{const b=e.target.closest('[data-remove-period]');if(b)b.closest('.scheduleEditorRow').remove()});$('onboardRoomButton').addEventListener('click',openOnboardingWizard);$('addRoomButton').addEventListener('click',()=>openRoom());$('deleteRoomFromModalButton').addEventListener('click',()=>deleteRoom($('roomEditId').value));$('addTeacherButton').addEventListener('click',()=>openTeacher());$('saveRoomButton').addEventListener('click',saveRoom);$('saveTeacherButton').addEventListener('click',saveTeacher);
     $('onboardBackButton').addEventListener('click',onboardingBack);$('onboardNextButton').addEventListener('click',onboardingNext);$('onboardCreateButton').addEventListener('click',createOnboardedRoom);$('copyStudentLink').addEventListener('click',()=>copyTextValue($('roomStudentLink').value,'Student link copied.'));$('copyTeacherLink').addEventListener('click',()=>copyTextValue($('roomTeacherLink').value,'Teacher link copied.'));$('copySetupMessage').addEventListener('click',()=>{const room=currentLinksRoom();if(room)copyTextValue(setupMessageForRoom(room),'Setup message copied.')});$('openStudentLink').addEventListener('click',()=>window.open($('roomStudentLink').value,'_blank','noopener'));$('openTeacherLink').addEventListener('click',()=>window.open($('roomTeacherLink').value,'_blank','noopener'));document.querySelectorAll('input[name="onboardTeacherMode"]').forEach(x=>x.addEventListener('change',toggleOnboardingTeacherMode));$('onboardCloneRoom').addEventListener('change',()=>loadOnboardingDestinations($('onboardCloneRoom').value));$('onboardRoomName').addEventListener('blur',()=>{if(!$('onboardRoomKey').value.trim())$('onboardRoomKey').value=$('onboardRoomName').value.trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')});
     $('schoolSelector').addEventListener('change',switchSchool);$('addSchoolButton').addEventListener('click',()=>openSchool());$('refreshOrganization').addEventListener('click',e=>refreshOrganization(e.currentTarget));$('saveSchoolButton').addEventListener('click',saveSchool);
